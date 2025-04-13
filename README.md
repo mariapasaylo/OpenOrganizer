@@ -14,6 +14,8 @@ Client: Node.js / ``npm``
 
 Server: Golang, GCC / ``make`` (``Mingw32-make``)
 
+Database: PostgreSQL 17.4+
+
 ## Client Setup Instructions
 
 1. ``git clone LINK``
@@ -26,4 +28,12 @@ Server: Golang, GCC / ``make`` (``Mingw32-make``)
 
 1. ``git clone LINK``
 2. ``cd OpenOrganizer/server``
-3. ``make`` to run, ``make build`` to build in ./bin/
+3. Create a .env file and fill in your data following this format:
+```
+SERVER_PORT="port"
+DB_HOST="address"
+DB_PORT="port"
+DB_USER="username"
+DB_PWD="password"
+```
+4. ``make`` to run, ``make build`` to build in ./bin/
