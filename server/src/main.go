@@ -79,7 +79,12 @@ func main() {
 	}
 }
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func login(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 
 	// example code of adding two values
 	// x-www-form-urlencoded format

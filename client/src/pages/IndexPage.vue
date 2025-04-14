@@ -6,13 +6,26 @@
       :todos="todos"
       :meta="meta"
     ></example-component>
+    <section class="test">
+      <div class="test-pieces">
+        <button size="lg" @click="handleCommand">Local</button>
+        <input id="in0" type="text" />
+      </div>
+      <section id="out0"></section>
+      <div class="test-pieces">
+        <button size="lg" @click="handleCommandServer">Server</button>
+        <input id="in1" type="text" />
+      </div>
+      <section id="out1"></section>
+    </section>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { Todo, Meta } from 'components/models';
+import * as db from "../utils/db"
 import ExampleComponent from 'components/ExampleComponent.vue';
+import type { Todo, Meta } from 'components/models';
+import { ref } from 'vue';
 
 const todos = ref<Todo[]>([
   {
@@ -40,4 +53,21 @@ const todos = ref<Todo[]>([
 const meta = ref<Meta>({
   totalCount: 1200
 });
+
+// the way i retrieved text works, but might not be the optimal vue way to do it
+
+async function handleCommand() {
+  console.log("Insert pressed");
+  const input: string = (document.getElementById("in0")! as HTMLInputElement).value;
+  const output = document.getElementById("out0")!;
+  output.textContent = await db.dbCommand(input);
+}
+
+async function handleCommandServer() {
+  console.log("Insert pressed");
+  const input: string = (document.getElementById("in1")! as HTMLInputElement).value;
+  const output = document.getElementById("out1")!;
+  output.textContent = await db.dbCommandServer(input);
+}
+
 </script>

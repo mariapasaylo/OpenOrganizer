@@ -21,8 +21,16 @@ Database: PostgreSQL 17.4+
 1. ``git clone LINK``
 2. ``cd OpenOrganizer/client``
 3. ``npm install``
-4. ``quasar dev`` to run in the browser
-5. ``quasar build -m electron`` for executable
+4. Create a ``serveraddress.txt`` file in ./public/ following this format:
+```
+SERVER_ADDRESS
+```
+Example:
+```
+https://localhost:3001/
+```
+5. ``quasar dev`` to run in the browser
+6. ``quasar build -m electron`` for executable
 
 ## Server Setup Instructions
 
@@ -33,6 +41,14 @@ Database: PostgreSQL 17.4+
 SERVER_PORT="port"
 DB_HOST="address"
 DB_PORT="port"
+DB_USER="username"
+DB_PWD="password"
+```
+Example:
+```
+SERVER_PORT="3001"
+DB_HOST="localhost"
+DB_PORT="3002"
 DB_USER="username"
 DB_PWD="password"
 ```
