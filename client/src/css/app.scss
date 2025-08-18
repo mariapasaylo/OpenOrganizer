@@ -1,0 +1,11 @@
+// app global css in SCSS form
+.test {
+    display: grid;
+    gap: 10vh;
+}
+
+.test-pieces {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
