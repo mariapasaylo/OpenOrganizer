@@ -1,6 +1,6 @@
 # OpenOrganizer
 
-Team Members: 
+Team Members:
 * Kevin Sirantoine
 * Rachel Patella
 * Michael Jagiello
@@ -27,7 +27,7 @@ SERVER_ADDRESS
 ```
 Example:
 ```
-https://localhost:3001/
+http://localhost:3001/
 ```
 5. ``quasar dev`` to run in the browser
 6. ``quasar build -m electron`` for executable
@@ -49,7 +49,7 @@ Example:
 SERVER_PORT="3001"
 DB_HOST="localhost"
 DB_PORT="3002"
-DB_USER="username"
+DB_USER="postgres"
 DB_PWD="password"
 ```
-4. ``make`` to run, ``make build`` to build in ./bin/
+4. ``make`` (or ``mingw32-make`` for Windows) to run, ``make build`` to build in ./bin/
