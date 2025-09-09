@@ -12,6 +12,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func UNUSED(x ...any) {}
+
 var db *sql.DB
 
 func main() {
@@ -54,7 +56,8 @@ func main() {
 		fmt.Fprint(w, "Connected")
 	})
 
-	http.HandleFunc("/login", login)
+	http.HandleFunc("/load", load)
+	http.HandleFunc("/store", store)
 
 	// main
 
@@ -73,17 +76,34 @@ func main() {
 	}
 	fmt.Println("Connected to SQL database")
 
+	//db.Exec("DROP TABLE example;")
+
+	createExampleTableSQL := `
+		CREATE TABLE IF NOT EXISTS example (
+			id VARCHAR(32),
+            value VARCHAR(32)
+        );`
+	_, err = db.Exec(createExampleTableSQL)
+	if err != nil {
+		fmt.Printf("Error creating table: %v\n", err)
+		return
+	}
+
 	if error := http.ListenAndServe("localhost:"+SERVER_PORT, nil); error != nil {
 		log.Fatalf("Server failed to start")
 		return
 	}
+
+	// unused functions & variables
+
+	UNUSED(add)
 }
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func add(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
 	// example code of adding two values
@@ -102,4 +122,74 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, "%d + %d = %d", aInt, bInt, aInt+bInt)
+}
+
+func load(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	r.ParseForm()
+	k := r.FormValue("k")
+
+	if k == "" {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if len(k) > 32 {
+		http.Error(w, "string too long", http.StatusBadRequest)
+		return
+	}
+
+	loadFromTableSQL := "SELECT * FROM example WHERE id = '" + k + "'"
+	rows, err := db.Query(loadFromTableSQL)
+	if err != nil {
+		fmt.Printf("Error creating table: %v\n", err)
+		return
+	}
+	defer rows.Close()
+
+	var values []string
+
+	for rows.Next() {
+		var key string
+		var value string
+		if err := rows.Scan(&key, &value); err != nil {
+			fmt.Fprintf(w, "error")
+			return
+		}
+		values = append(values, value)
+	}
+	if err = rows.Err(); err != nil {
+		fmt.Fprintf(w, "error")
+		return
+	}
+
+	fmt.Fprintf(w, "retrieved '%s' using '%s'", values[0], k)
+}
+
+func store(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	r.ParseForm()
+	k := r.FormValue("k")
+	v := r.FormValue("v")
+
+	if (k == "") || (v == "") {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if (len(k) > 32) || (len(v) > 32) {
+		http.Error(w, "string(s) too long", http.StatusBadRequest)
+		return
+	}
+
+	storeToTableSQL := "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
+	_, err := db.Query(storeToTableSQL)
+	if err != nil {
+		fmt.Printf("error inserting into table: %v\n", err)
+		return
+	}
+
+	fmt.Fprintf(w, "stored '%s', '%s'", k, v)
 }
