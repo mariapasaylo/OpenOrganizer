@@ -8,39 +8,30 @@ fetch("serveraddress.txt")
     }).catch((error) => console.error(error));
 
 // example db handling for sqlite to test setup
-
-export async function dbCommand(input: string): Promise<string> {
-    if (input === "") {
-        console.log("SQL cannot be null");
-        return "";
-    }
-
-    console.log(input);
-    const output: string = "not setup";
-
-    return output;
-}
-
 // example of sending to server
 
-export async function dbCommandServer(input: string): Promise<string> {
-    if (input === "") {
-        console.log("SQL cannot be null");
-        return "";
-    }
-    console.log(input);
-    console.log("Server Address:", serverAddress);
-    let output: string = "not setup";
+// handle based on mode
+export async function dbCommand(mode: string, input: string): Promise<string> {
+  if (input === "") {
+    console.log("SQL cannot be null");
+    return "";
+  }
+  console.log(input);
+  console.log("Server Address:", serverAddress);
+  let output: string = "not setup";
+  if (mode === "not setup") {
+    return output;
+  }
 
-    // connect to server
-    const response = await Axios.post(serverAddress + "login", 
-        input, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
+  // connect to server
+  const response = await Axios.post(serverAddress + mode,
+    input, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
     });
 
-    output = JSON.stringify(response);
+  output = JSON.stringify(response.data);
 
-    return output;
+  return output;
 }

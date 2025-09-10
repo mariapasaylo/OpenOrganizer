@@ -6,17 +6,30 @@
       :todos="todos"
       :meta="meta"
     ></example-component>
-    <section class="test">
+    <section class="column items-center q-gutter-xl">
       <div class="test-pieces">
-        <button size="lg" @click="handleCommand">Local</button>
+        <button @click="() => handleCommand('not setup', 'in0', 'out0')">Local</button>
         <input id="in0" type="text" />
       </div>
       <section id="out0"></section>
-      <div class="test-pieces">
-        <button size="lg" @click="handleCommandServer">Server</button>
+      <div class="test-pieces" >
+        <button @click="() => handleCommand('add', 'in1', 'out1')">Server</button>
         <input id="in1" type="text" />
       </div>
+      ex: "a=1&b=2"
       <section id="out1"></section>
+      <div class="test-pieces">
+        <button @click="() => handleCommand('load', 'in2', 'out2')">DB Load</button>
+        <input id="in2" type="text" />
+      </div>
+      ex: "k=foo"
+      <section id="out2"></section>
+      <div class="test-pieces">
+        <button @click="() => handleCommand('store', 'in3', 'out3')">DB Store</button>
+        <input id="in3" type="text" />
+      </div>
+      ex: "k=foo&v=bar"
+      <section id="out3"></section>
     </section>
   </q-page>
 </template>
@@ -56,18 +69,11 @@ const meta = ref<Meta>({
 
 // the way i retrieved text works, but might not be the optimal vue way to do it
 
-async function handleCommand() {
+async function handleCommand(mode: string, inId: string, outId: string) {
   console.log("Insert pressed");
-  const input: string = (document.getElementById("in0")! as HTMLInputElement).value;
-  const output = document.getElementById("out0")!;
-  output.textContent = await db.dbCommand(input);
-}
-
-async function handleCommandServer() {
-  console.log("Insert pressed");
-  const input: string = (document.getElementById("in1")! as HTMLInputElement).value;
-  const output = document.getElementById("out1")!;
-  output.textContent = await db.dbCommandServer(input);
+  const input: string = (document.getElementById(inId)! as HTMLInputElement).value;
+  const output = document.getElementById(outId)!;
+  output.textContent = await db.dbCommand(mode, input);
 }
 
 </script>
