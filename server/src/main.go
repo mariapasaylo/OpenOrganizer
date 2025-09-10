@@ -58,12 +58,14 @@ func main() {
 
 	http.HandleFunc("/load", load)
 	http.HandleFunc("/store", store)
+	http.HandleFunc("/add", add)
 
 	// main
 
 	fmt.Printf("Server Port: %s\n", SERVER_PORT)
 	fmt.Printf("Database Location: %s:%s@%s\n", DB_HOST, DB_PORT, DB_USER)
 
+    // opening postgres connection
 	pgConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DB_HOST, DB_PORT, DB_USER, DB_PWD, "postgres")
 	conn, err := sql.Open("postgres", pgConnStr)
 	if err != nil {
