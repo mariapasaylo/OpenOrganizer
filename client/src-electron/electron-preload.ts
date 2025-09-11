@@ -27,3 +27,11 @@
  *   }
  * }
  */
+// electron-preload.ts
+
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  sqliteLoad: (key: string) => ipcRenderer.invoke('sqliteLoad', key),
+  sqliteStore: (key: string, value: string) => ipcRenderer.invoke('sqliteStore', key, value),
+});
