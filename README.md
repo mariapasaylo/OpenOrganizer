@@ -29,8 +29,12 @@ Example:
 ```
 http://localhost:3001/
 ```
-5. ``quasar dev`` to run in the browser
-6. ``quasar build -m electron`` for executable
+5. ``npm run rebuild``
+6. ``quasar dev -m electron`` to run in electron **(necessary for sqlite)**
+
+Extra Options:<br>
+``quasar dev`` to run in the browser<br>
+``quasar build -m electron`` to build executable
 
 ## Server Setup Instructions
 

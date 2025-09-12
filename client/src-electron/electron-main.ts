@@ -2,6 +2,9 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url'
+import { ipcMain } from 'electron';
+import { load, store } from './sqlitedb';
+
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -62,4 +65,13 @@ app.on('activate', () => {
   if (mainWindow === undefined) {
     void createWindow();
   }
+});
+
+ipcMain.handle('sqliteLoad', (event, key: string) => {
+  return load(key);
+});
+
+ipcMain.handle('sqliteStore', (event, key: string, value: string) => {
+  store(key, value);
+  return { success: true };
 });
