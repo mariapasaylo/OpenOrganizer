@@ -20,7 +20,8 @@ func main() {
 	// loading vital variables
 
 	if err := godotenv.Load(); err != nil {
-		fmt.Printf("error loading: %v", err)
+		fmt.Printf("error loading: %v\n", err)
+		return
 	}
 
 	var SERVER_PORT = os.Getenv("SERVER_PORT")
@@ -52,8 +53,11 @@ func main() {
 	// http connection handling functions
 
 	http.HandleFunc("/", root)
+
 	http.HandleFunc("/create", create)
 	http.HandleFunc("/read", read)
+	http.HandleFunc("/update", update)
+	http.HandleFunc("/delete", delete)
 
 	// main
 
@@ -175,5 +179,60 @@ func read(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "retrieved '%s' using '%s'\n", values[0], k)
+	for i := range values {
+		fmt.Fprintf(w, "retrieved '%s' using '%s'\n", values[i], k)
+	}
+}
+
+func update(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	r.ParseForm()
+	k := r.FormValue("k")
+	v := r.FormValue("v")
+
+	if (k == "") || (v == "") {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if (len(k) > 32) || (len(v) > 32) {
+		http.Error(w, "string(s) too long", http.StatusBadRequest)
+		return
+	}
+
+	updateTableSQL := "UPDATE example SET value='" + v + "' WHERE id='" + k + "';"
+	_, err := db.Query(updateTableSQL)
+	if err != nil {
+		fmt.Printf("error updating table: %v\n", err)
+		return
+	}
+
+	fmt.Fprintf(w, "updated '%s' to '%s'", k, v)
+}
+
+func delete(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	r.ParseForm()
+	k := r.FormValue("k")
+
+	if k == "" {
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if len(k) > 32 {
+		http.Error(w, "string(s) too long", http.StatusBadRequest)
+		return
+	}
+
+	deleteFromTableSQL := "DELETE FROM example WHERE id='" + k + "';"
+	_, err := db.Query(deleteFromTableSQL)
+	if err != nil {
+		fmt.Printf("error deleting from table: %v\n", err)
+		return
+	}
+
+	fmt.Fprintf(w, "attempted to / deleted '%s'", k)
 }
