@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -18,7 +17,7 @@ var db *sql.DB
 
 func main() {
 
-	// variables
+	// loading vital variables
 
 	if err := godotenv.Load(); err != nil {
 		fmt.Printf("error loading: %v", err)
@@ -50,22 +49,19 @@ func main() {
 		return
 	}
 
-	// functions
+	// http connection handling functions
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Connected")
-	})
-
-	http.HandleFunc("/load", load)
-	http.HandleFunc("/store", store)
-	http.HandleFunc("/add", add)
+	http.HandleFunc("/", root)
+	http.HandleFunc("/create", create)
+	http.HandleFunc("/read", read)
 
 	// main
 
 	fmt.Printf("Server Port: %s\n", SERVER_PORT)
 	fmt.Printf("Database Location: %s:%s@%s\n", DB_HOST, DB_PORT, DB_USER)
 
-    // opening postgres connection
+	// opening postgres connection
+
 	pgConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DB_HOST, DB_PORT, DB_USER, DB_PWD, "postgres")
 	conn, err := sql.Open("postgres", pgConnStr)
 	if err != nil {
@@ -95,38 +91,46 @@ func main() {
 		log.Fatalf("Server failed to start")
 		return
 	}
-
-	// unused functions & variables
-
-	UNUSED(add)
 }
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 }
 
-func add(w http.ResponseWriter, r *http.Request) {
+func root(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
-	// example code of adding two values
-	// x-www-form-urlencoded format
+	fmt.Fprint(w, "connected")
+}
+
+func create(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 
 	r.ParseForm()
-	a := r.FormValue("a")
-	b := r.FormValue("b")
+	k := r.FormValue("k")
+	v := r.FormValue("v")
 
-	aInt, err0 := strconv.Atoi(a)
-	bInt, err1 := strconv.Atoi(b)
-
-	if (err0 != nil) || (err1 != nil) {
-		http.Error(w, "Invalid Input", http.StatusBadRequest)
+	if (k == "") || (v == "") {
+		http.Error(w, "invalid input", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Fprintf(w, "%d + %d = %d", aInt, bInt, aInt+bInt)
+	if (len(k) > 32) || (len(v) > 32) {
+		http.Error(w, "string(s) too long", http.StatusBadRequest)
+		return
+	}
+
+	storeToTableSQL := "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
+	_, err := db.Query(storeToTableSQL)
+	if err != nil {
+		fmt.Printf("error inserting into table: %v\n", err)
+		return
+	}
+
+	fmt.Fprintf(w, "stored '%s', '%s'", k, v)
 }
 
-func load(w http.ResponseWriter, r *http.Request) {
+func read(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
 	r.ParseForm()
@@ -166,32 +170,10 @@ func load(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "retrieved '%s' using '%s'", values[0], k)
-}
-
-func store(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	r.ParseForm()
-	k := r.FormValue("k")
-	v := r.FormValue("v")
-
-	if (k == "") || (v == "") {
-		http.Error(w, "invalid input", http.StatusBadRequest)
+	if len(values) == 0 {
+		fmt.Fprintf(w, "no values found under id = %s", k)
 		return
 	}
 
-	if (len(k) > 32) || (len(v) > 32) {
-		http.Error(w, "string(s) too long", http.StatusBadRequest)
-		return
-	}
-
-	storeToTableSQL := "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
-	_, err := db.Query(storeToTableSQL)
-	if err != nil {
-		fmt.Printf("error inserting into table: %v\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "stored '%s', '%s'", k, v)
+	fmt.Fprintf(w, "retrieved '%s' using '%s'\n", values[0], k)
 }
