@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -54,10 +55,17 @@ func main() {
 
 	http.HandleFunc("/", root)
 
+	// CRUD (currently in urlencoded form)
+
 	http.HandleFunc("/create", create)
 	http.HandleFunc("/read", read)
 	http.HandleFunc("/update", update)
 	http.HandleFunc("/delete", delete)
+
+	// handling types
+
+	http.HandleFunc("/formdata", formdata)
+	http.HandleFunc("/raw", raw)
 
 	// main
 
@@ -235,4 +243,33 @@ func delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, "attempted to / deleted '%s'", k)
+}
+
+func formdata(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	//r.ParseForm() for only urlencoded
+	r.ParseMultipartForm(0x100)
+	k := r.FormValue("k")
+
+	if k == "" {
+		http.Error(w, "k is empty", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprintf(w, "k = %s", k)
+}
+
+func raw(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	r.Body = http.MaxBytesReader(w, r.Body, 0x100)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	fmt.Fprintf(w, "read:\n%s", body)
 }
