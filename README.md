@@ -10,18 +10,16 @@ Team Members:
 
 ## Prerequisites
 
-Client: Node.js / ``npm``
+Client: Node.js / `npm`
 
-Server: Golang, GCC / ``make`` (``Mingw32-make``)
-
-Database: PostgreSQL 17.4+
+Server: Golang, GCC / `make` (`Mingw32-make`), PostgreSQL 17.4+ (or other SQL database)
 
 ## Client Setup Instructions
 
-1. ``git clone LINK``
-2. ``cd OpenOrganizer/client``
-3. ``npm install``
-4. Create a ``serveraddress.txt`` file in ./public/ following this format:
+1. `git clone LINK`
+2. `cd OpenOrganizer/client`
+3. `npm install`
+4. Create a file named `serveraddress.txt` in `client/public/` following this format:
 ```
 SERVER_ADDRESS
 ```
@@ -29,18 +27,21 @@ Example:
 ```
 http://localhost:3001/
 ```
-5. ``npm run rebuild``
-6. ``quasar dev -m electron`` to run in electron **(necessary for sqlite)**
+5. `npm run rebuild`
+6. `quasar dev -m electron` to run in electron **(necessary for sqlite)**
 
 Extra Options:<br>
-``quasar dev`` to run in the browser<br>
-``quasar build -m electron`` to build executable
+`quasar dev` to run in the browser<br>
+`quasar build -m electron` to build executable
 
 ## Server Setup Instructions
 
-1. ``git clone LINK``
-2. ``cd OpenOrganizer/server``
-3. Create a .env file and fill in your data following this format:
+An external SQL Database application is required for the server. 
+Our team uses PostgreSQL 17.4.
+
+1. `git clone LINK`
+2. `cd OpenOrganizer/server`
+3. Create a file named `.env` in `server/` and fill in your data following this format:
 ```
 SERVER_PORT="port"
 DB_HOST="address"
@@ -56,4 +57,4 @@ DB_PORT="3002"
 DB_USER="postgres"
 DB_PWD="password"
 ```
-4. ``make`` (or ``mingw32-make`` for Windows) to run, ``make build`` to build in ./bin/
+4. `make` (or `mingw32-make` for Windows) to run, `make build` to build in `server/bin/`
