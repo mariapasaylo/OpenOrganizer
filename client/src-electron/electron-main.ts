@@ -4,7 +4,7 @@ import os from 'os';
 import { fileURLToPath } from 'url'
 import { ipcMain } from 'electron';
 import { read, create, update, deleteEntry} from './sqlitedb';
-
+import './store';
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();

@@ -37,3 +37,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sqliteUpdate: (key: string, value: string) => ipcRenderer.invoke('sqliteUpdate', key, value),
   sqliteDelete: (key: string) => ipcRenderer.invoke('sqliteDelete', key)
 });
+
