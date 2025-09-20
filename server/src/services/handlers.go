@@ -7,11 +7,7 @@ import (
 	"net/http"
 )
 
-var DB *sql.DB
-
-func AssignHandlers() {
-
-}
+var db *sql.DB
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -41,7 +37,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	storeToTableSQL := "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
-	_, err := DB.Query(storeToTableSQL)
+	_, err := db.Query(storeToTableSQL)
 	if err != nil {
 		fmt.Printf("error inserting into table: %v\n", err)
 		return
@@ -67,7 +63,7 @@ func Read(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loadFromTableSQL := "SELECT * FROM example WHERE id = '" + k + "'"
-	rows, err := DB.Query(loadFromTableSQL)
+	rows, err := db.Query(loadFromTableSQL)
 	if err != nil {
 		fmt.Printf("Error creating table: %v\n", err)
 		return
@@ -118,7 +114,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updateTableSQL := "UPDATE example SET value='" + v + "' WHERE id='" + k + "';"
-	_, err := DB.Query(updateTableSQL)
+	_, err := db.Query(updateTableSQL)
 	if err != nil {
 		fmt.Printf("error updating table: %v\n", err)
 		return
@@ -144,7 +140,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deleteFromTableSQL := "DELETE FROM example WHERE id='" + k + "';"
-	_, err := DB.Query(deleteFromTableSQL)
+	_, err := db.Query(deleteFromTableSQL)
 	if err != nil {
 		fmt.Printf("error deleting from table: %v\n", err)
 		return
