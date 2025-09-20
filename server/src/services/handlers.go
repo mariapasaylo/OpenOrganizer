@@ -1,13 +1,11 @@
 package services
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
+	"openorganizer/src/db"
 )
-
-var db *sql.DB
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -36,8 +34,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storeToTableSQL := "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
-	_, err := db.Query(storeToTableSQL)
+	err := db.Create(k, v)
 	if err != nil {
 		fmt.Printf("error inserting into table: %v\n", err)
 		return
@@ -62,27 +59,9 @@ func Read(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loadFromTableSQL := "SELECT * FROM example WHERE id = '" + k + "'"
-	rows, err := db.Query(loadFromTableSQL)
+	values, err := db.Read(k)
 	if err != nil {
 		fmt.Printf("Error creating table: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
-	var values []string
-
-	for rows.Next() {
-		var key string
-		var value string
-		if err := rows.Scan(&key, &value); err != nil {
-			fmt.Fprintf(w, "error")
-			return
-		}
-		values = append(values, value)
-	}
-	if err = rows.Err(); err != nil {
-		fmt.Fprintf(w, "error")
 		return
 	}
 
@@ -113,8 +92,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateTableSQL := "UPDATE example SET value='" + v + "' WHERE id='" + k + "';"
-	_, err := db.Query(updateTableSQL)
+	err := db.Update(k, v)
 	if err != nil {
 		fmt.Printf("error updating table: %v\n", err)
 		return
@@ -139,8 +117,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleteFromTableSQL := "DELETE FROM example WHERE id='" + k + "';"
-	_, err := db.Query(deleteFromTableSQL)
+	err := db.Delete(k)
 	if err != nil {
 		fmt.Printf("error deleting from table: %v\n", err)
 		return

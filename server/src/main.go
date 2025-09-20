@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"openorganizer/src/db"
 	"openorganizer/src/services"
 )
 
@@ -19,14 +20,14 @@ func main() {
 	fmt.Printf("Server Port: %s\n", env.SERVER_PORT)
 	fmt.Printf("Database Location: %s:%s@%s\n", env.DB_HOST, env.DB_PORT, env.DB_USER)
 
-	err = services.ConnectToDB(env)
+	err = db.ConnectToDB(env)
 	if err != nil {
 		log.Fatalf("Error ensuring database connection: %s", err)
 	}
 	fmt.Println("Connected to SQL database")
-	defer services.CloseDatabase()
+	defer db.CloseDatabase()
 
-	err = services.EnsureDBTables()
+	err = db.EnsureDBTables()
 	if err != nil {
 		fmt.Printf("Error ensuring tables are created: %s\n", err)
 	}

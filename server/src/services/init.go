@@ -1,7 +1,6 @@
 package services
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -66,33 +65,4 @@ func AssignHandlers() {
 
 	http.HandleFunc("/formdata", Formdata)
 	http.HandleFunc("/raw", Raw)
-}
-
-// connects to the postgresql server using provided env variables
-func ConnectToDB(env models.ENVVars) error {
-	pgConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", env.DB_HOST, env.DB_PORT, env.DB_USER, env.DB_PWD, "postgres")
-	conn, err := sql.Open("postgres", pgConnStr)
-	if err != nil {
-		return err
-	}
-	db = conn
-	err = db.Ping()
-	return err
-}
-
-// creates all required db tables that do not already exist
-func EnsureDBTables() error {
-	//services.DB.Exec("DROP TABLE example;")
-	createExampleTableSQL := `
-		CREATE TABLE IF NOT EXISTS example (
-			id VARCHAR(32),
-			value VARCHAR(32)
-		);`
-	_, err := db.Exec(createExampleTableSQL)
-	return err
-}
-
-// defer this function in main to close the database connection after program termination
-func CloseDatabase() {
-	db.Close()
 }
