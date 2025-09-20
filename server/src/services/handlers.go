@@ -148,7 +148,7 @@ func Raw(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+		http.Error(w, "Content-Length is too high, body is too small, or other read timeout", http.StatusBadRequest)
 		return
 	}
 

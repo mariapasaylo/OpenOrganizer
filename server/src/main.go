@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/lib/pq"
 
@@ -34,7 +35,13 @@ func main() {
 
 	services.AssignHandlers()
 
-	if err = http.ListenAndServe("localhost:"+env.SERVER_PORT, nil); err != nil {
+	srv := http.Server{
+		Addr: "localhost:" + env.SERVER_PORT,
+		// write must stay longer than read to have responses
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 3 * time.Second,
+	}
+	if err = srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start")
 		return
 	}
