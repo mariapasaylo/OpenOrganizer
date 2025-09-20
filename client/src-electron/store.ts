@@ -1,3 +1,15 @@
+/**
+ * Created on 9/17/2025 by Maria Pasaylo
+ * Data persistence module using electron-store
+ * This module manages user data storage that persists 
+ * between app sessions.
+ * Data stored in config.json in user data directory 
+ * (e.g. C:\Users\<your username>\AppData\Roaming\Electron)
+ * References: 
+ * https://github.com/sindresorhus/electron-store/tree/main
+ *
+ * Updated on 9/20/2025 by Maria Pasaylo - removed console logs for testing on terminal
+ */
 import Store from 'electron-store';
 import type { Schema } from 'electron-store';
 
@@ -8,7 +20,7 @@ interface User {
     systemTime : string;
 }
 
-// Define schema for the store
+// Define schema for the store to enforce data types and defaults
 const schema: Schema<User> = {
     name: { 
         type: 'string', 
@@ -20,13 +32,4 @@ const schema: Schema<User> = {
     },
 };
 
-const store = new Store<User>({ schema });
-
-console.log("User Name:", store.get('name'));
-console.log("System Time:", store.get('systemTime'));
-
-// store.set('name', 'Al Gator');
-// store.set('systemTime', new Date().toISOString());
-
-// console.log("User Name:", store.get('name'));
-// console.log("System Time:", store.get('systemTime'));
+export const store = new Store<User>({ schema });
