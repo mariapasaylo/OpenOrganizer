@@ -1,3 +1,4 @@
+<!-- Updated on 9/20/2025 by Maria Pasaylo - Included Data Persistence Test -->
 <template>
   <q-page class="row items-center justify-evenly">
     <example-component
@@ -66,15 +67,22 @@
       </div>
       (postgres) ex: "k=foo"
       <section id="out9"></section>
+      <div class="test-pieces">
+        <p>Name: {{ currentName }}</p>
+        <input v-model="newName" type="text" placeholder="Enter new name" />
+        <button @click="saveName">Save Name</button>
+      </div>
     </section>
   </q-page>
 </template>
+
+
 
 <script setup lang="ts">
 import * as db from '../utils/db';
 import ExampleComponent from 'components/ExampleComponent.vue';
 import type { Meta, Todo } from 'components/models';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const todos = ref<Todo[]>([
   {
@@ -155,4 +163,31 @@ async function handleSqliteCommand(mode: string, inId: string, outId: string) {
     }
   }
 }
+
+// Data persistence test
+const currentName = ref('');
+const newName = ref('');
+
+function loadName() {
+    window.electronAPI.getStoreName().then((name) => {
+      currentName.value = name || 'Default Name';
+    }).catch((err) => {
+      currentName.value = 'Failed to load name: ' + err;
+    });
+}
+
+function saveName() {
+    window.electronAPI.setStoreName(newName.value).then(() => {
+      loadName();
+      newName.value = '';
+    }).catch((err) => {
+      currentName.value = 'Failed to update name ' + err;
+    });
+}
+
+//displays current name on load
+onMounted(() => {
+  loadName();
+});
+
 </script>

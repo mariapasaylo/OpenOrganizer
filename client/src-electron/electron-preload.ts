@@ -28,6 +28,8 @@
  * }
  */
 // electron-preload.ts
+/* Updated on 9/20/2025 by Maria Pasaylo - added bridge handlers for electron-store functions
+**/
 
 import { contextBridge, ipcRenderer } from 'electron';
 
@@ -35,5 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sqliteRead: (key: string) => ipcRenderer.invoke('sqliteRead', key),
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),
   sqliteUpdate: (key: string, value: string) => ipcRenderer.invoke('sqliteUpdate', key, value),
-  sqliteDelete: (key: string) => ipcRenderer.invoke('sqliteDelete', key)
+  sqliteDelete: (key: string) => ipcRenderer.invoke('sqliteDelete', key),
+  getStoreName: () => ipcRenderer.invoke('getStoreName'),
+  setStoreName: (name: string) => ipcRenderer.invoke('setStoreName', name)
 });
+
+
