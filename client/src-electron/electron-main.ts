@@ -1,7 +1,13 @@
+/* Updated on 9/20/2025 by Maria Pasaylo - 
+added handlers for getting and setting user name in electron-store
+**/
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url'
+import { ipcMain } from 'electron';
+import { read, create, update, deleteEntry} from './sqlitedb';
+import { store } from './store';
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -21,11 +27,12 @@ async function createWindow() {
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
+      nodeIntegration: false,
       // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
       preload: path.resolve(
         currentDir,
         path.join(process.env.QUASAR_ELECTRON_PRELOAD_FOLDER, 'electron-preload' + process.env.QUASAR_ELECTRON_PRELOAD_EXTENSION)
-      ),
+),
     },
   });
 
@@ -62,4 +69,32 @@ app.on('activate', () => {
   if (mainWindow === undefined) {
     void createWindow();
   }
+});
+
+ipcMain.handle('sqliteRead', (event, key: string) => {
+  return read(key);
+});
+
+ipcMain.handle('sqliteCreate', (event, key: string, value: string) => {
+  create(key, value);
+  return { success: true };
+});
+
+ipcMain.handle('sqliteUpdate', (event, key: string, value: string) => {
+  update(key, value);
+  return { success: true };
+});
+
+ipcMain.handle('sqliteDelete', (event, key: string) => {
+  deleteEntry(key);
+  return { success: true };
+});
+
+ipcMain.handle('getStoreName', () => {
+  return store.get('name');
+});
+
+ipcMain.handle('setStoreName', (event, name: string) => {
+  store.set('name', name);
+  return true;
 });
