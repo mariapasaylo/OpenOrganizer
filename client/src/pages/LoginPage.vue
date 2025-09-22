@@ -19,8 +19,7 @@
                 <q-icon
                 :name="isPwd ? 'visibility_off' : 'visibility'"
                 class="cursor-pointer"
-                @click="isPwd = !isPwd"
-                />
+                @click="isPwd = !isPwd"/>
                 </template>
             </q-input>
             <q-btn class="login-register-button" style="font-size: 15px" @click= login no-caps label="Login"/>
@@ -29,7 +28,7 @@
     </qpage>
 </template>
 
-//
+
 <script setup lang="ts">
 import { ref } from 'vue';
 

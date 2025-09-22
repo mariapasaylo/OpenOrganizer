@@ -4,14 +4,15 @@ import type { RouteRecordRaw } from 'vue-router';
 Keeping the default CRUD testing IndexPage for now until further development on calendar **/
 // References: https://router.vuejs.org/guide/ and https://quasar.dev/layout/routing-with-layouts-and-pages/
 
-// Instead of IndexPage being the main '/' page it will become Calendar Page after more development
+// Instead of IndexPage being the main '/' page it will become CalendarPage after more development
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { 
-        path: '', component: () => import('pages/IndexPage.vue')
+        path: '', 
+        component: () => import('pages/IndexPage.vue')
       },
     ], 
   },
@@ -20,10 +21,12 @@ const routes: RouteRecordRaw[] = [
       component: () => import('pages/RegisterPage.vue')
   },
   {
-      path: '/login', component: () => import('pages/LoginPage.vue')
+      path: '/login', 
+      component: () => import('pages/LoginPage.vue')
   },
   {
-      path: '/calendar', component: () => import('pages/CalendarPage.vue')
+      path: '/calendar', 
+      component: () => import('pages/CalendarPage.vue')
   },
   // Always leave this as last one,
   // but you can also remove it

@@ -1,4 +1,5 @@
 <!-- Updated on 9/20/2025 by Maria Pasaylo - Included Data Persistence Test -->
+<!-- Updated on 9/22/2025 by Rachel Patella - Added buttons to navigate from index page to registration, login, and calendar pages -->
 <template>
   <q-page class="row items-center justify-evenly">
     <example-component

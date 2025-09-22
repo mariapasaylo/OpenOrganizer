@@ -1,7 +1,6 @@
 // app global css in SCSS form
 
-/* Updated on 9/22/2025 by Rachel Patella - Added CSS style for login/registration flexbox sidebar and textboxes
-**/
+/* Updated on 9/22/2025 by Rachel Patella - Added CSS style for login/registration flexbox sidebar and textboxes **/
 // References: https://quasar.dev/layout/grid/introduction-to-flexbox
 .test {
     display: grid;
@@ -17,7 +16,7 @@
 .login-register-sidebar {
     display: flex;
     flex-direction: column;
-    // Full height (100 vh) top-to-bottom column for sidebar. Little less width than login/registration section.
+    // Full height (100 vh) top-to-bottom column for sidebar 
     width: 50%;
     height: 100vh;
     // Same background color as canva mockups
@@ -59,6 +58,7 @@
     margin-top: 10px;
 }
 
+// Used to hide scrollbar in a qsplitter panel
 ::-webkit-scrollbar {
   display: none;
 }
