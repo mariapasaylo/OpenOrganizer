@@ -72,7 +72,20 @@
         <input v-model="newName" type="text" placeholder="Enter new name" />
         <button @click="saveName">Save Name</button>
       </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/register')">Register Screen</button>
+      </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/login')">Login Screen</button>
+      </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/calendar')">Calendar Screen</button>
+      </div>
     </section>
+    
   </q-page>
 </template>
 

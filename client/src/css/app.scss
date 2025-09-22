@@ -1,4 +1,8 @@
 // app global css in SCSS form
+
+/* Updated on 9/22/2025 by Rachel Patella - Added CSS style for login/registration flexbox sidebar and textboxes
+**/
+// References: https://quasar.dev/layout/grid/introduction-to-flexbox
 .test {
     display: grid;
     gap: 10vh;
@@ -8,4 +12,53 @@
     display: flex;
     gap: 1rem;
     justify-content: center;
+}
+
+.login-register-sidebar {
+    display: flex;
+    flex-direction: column;
+    // Full height (100 vh) top-to-bottom column for sidebar. Little less width than login/registration section.
+    width: 50%;
+    height: 100vh;
+    // Same background color as canva mockups
+    background-color: #459dd8;
+    // Text color
+    color: white;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-registration-container {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    // Nudge registration a little closer to sidebar
+    padding-left: 10px;   
+}
+
+.username-password-box {
+   background-color: rgb(255, 255, 255);
+   color: #7e7e7e;
+   border: none;
+   width: 350px;
+   height:60px;
+   margin-top: 10px;
+   margin-bottom: 20px;
+}
+
+.login-register-button {
+    background-color: #459dd8;
+    color: white;
+    font-weight: bold;
+    border: none;
+    width: 170px;
+    height: 40px;
+    margin-top: 10px;
+}
+
+::-webkit-scrollbar {
+  display: none;
 }
