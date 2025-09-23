@@ -1,14 +1,15 @@
 <!-- Updated on 9/22/2025 by Rachel Patella - Created page layout & styling -->
+<!-- Updated on 9/23/2025 by Rachel Patella - Renamed classes and media CSS -->
 <!-- Currently for testing just console logging username and password on click. Replace later with registration logic/API -->
 <!-- Will remove index screen button later once indexPage is redacted -->
 <!-- Password visibility code from: https://quasar.dev/vue-components/input#Example--Input-types -->
 <template>
-    <qpage class="row" > 
+    <qpage class="login-registration-container" > 
         <div class="login-register-sidebar">
             <h style="text-align: center; font-size: 50px;  margin-top: -5px;">Welcome to<br>OpenOrganizer!</h>
             <q-icon style="font-size: 150px; margin-top: 50px;" name="event" />
         </div>
-        <div class="login-registration-container">
+        <div class="login-registration-form">
             <h style="text-align: center; font-size: 50px; margin-top: 30px; color: black; font-weight: bold; max-width: 400px;">Create Account</h>
             <p style="font-size: 17px">Already have an account? Login
                 <router-link to="/login">here</router-link>

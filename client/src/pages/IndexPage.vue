@@ -91,7 +91,6 @@
 </template>
 
 
-
 <script setup lang="ts">
 import * as db from '../utils/db';
 import ExampleComponent from 'components/ExampleComponent.vue';
