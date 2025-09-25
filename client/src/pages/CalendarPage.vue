@@ -21,10 +21,26 @@
  * specified in the LICENSE file.
 -->
 
-
-
 <template>
     <qpage class="calendar-container"> 
+    <q-dialog v-model="showSettings">
+      <q-card style="width: 500px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="text-h6">Settings</div>
+          <div class="settings-container">
+           <div class="settings-sidebar">
+            <q-tabs v-model="tab" vertical>
+                <q-tab style="color: rgb(71, 71, 71)" name="cloud" label="Cloud" icon="cloud" />
+                <q-tab style="color: rgb(71, 71, 71)" name="local" label="Local" icon="storage" />
+            </q-tabs>
+            </div>
+             <div v-if="tab === 'cloud'">
+            <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
+            </div>
+            </div>
+        </q-card-section>
+        </q-card>
+    </q-dialog>
 <!--Left column - File Explorer-->
         <div class="grid-seperator">
             <button @click="$router.push('/')">Index Screen</button>
@@ -32,11 +48,12 @@
 <!--Middle column - List View of Notes/Reminders-->
         <div class="grid-seperator" style="background-color: #efefef">
             <q-tabs v-model="tab" class="calendar-tabs dense">
-                <q-tab name="Reminders" icon="alarm" label="Reminders"/>
-                <q-tab name="Notes" icon="note" label="Notes"/>
+                <q-tab name="reminders" icon="alarm" label="Reminders"/>
+                <q-tab name="notes" icon="note" label="Notes"/>
             </q-tabs>
-            <q-btn flat icon="add" @click = addReminder></q-btn>
+            <q-btn style="font-size: 15px" flat icon="add" @click = addReminder></q-btn>
             <div class="reminder-note-card-container">
+            <div v-if="tab === 'reminders'">
             <q-card class="reminder-note-cards" v-for= "(item, index) in reminders" :key="index">
                 <q-card-section>
                      <h3 style="text-align: center; font-size: 30px;">Title: {{ item.eventType }}</h3>
@@ -47,7 +64,8 @@
                 </q-card-actions>
             </q-card>
             </div>
-             <q-btn flat icon="delete" @click = deleteReminder></q-btn>
+            </div>
+             <q-btn style="font-size: 15px" flat icon="delete" @click = deleteReminder></q-btn>
         </div>
 <!--Right column - Calendar View-->
         <div class="grid-seperator">
@@ -57,11 +75,12 @@
                 // https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
                 -->
             <!--<navigation-bar @today="onToday" @prev="onPrev" @next="onNext" />-->
+            <!-- Increased calendar height/width size />-->
 
                 <div style="display: flex; justify-content: center">
                 <div
                     style="
-                    max-width: 280px;
+                    max-width: 500px;
                     width: 100%;
                     display: flex;
                     flex-direction: column;
@@ -111,11 +130,16 @@
                         @click-workweek="onClickWorkweek"
                         @click-head-workweek="onClickHeadWorkweek"
                         @click-head-day="onClickHeadDay"
+                        style="height: 300px;"
                         />
                     </div>
                     </div>
                 </div>
                 </div>
+            </div>
+            <div class="row"> 
+            <q-btn style="margin-right: 180px" class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
+            <q-btn class = "account-and-settings-button" flat icon="settings" @click = "showSettings = true"></q-btn>
             </div>
         </div>
 
@@ -140,6 +164,9 @@ import { ref, computed} from 'vue';
 const tab = ref('');
 // Array of reminders
 const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am'},{eventType: 'Hotel', description: 'Hotel check-out at 9 am'}])
+const showSettings = ref(false);
+const isCloudOn = ref(false);
+
 // Clicking add icon adds a reminder to the list, currently just a test with preset values
 function addReminder() {
     reminders.value.push({eventType: 'New Reminder', description: 'reminder description' });
@@ -149,6 +176,7 @@ function addReminder() {
 function deleteReminder() {
     reminders.value = [];
 }
+
 
 // template and script source code from mini-mode navigation example
 // https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
@@ -222,7 +250,5 @@ function onClickHeadDay(data: Timestamp) {
 function onClickHeadWorkweek(data: Timestamp) {
   console.info('onClickHeadWorkweek', data)
 }
-
-
 
 </script>

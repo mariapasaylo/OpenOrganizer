@@ -30,6 +30,16 @@
     align-items: center;
 }
 
+.settings-sidebar {
+    display:flex;
+    flex-direction: column;
+    background-color: #efefef;
+    color: black;
+    font-weight: bold;
+    width: 20%;
+    height: 20vh;
+}
+
 .login-registration-container {
     display: flex;
     flex-direction: row;
@@ -56,6 +66,12 @@
     color: rgb(71, 71, 71);
     width: 100%;
 }
+
+.settings-container {
+    display: flex;
+    flex-direction: row;
+}
+
 
 .grid-seperator {
   border: 1px solid rgba(173, 173, 173, 0.8);
@@ -95,6 +111,12 @@
     width: 170px;
     height: 40px;
     margin-top: 10px;
+}
+
+.account-and-settings-button {
+  color: #459dd8; 
+  font-size: 30px; 
+  margin-top:550px;
 }
 
 // On smaller screens sizes of 715 px or less wide, make sidebar for login/registration into topbar (portrait)
