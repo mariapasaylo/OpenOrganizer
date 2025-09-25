@@ -4,13 +4,16 @@ export {};
 
 declare global {
   interface Window {
-    electronAPI: {
+    sqliteAPI: {
       sqliteRead: (key: string) => Promise<string>;
       sqliteCreate: (key: string, value: string) => Promise<boolean>;
       sqliteUpdate: (key: string, value: string) => Promise<boolean>;
       sqliteDelete: (key: string) => Promise<boolean>;
+    };
+
+    electronStoreAPI: {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
-    };
+    }
   }
 }

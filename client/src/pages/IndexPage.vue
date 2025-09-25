@@ -129,7 +129,7 @@ async function handleSqliteCommand(mode: string, inId: string, outId: string) {
     case 'sqliteRead': {
       const key = params.get('k');
       if (!key) return;
-      const result = await window.electronAPI.sqliteRead(key);
+      const result = await window.sqliteAPI.sqliteRead(key);
       // Result of "Not found" will display as "Not found".
       if (result !== "Not found") output.textContent = "retrieved '"+result+"' using '"+ key +"'"
       else output.textContent = result
@@ -140,7 +140,7 @@ async function handleSqliteCommand(mode: string, inId: string, outId: string) {
       const key = params.get('k');
       const value = params.get('v');
       if (!key || value === null) return;
-      const result = await window.electronAPI.sqliteCreate(key, value);
+      const result = await window.sqliteAPI.sqliteCreate(key, value);
       if (result) output.textContent = "stored '"+key+"', '"+ value +"'"
       break;
     }
@@ -149,7 +149,7 @@ async function handleSqliteCommand(mode: string, inId: string, outId: string) {
       const key = params.get('k');
       const value = params.get('v');
       if (!key || value === null) return;
-      const result = await window.electronAPI.sqliteUpdate(key, value);
+      const result = await window.sqliteAPI.sqliteUpdate(key, value);
       if (result) output.textContent = "updated key '"+key+"' value to '"+ value +"'"
       break;
     }
@@ -157,7 +157,7 @@ async function handleSqliteCommand(mode: string, inId: string, outId: string) {
      case 'sqliteDelete': {
       const key = params.get('k');
       if (!key) return;
-      const result = await window.electronAPI.sqliteDelete(key);
+      const result = await window.sqliteAPI.sqliteDelete(key);
       if (result) output.textContent = "deleted '"+key+"'"
       break;
     }
@@ -169,7 +169,7 @@ const currentName = ref('');
 const newName = ref('');
 
 function loadName() {
-    window.electronAPI.getStoreName().then((name) => {
+    window.electronStoreAPI.getStoreName().then((name) => {
       currentName.value = name || 'Default Name';
     }).catch((err) => {
       currentName.value = 'Failed to load name: ' + err;
@@ -177,7 +177,7 @@ function loadName() {
 }
 
 function saveName() {
-    window.electronAPI.setStoreName(newName.value).then(() => {
+    window.electronStoreAPI.setStoreName(newName.value).then(() => {
       loadName();
       newName.value = '';
     }).catch((err) => {

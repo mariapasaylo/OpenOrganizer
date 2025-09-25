@@ -33,11 +33,14 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  sqliteRead: (key: string) => ipcRenderer.invoke('sqliteRead', key),
+contextBridge.exposeInMainWorld('sqliteAPI', {
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),
+  sqliteRead: (key: string) => ipcRenderer.invoke('sqliteRead', key),
   sqliteUpdate: (key: string, value: string) => ipcRenderer.invoke('sqliteUpdate', key, value),
   sqliteDelete: (key: string) => ipcRenderer.invoke('sqliteDelete', key),
+});
+
+contextBridge.exposeInMainWorld('electronStoreAPI', {
   getStoreName: () => ipcRenderer.invoke('getStoreName'),
   setStoreName: (name: string) => ipcRenderer.invoke('setStoreName', name)
 });
