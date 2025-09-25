@@ -1,9 +1,26 @@
 // app global css in SCSS form
 
-/* Updated on 9/23/2025 by Rachel Patella - Added CSS media query breakpoint for smaller size screens to stack registration/login page **/
-// References: https://quasar.dev/layout/grid/introduction-to-flexbox 
-// https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design for media query idea
-// https://css-tricks.com/snippets/css/complete-guide-grid/
+/* 
+ * Authors: Rachel Patella
+ * Created: 2025-04-13
+ * Updated: 2025-09-25
+ *
+ * This file is the CSS global stylesheet for the application
+ *
+ * References:
+ * https://quasar.dev/layout/grid/introduction-to-flexbox
+ * https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design for media query idea
+ * https://css-tricks.com/snippets/css/complete-guide-grid/
+ * 
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and 
+ * license terms outlined in the LICENSE file located in the top-level directory of 
+ * this distribution. No part of OpenOrganizer, including this file, may be reproduced, 
+ * modified, distributed, or otherwise used except in accordance with the terms 
+ * specified in the LICENSE file.
+-->
+*/
 
 .test {
     display: grid;

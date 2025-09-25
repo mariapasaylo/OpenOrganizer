@@ -1,10 +1,25 @@
+/* 
+ * Authors: Rachel Patella, Michael Jagiello
+ * Created: 025-04-13
+ * Updated: 2025-09-22
+ *
+ * This file defines all the routes (pages in the application) for the Vue Router 
+ *
+ * References:
+ * https://router.vuejs.org/guide/ 
+ * https://quasar.dev/layout/routing-with-layouts-and-pages/
+ * 
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and 
+ * license terms outlined in the LICENSE file located in the top-level directory of 
+ * this distribution. No part of OpenOrganizer, including this file, may be reproduced, 
+ * modified, distributed, or otherwise used except in accordance with the terms 
+ * specified in the LICENSE file.
+-->
+*/
+
 import type { RouteRecordRaw } from 'vue-router';
-
-/* Updated on 9/22/2025 by Rachel Patella - Routes were defined for 3 main pages: Registration, Login, and Calendar. 
-Keeping the default CRUD testing IndexPage for now until further development on calendar **/
-// References: https://router.vuejs.org/guide/ and https://quasar.dev/layout/routing-with-layouts-and-pages/
-
-// Instead of IndexPage being the main '/' page it will become CalendarPage after more development
 const routes: RouteRecordRaw[] = [
   {
     path: '/',

@@ -1,8 +1,21 @@
-<!-- Updated on 9/22/2025 by Rachel Patella - Created page layout & styling -->
-<!-- Updated on 9/23/2025 by Rachel Patella - Renamed classes and media CSS -->
-<!-- Currently for testing just console logging username and password on click. Replace later with registration logic/API -->
-<!-- Will remove index screen button later once indexPage is redacted -->
-<!-- Password visibility code from: https://quasar.dev/vue-components/input#Example--Input-types -->
+<!--
+ * Authors: Rachel Patella
+ * Created: 2025-09-22
+ * Updated: 2025-09-23
+ *
+ * This file is the registration form for a user to create a new account that includes a sidebar with the application name and logo
+ *
+ * References:
+ * https://quasar.dev/vue-components/input#Example--Input-types for password visibility toggle
+ * 
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and 
+ * license terms outlined in the LICENSE file located in the top-level directory of 
+ * this distribution. No part of OpenOrganizer, including this file, may be reproduced, 
+ * modified, distributed, or otherwise used except in accordance with the terms 
+ * specified in the LICENSE file.
+-->
 <template>
     <qpage class="login-registration-container" > 
         <div class="login-register-sidebar">
