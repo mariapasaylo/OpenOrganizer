@@ -1,5 +1,5 @@
 import {ipcMain} from "electron";
-import {create, deleteEntry, read, update} from "app/src-electron/sqlitedb";
+import {create, deleteEntry, read, update} from "app/src-electron/db/sqlite-db";
 import {store} from "app/src-electron/services/store";
 
 export function registerHandlers()
