@@ -38,25 +38,19 @@
             <div v-if="tab === 'reminders'">
 
             <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
-              <q-expansion-item :label="item.eventType" expand-icon="keyboard_arrow_down">
-                  <h3 style="text-align: center; font-size: 30px;">Title: {{ item.eventType }}</h3>
+              <q-expansion-item expand-icon="keyboard_arrow_down">
+                <template v-slot:header>
+                  <div class="reminder-header-container">
+                    <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
+                    <div>{{ item.eventType }}</div>
+                  </div>
+                </template>
+                <q-card-section>
+                  <h3>Title: {{ item.eventType }}</h3>
                   <p>Description: {{ item.description}} <br>Index: {{ index }} <br>Date: {{ item.date }}</p>
+                </q-card-section>
               </q-expansion-item>
             </q-card>
-            <!--<div v-if="tab === 'reminders'">
-  <q-card class="reminder-note-cards" v-for="(item, index) in reminders" :key="index">
-    <q-expansion-item
-      icon="alarm"
-      :label="item.eventType"
-      expand-icon="keyboard_arrow_down"
-    >
-      <div>
-        <p>Description: {{ item.description }} <br>Index: {{ index }}</p>
-        <q-input filled label="Details" v-model="item.details" />
-      </div>
-    </q-expansion-item>
-  </q-card>
-</div>-->
             </div>
             </div>
              <q-btn style="font-size: 15px" flat icon="delete" @click = deleteReminder></q-btn>
@@ -157,16 +151,19 @@ import { ref, computed} from 'vue';
 
 const tab = ref('');
 // Array of reminders
-const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am', date: '2025-09-23'},{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23'}]);
+const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am', date: '2025-09-23', isSelected: false},
+{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23', isSelected: false}]);
 const showSettings = ref(false);
 const isCloudOn = ref(false);
+const val = ref(false)
 
 // Clicking add icon adds a reminder to the list for the selected date
 function addReminder() {
     reminders.value.push({
         eventType: 'New Reminder',
         description: 'reminder description',
-        date: selectedDate.value
+        date: selectedDate.value,
+        isSelected: false
     });
 }
 
