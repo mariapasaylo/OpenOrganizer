@@ -78,6 +78,11 @@
     flex-direction: column;
 }
 
+.reminder-note-cards {
+    margin-top: 1em;
+}
+
+
 .calendar-tabs {
     background-color:rgb(202, 202, 202);
     color: rgb(71, 71, 71);
@@ -95,9 +100,6 @@
   padding: 20px;
 }
 
-.reminder-note-cards {
-    margin-top: 20px;
-}
 
 .login-registration-form {
     display: flex;
@@ -133,8 +135,16 @@
 .account-and-settings-button {
   color: #459dd8; 
   font-size: 30px; 
-  margin-top:550px;
+  margin-top: 8em;
 }
+
+.reminder-header-container {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
 
 // On smaller screens sizes of 715 px or less wide, make sidebar for login/registration into topbar (portrait)
 @media screen and (max-width: 715px) {
