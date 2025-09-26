@@ -1,4 +1,5 @@
 <!-- Updated on 9/20/2025 by Maria Pasaylo - Included Data Persistence Test -->
+<!-- Updated on 9/22/2025 by Rachel Patella - Added buttons to navigate from index page to registration, login, and calendar pages -->
 <template>
   <q-page class="row items-center justify-evenly">
     <example-component
@@ -72,10 +73,22 @@
         <input v-model="newName" type="text" placeholder="Enter new name" />
         <button @click="saveName">Save Name</button>
       </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/register')">Register Screen</button>
+      </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/login')">Login Screen</button>
+      </div>
+      <section id="out10"></section>
+      <div class="test-pieces">
+        <button @click="$router.push('/calendar')">Calendar Screen</button>
+      </div>
     </section>
+    
   </q-page>
 </template>
-
 
 
 <script setup lang="ts">
