@@ -1,9 +1,9 @@
 /*
  * Authors: Michael Jagiello, Kevin Sirantoine, Maria Pasaylo, Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-09-24
+ * Updated: 2025-09-25
  *
- * This file is the main Electron process that creates the application window, 
+ * This file is the Electron main process entry point that creates the application window, 
  * manages the system tray icon, and handles communication between the user 
  * interface and data storage (SQLite and electron-store).
  *
@@ -15,7 +15,6 @@
  * specified in the LICENSE file.
  */
 
-
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron';
 import path from 'path';
 import os from 'os';
@@ -24,6 +23,8 @@ import { ipcMain } from 'electron';
 import { read, create, update, deleteEntry} from './sqlitedb';
 import { store } from './store';
 import { browser } from 'globals';
+import { registerHandlers } from "./services/handlers";
+
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -49,7 +50,7 @@ async function createWindow() {
       preload: path.resolve(
         currentDir,
         path.join(process.env.QUASAR_ELECTRON_PRELOAD_FOLDER, 'electron-preload' + process.env.QUASAR_ELECTRON_PRELOAD_EXTENSION)
-),
+      ),
     },
   });
 
@@ -72,6 +73,11 @@ async function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = undefined;
   });
+
+  await app.whenReady().then(() => { // Based on: https://www.electronjs.org/docs/latest/tutorial/ipc
+    // Registers all ipcMain handlers for APIs exposed in electron-preload
+    registerHandlers();
+  })
 }
 
 void app.whenReady().then(async () => {
@@ -105,32 +111,4 @@ app.on('activate', () => {
   if (mainWindow === undefined) {
     void createWindow();
   }
-});
-
-ipcMain.handle('sqliteRead', (event, key: string) => {
-  return read(key);
-});
-
-ipcMain.handle('sqliteCreate', (event, key: string, value: string) => {
-  create(key, value);
-  return { success: true };
-});
-
-ipcMain.handle('sqliteUpdate', (event, key: string, value: string) => {
-  update(key, value);
-  return { success: true };
-});
-
-ipcMain.handle('sqliteDelete', (event, key: string) => {
-  deleteEntry(key);
-  return { success: true };
-});
-
-ipcMain.handle('getStoreName', () => {
-  return store.get('name');
-});
-
-ipcMain.handle('setStoreName', (event, name: string) => {
-  store.set('name', name);
-  return true;
 });
