@@ -23,24 +23,6 @@
 
 <template>
     <qpage class="calendar-container"> 
-    <q-dialog v-model="showSettings">
-      <q-card style="width: 500px" class="q-px-sm q-pb-md">
-        <q-card-section>
-          <div class="text-h6">Settings</div>
-          <div class="settings-container">
-           <div class="settings-sidebar">
-            <q-tabs v-model="tab" vertical>
-                <q-tab style="color: rgb(71, 71, 71)" name="cloud" label="Cloud" icon="cloud" />
-                <q-tab style="color: rgb(71, 71, 71)" name="local" label="Local" icon="storage" />
-            </q-tabs>
-            </div>
-             <div v-if="tab === 'cloud'">
-            <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
-            </div>
-            </div>
-        </q-card-section>
-        </q-card>
-    </q-dialog>
 <!--Left column - File Explorer-->
         <div class="grid-seperator">
             <button @click="$router.push('/')">Index Screen</button>
@@ -54,15 +36,27 @@
             <q-btn style="font-size: 15px" flat icon="add" @click = addReminder></q-btn>
             <div class="reminder-note-card-container">
             <div v-if="tab === 'reminders'">
-            <q-card class="reminder-note-cards" v-for= "(item, index) in reminders" :key="index">
-                <q-card-section>
-                     <h3 style="text-align: center; font-size: 30px;">Title: {{ item.eventType }}</h3>
-                      <p>Description: {{ item.description}} <br>Index: {{ index }}</p>
-                </q-card-section>
-                <q-card-actions>
-                    <q-btn flat icon="keyboard_arrow_down"></q-btn>
-                </q-card-actions>
+
+            <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
+              <q-expansion-item :label="item.eventType" expand-icon="keyboard_arrow_down">
+                  <h3 style="text-align: center; font-size: 30px;">Title: {{ item.eventType }}</h3>
+                  <p>Description: {{ item.description}} <br>Index: {{ index }} <br>Date: {{ item.date }}</p>
+              </q-expansion-item>
             </q-card>
+            <!--<div v-if="tab === 'reminders'">
+  <q-card class="reminder-note-cards" v-for="(item, index) in reminders" :key="index">
+    <q-expansion-item
+      icon="alarm"
+      :label="item.eventType"
+      expand-icon="keyboard_arrow_down"
+    >
+      <div>
+        <p>Description: {{ item.description }} <br>Index: {{ index }}</p>
+        <q-input filled label="Details" v-model="item.details" />
+      </div>
+    </q-expansion-item>
+  </q-card>
+</div>-->
             </div>
             </div>
              <q-btn style="font-size: 15px" flat icon="delete" @click = deleteReminder></q-btn>
@@ -80,7 +74,7 @@
                 <div style="display: flex; justify-content: center">
                 <div
                     style="
-                    max-width: 500px;
+                    max-width: 280px;
                     width: 100%;
                     display: flex;
                     flex-direction: column;
@@ -138,7 +132,7 @@
                 </div>
             </div>
             <div class="row"> 
-            <q-btn style="margin-right: 180px" class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
+            <q-btn style="margin-right: 6.65em" class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
             <q-btn class = "account-and-settings-button" flat icon="settings" @click = "showSettings = true"></q-btn>
             </div>
         </div>
@@ -163,20 +157,23 @@ import { ref, computed} from 'vue';
 
 const tab = ref('');
 // Array of reminders
-const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am'},{eventType: 'Hotel', description: 'Hotel check-out at 9 am'}])
+const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am', date: '2025-09-23'},{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23'}]);
 const showSettings = ref(false);
 const isCloudOn = ref(false);
 
-// Clicking add icon adds a reminder to the list, currently just a test with preset values
+// Clicking add icon adds a reminder to the list for the selected date
 function addReminder() {
-    reminders.value.push({eventType: 'New Reminder', description: 'reminder description' });
+    reminders.value.push({
+        eventType: 'New Reminder',
+        description: 'reminder description',
+        date: selectedDate.value
+    });
 }
 
 // Function to clear/delete all reminders from the list as a test
 function deleteReminder() {
     reminders.value = [];
 }
-
 
 // template and script source code from mini-mode navigation example
 // https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
@@ -235,6 +232,11 @@ function onMoved(data: Timestamp) {
 function onChange(data: { start: Timestamp; end: Timestamp; days: Timestamp[] }) {
   console.info('onChange', data)
 }
+
+const filteredReminders = computed(() => {
+  return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+});
+
 function onClickDate(data: Timestamp) {
   console.info('onClickDate', data)
 }
