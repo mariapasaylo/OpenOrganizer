@@ -23,6 +23,24 @@
 
 <template>
     <qpage class="calendar-container"> 
+      <q-dialog v-model="showSettings">
+      <q-card style="width: 500px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="text-h6">Settings</div>
+          <div class="settings-container">
+           <div class="settings-sidebar">
+            <q-tabs v-model="tab" vertical>
+                <q-tab style="color: rgb(71, 71, 71)" name="cloud" label="Cloud" icon="cloud" />
+                <q-tab style="color: rgb(71, 71, 71)" name="local" label="Local" icon="storage" />
+            </q-tabs>
+            </div>
+             <div v-if="tab === 'cloud'">
+            <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
+            </div>
+            </div>
+        </q-card-section>
+        </q-card>
+    </q-dialog> 
 <!--Left column - File Explorer-->
         <div class="grid-seperator">
             <button @click="$router.push('/')">Index Screen</button>
