@@ -50,19 +50,31 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 
 // assigns HTTP routes to their respective handling functions
 func AssignHandlers() {
-	// http connection handling functions
+	http.HandleFunc("/", root)
 
-	http.HandleFunc("/", Root)
+	http.HandleFunc("/register", register)
+	http.HandleFunc("/login", login)
+	http.HandleFunc("/lastsyncup", lastSyncup)
 
-	// CRUD (currently in urlencoded form)
+	http.HandleFunc("/syncup/notes", upNotes)
+	http.HandleFunc("/syncup/reminders", upReminders)
+	http.HandleFunc("/syncup/reminders/daily", upRemindersDaily)
+	http.HandleFunc("/syncup/reminders/weekly", upRemindersWeekly)
+	http.HandleFunc("/syncup/reminders/monthly", upRemindersMonthly)
+	http.HandleFunc("/syncup/reminders/yearly", upRemindersYearly)
+	http.HandleFunc("/syncup/extensions", upExtensions)
+	http.HandleFunc("/syncup/overrides", upOverrides)
+	http.HandleFunc("/syncup/folders", upFolders)
+	http.HandleFunc("/syncup/deleted", upDeleted)
 
-	http.HandleFunc("/create", Create)
-	http.HandleFunc("/read", Read)
-	http.HandleFunc("/update", Update)
-	http.HandleFunc("/delete", Delete)
-
-	// handling types
-
-	http.HandleFunc("/formdata", Formdata)
-	http.HandleFunc("/raw", Raw)
+	http.HandleFunc("/syncdown/notes", downNotes)
+	http.HandleFunc("/syncdown/reminders", downReminders)
+	http.HandleFunc("/syncdown/reminders/daily", downRemindersDaily)
+	http.HandleFunc("/syncdown/reminders/weekly", downRemindersWeekly)
+	http.HandleFunc("/syncdown/reminders/monthly", downRemindersMonthly)
+	http.HandleFunc("/syncdown/reminders/yearly", downRemindersYearly)
+	http.HandleFunc("/syncdown/extensions", downExtensions)
+	http.HandleFunc("/syncdown/overrides", downOverrides)
+	http.HandleFunc("/syncdown/folders", downFolders)
+	http.HandleFunc("/syncdown/deleted", downDeleted)
 }
