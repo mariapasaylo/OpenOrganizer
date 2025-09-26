@@ -1,4 +1,27 @@
 // app global css in SCSS form
+
+/* 
+ * Authors: Rachel Patella
+ * Created: 2025-04-13
+ * Updated: 2025-09-25
+ *
+ * This file is the CSS global stylesheet for the application
+ *
+ * References:
+ * https://quasar.dev/layout/grid/introduction-to-flexbox
+ * https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design for media query idea
+ * https://css-tricks.com/snippets/css/complete-guide-grid/
+ * 
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and 
+ * license terms outlined in the LICENSE file located in the top-level directory of 
+ * this distribution. No part of OpenOrganizer, including this file, may be reproduced, 
+ * modified, distributed, or otherwise used except in accordance with the terms 
+ * specified in the LICENSE file.
+-->
+*/
+
 .test {
     display: grid;
     gap: 10vh;
@@ -8,4 +31,135 @@
     display: flex;
     gap: 1rem;
     justify-content: center;
+}
+
+.login-register-sidebar {
+    display: flex;
+    flex-direction: column;
+    // Full height (100 vh) top-to-bottom column for sidebar 
+    width: 50%;
+    height: 100vh;
+    // Same background color as canva mockups
+    background-color: #459dd8;
+    // Text color
+    color: white;
+    justify-content: center;
+    align-items: center;
+}
+
+.settings-sidebar {
+    display:flex;
+    flex-direction: column;
+    background-color: #efefef;
+    color: black;
+    font-weight: bold;
+    width: 20%;
+    height: 20vh;
+}
+
+.login-registration-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.calendar-container {
+    display: grid;
+    grid-template-columns: [file-explorer] 30% [notes-and-reminders] 40% [calendar] 30%;
+    grid-template-rows: 100vh;
+}
+
+.reminder-note-card-container {
+    // So adding a new note/reminder card cannot go off screen and it will grow/flex down as a column
+    max-height: 80vh;   
+    // Make it scrollable to see new entries further down
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.reminder-note-cards {
+    margin-top: 1em;
+}
+
+
+.calendar-tabs {
+    background-color:rgb(202, 202, 202);
+    color: rgb(71, 71, 71);
+    width: 100%;
+}
+
+.settings-container {
+    display: flex;
+    flex-direction: row;
+}
+
+
+.grid-seperator {
+  border: 1px solid rgba(173, 173, 173, 0.8);
+  padding: 20px;
+}
+
+
+.login-registration-form {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    // Nudge registration a little closer to sidebar
+    padding-left: 10px;   
+}
+
+.username-password-box {
+   background-color: rgb(255, 255, 255);
+   color: #7e7e7e;
+   border: none;
+   width: 350px;
+   height:60px;
+   margin-top: 10px;
+   margin-bottom: 20px;
+}
+
+.login-register-button {
+    background-color: #459dd8;
+    color: white;
+    font-weight: bold;
+    border: none;
+    width: 170px;
+    height: 40px;
+    margin-top: 10px;
+}
+
+.account-and-settings-button {
+  color: #459dd8; 
+  font-size: 30px; 
+  margin-top: 8em;
+}
+
+.reminder-header-container {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+
+// On smaller screens sizes of 715 px or less wide, make sidebar for login/registration into topbar (portrait)
+@media screen and (max-width: 715px) {
+  .login-registration-container {
+    flex-direction: column; 
+  }
+  .login-registration-form {
+    width: 100%;
+  }
+  .login-register-sidebar {
+    width: 100%;
+  }
+}
+
+// Delete this if you want to see scrollbar as this hides it
+::-webkit-scrollbar {
+  display: none;
 }
