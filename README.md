@@ -11,7 +11,6 @@ security as core principles.
 * Use existing reminders as a template for new ones
 * ... and more!
 
-
 ## Team Members:
 * Kevin Sirantoine
 * Rachel Patella
@@ -24,14 +23,14 @@ security as core principles.
 
 Client: Node.js / `npm`
 
-Server: Golang, GCC / `make` (`Mingw32-make`), PostgreSQL 17.4+ (or other SQL database)
+Server: Golang, GCC / `make` (`Mingw32-make`), PostgreSQL (17.4+ tested)
 
 ## Client Setup Instructions
 
 1. `git clone LINK`
 2. `cd OpenOrganizer/client`
 3. `npm install`
-4. Create a file named `serveraddress.txt` in `client/public/` following this format:
+4. Create a file named `serveraddress.txt` in `/client/public/` following this format:
 ```
 SERVER_ADDRESS
 ```
@@ -49,24 +48,36 @@ Extra Options:<br>
 ## Server Setup Instructions
 
 An external SQL Database application is required for the server. 
-Our team uses PostgreSQL 17.4.
+Our team has tested and uses PostgreSQL 17.4.
+It is required to set up PostgreSQL and get database access information to be able to pass to the `.env` file.
 
 1. `git clone LINK`
 2. `cd OpenOrganizer/server`
-3. Create a file named `.env` in `server/` and fill in your data following this format:
+3. Create a file named `.env` here in `/server/` and fill in your data following this format:
 ```
-SERVER_PORT="port"
-DB_HOST="address"
-DB_PORT="port"
-DB_USER="username"
-DB_PWD="password"
+LOCAL_ONLY="BOOLEAN"
+HTTPS="BOOLEAN"
+SERVER_PORT="PORT"
+SERVER_CRT="FILE_NAME"
+SERVER_KEY="FILE_NAME"
+DB_HOST="ADDRESS"
+DB_PORT="PORT"
+DB_USER="USERNAME"
+DB_PWD="PASSWORD"
 ```
 Example:
 ```
+LOCAL_ONLY="TRUE"
+HTTPS="FALSE"
 SERVER_PORT="3001"
+SERVER_CRT="server.crt"
+SERVER_KEY="server.key"
 DB_HOST="localhost"
 DB_PORT="3002"
 DB_USER="postgres"
 DB_PWD="password"
 ```
-4. `make` (or `mingw32-make` for Windows) to run, `make build` to build in `server/bin/`
+4. makefile run options:
+- `make` (or `mingw32-make` for Windows) will fully build and run the application
+- `make build` to only build in `/server/bin/`
+- `make run` to only run the executable in `/server/bin/`
