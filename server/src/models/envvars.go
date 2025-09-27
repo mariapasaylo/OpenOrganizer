@@ -13,7 +13,11 @@
 package models
 
 type ENVVars struct {
+	LOCAL_ONLY  bool
+	HTTPS       bool
 	SERVER_PORT string
+	SERVER_CRT  string
+	SERVER_KEY  string
 	DB_HOST     string
 	DB_PORT     string
 	DB_USER     string

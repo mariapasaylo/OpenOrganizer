@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -30,10 +31,35 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 		return env, err
 	}
 
+	var LOCAL_ONLY = strings.ToUpper(os.Getenv("LOCAL_ONLY"))
+	if LOCAL_ONLY == "TRUE" {
+		env.LOCAL_ONLY = true
+	} else {
+		env.LOCAL_ONLY = false
+	}
+
+	var HTTPS = strings.ToUpper(os.Getenv("HTTPS"))
+	if HTTPS == "TRUE" {
+		env.HTTPS = true
+	} else if HTTPS == "FALSE" {
+		env.HTTPS = false
+	} else {
+		return env, errors.New("HTTPS is invalid, try TRUE or FALSE")
+	}
+
 	var SERVER_PORT = os.Getenv("SERVER_PORT")
 	if SERVER_PORT == "" {
 		return env, errors.New("SERVER_PORT is null")
 	}
+	var SERVER_CRT = os.Getenv("SERVER_CRT")
+	if env.HTTPS && SERVER_CRT == "" {
+		return env, errors.New("SERVER_CRT is null")
+	}
+	var SERVER_KEY = os.Getenv("SERVER_KEY")
+	if env.HTTPS && SERVER_KEY == "" {
+		return env, errors.New("SERVER_KEY is null")
+	}
+
 	var DB_HOST = os.Getenv("DB_HOST")
 	if DB_HOST == "" {
 		return env, errors.New("DB_HOST is null")
@@ -52,6 +78,8 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	}
 
 	env.SERVER_PORT = SERVER_PORT
+	env.SERVER_CRT = SERVER_CRT
+	env.SERVER_KEY = SERVER_KEY
 	env.DB_HOST = DB_HOST
 	env.DB_PORT = DB_PORT
 	env.DB_USER = DB_USER

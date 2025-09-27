@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-04-13
- * Updated: 2025-09-25
+ * Updated: 2025-09-27
  *
  * This file is the entry point to the server.
  * It handles the large scope of the order of operations for initialization and serving requests.
@@ -14,6 +14,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,6 +32,8 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
+	fmt.Printf("Local Only: %t\n", env.LOCAL_ONLY)
+	fmt.Printf("HTTPS: %t\n", env.HTTPS)
 	fmt.Printf("Server Port: %s\n", env.SERVER_PORT)
 	fmt.Printf("Database Location: %s:%s@%s\n", env.DB_HOST, env.DB_PORT, env.DB_USER)
 
@@ -48,14 +51,29 @@ func main() {
 
 	services.AssignHandlers()
 
+	var localOnly string = ""
+	if env.LOCAL_ONLY {
+		localOnly = "localhost"
+	}
 	srv := http.Server{
-		Addr: "localhost:" + env.SERVER_PORT,
+		Addr: localOnly + ":" + env.SERVER_PORT,
 		// write must stay longer than read to have responses
 		ReadTimeout:  2 * time.Second,
 		WriteTimeout: 3 * time.Second,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			MaxVersion: tls.VersionTLS13,
+		},
 	}
-	if err = srv.ListenAndServe(); err != nil {
-		log.Fatalf("Server failed to start")
-		return
+	if env.HTTPS {
+		if err = srv.ListenAndServeTLS(env.SERVER_CRT, env.SERVER_KEY); err != nil {
+			log.Fatalf("Server failed to start")
+			return
+		}
+	} else {
+		if err = srv.ListenAndServe(); err != nil {
+			log.Fatalf("Server failed to start")
+			return
+		}
 	}
 }
