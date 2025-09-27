@@ -1,7 +1,7 @@
 #
 # Authors: Michael Jagiello
 # Created: 2025-04-13
-# Updated: 2025-09-20
+# Updated: 2025-09-27
 #
 # This is the makefile used to efficiently build and run the server.
 #
@@ -15,7 +15,8 @@ EXE := .exe
 endif
 
 default:
-	go run ./src/main.go
+	go build -o ./bin/openorganizer$(EXE) ./src/main.go
+	./bin/openorganizer$(EXE)
 build:
 	go build -o ./bin/openorganizer$(EXE) ./src/main.go
 run:

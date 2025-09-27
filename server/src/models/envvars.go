@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-20
+ * Updated: 2025-09-27
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *

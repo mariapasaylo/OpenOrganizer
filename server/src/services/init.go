@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-25
+ * Updated: 2025-09-27
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
