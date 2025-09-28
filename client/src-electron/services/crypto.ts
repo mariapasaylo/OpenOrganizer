@@ -1,9 +1,9 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-27
- * Updated: 2025-09-27
+ * Updated: 2025-09-28
  *
- * This file defines wrapper functions for AES256 encryption/decryption, as well as a padding helper function that sets a string to 32 characters.
+ * This file defines wrapper functions for AES256 encryption/decryption, as well as padding helper functions for getting data and keys to the proper length.
  * It also contains wrapper functions for SHA hashing algorithms 256, 512/256, and 512.
  *
  * This file is a part of OpenOrganizer.
@@ -13,10 +13,38 @@
 
 import crypto from 'crypto';
 
-// pads a string and limits it to 32 characters
-export function pad32(str: string): string {
-  const nullString = '\0'.repeat(32);
-  return str.concat(nullString).substring(0, 32);
+// pads a string / buffer and hard limits it to 32 characters
+export function pad32(data: string | Buffer) {
+  if (data.length % 32 == 0) {
+    return data;
+  }
+  const nullString = '\0'.repeat(32 - (data.length % 32));
+  const strPadded = (data.toString() + nullString).slice(0, 32);
+  if (typeof data === 'string') {
+    return strPadded;
+  }
+  return Buffer.from(strPadded);
+}
+
+// pads a key up to 32 and returns "" if key is longer than 32
+export function padKey32(key: string | Buffer) {
+  if (key.length > 32) {
+    return "";
+  }
+  return pad32(key);
+}
+
+// pads data up to the next multiple of 32
+export function padData32n(data: string | Buffer) {
+  if (data.length % 32 == 0) {
+    return data;
+  }
+  const nullString = '\0'.repeat(32 - (data.length % 32));
+  const dataOut = data.toString() + nullString.toString();
+  if (typeof data === 'string') {
+    return dataOut;
+  }
+  return Buffer.from(dataOut);
 }
 
 // encrypt data string using AES256
