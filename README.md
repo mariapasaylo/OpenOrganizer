@@ -4,8 +4,8 @@ security as core principles.
 
 ## Features:
 * Cross-platform support (Windows & Linux)
-* Opt-in cloud-sync for remote backup and use between multiple devices
-* Data is encrypted on the server database and during transmission
+* Store data with opt-in cloud syncing for easy remote backup and use between multiple devices
+* Keep data secure by encrypting it for transmission and cloud storage to where not even the server can read it
 * Create daily, weekly, bi-weekly, monthly, and yearly recurring reminders
 * Sort reminders and notes into color-coded folders for easy organization
 * Use existing reminders as a template for new ones
@@ -23,7 +23,7 @@ security as core principles.
 
 Client: Node.js / `npm`
 
-Server: Golang, GCC / `make` (`Mingw32-make`), PostgreSQL (17.4+ tested)
+Server: Golang, GCC / `make` (`mingw32-make`), PostgreSQL (17.4+ tested)
 
 ## Client Setup Instructions
 
@@ -39,11 +39,10 @@ Example:
 http://localhost:3001/
 ```
 5. `npm run rebuild`
-6. `quasar dev -m electron` to run in electron **(necessary for sqlite)**
-
-Extra Options:<br>
-`quasar dev` to run in the browser<br>
-`quasar build -m electron` to build executable
+6. To build / run the application:
+* `quasar dev -m electron` to run in electron **(necessary for sqlite)**
+* `quasar dev` to run in the browser **(UI testing only)**
+* `quasar build -m electron` to build executable
 
 ## Server Setup Instructions
 
@@ -77,7 +76,7 @@ DB_PORT="3002"
 DB_USER="postgres"
 DB_PWD="password"
 ```
-4. makefile run options:
-- `make` (or `mingw32-make` for Windows) will fully build and run the application
-- `make build` to only build in `/server/bin/`
-- `make run` to only run the executable in `/server/bin/`
+4. To build / run the application:
+* `make` (or `mingw32-make` for Windows) will fully build and run the application
+* `make build` to only build in `/server/bin/`
+* `make run` to only run the executable in `/server/bin/`
