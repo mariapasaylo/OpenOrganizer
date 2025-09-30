@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-25
+ * Updated: 2025-09-30
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -10,8 +10,8 @@
  * https://quasar.dev/vue-components/card/
  * https://quasar.dev/vue-components/tabs/
  * https://vuejs.org/guide/essentials/list to render reminder cards in a list
- * https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
- * 
+ * https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme for qcalendar code
+ * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -51,10 +51,10 @@
                 <q-tab name="reminders" icon="alarm" label="Reminders"/>
                 <q-tab name="notes" icon="note" label="Notes"/>
             </q-tabs>
-            <q-btn style="font-size: 15px" flat icon="add" @click = addReminder></q-btn>
+            <q-btn style="font-size: 15px" flat icon="add" @click = "addArrayItem"></q-btn>
+            <q-checkbox v-model="selectAll" class="q-mr-sm" label = "Select All"/>
             <div class="reminder-note-card-container">
             <div v-if="tab === 'reminders'">
-
             <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
               <q-expansion-item expand-icon="keyboard_arrow_down">
                 <template v-slot:header>
@@ -70,8 +70,24 @@
               </q-expansion-item>
             </q-card>
             </div>
-            </div>
-             <q-btn style="font-size: 15px" flat icon="delete" @click = deleteReminder></q-btn>
+            <div v-if=" tab === 'notes'">
+            <q-card class="reminder-note-cards" v-for= "(item, index) in notes" :key="index">
+              <q-expansion-item expand-icon="keyboard_arrow_down">
+                <template v-slot:header>
+                  <div class="reminder-header-container">
+                    <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
+                    <div>{{ item.title }}</div>
+                  </div>
+                </template>
+                <q-card-section>
+                  <h3>Title: {{ item.title }}</h3>
+                  <p>Description: {{ item.description}} <br>Index: {{ index }}</p>
+                </q-card-section>
+              </q-expansion-item>
+            </q-card>
+          </div>
+             </div>
+              <q-btn style="font-size: 15px" flat icon="delete" @click = "deleteArrayItem"></q-btn>
         </div>
 <!--Right column - Calendar View-->
         <div class="grid-seperator">
@@ -165,17 +181,20 @@ import {
 import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
-import { ref, computed} from 'vue';
+import { ref, computed, watch} from 'vue';
 
-const tab = ref('');
+// Initialize active tab to reminder by default
+const tab = ref('reminders');
 // Array of reminders
-const reminders = ref([{eventType: 'Flight', description: 'United airlines flight at 6 am', date: '2025-09-23', isSelected: false},
-{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23', isSelected: false}]);
+const reminders = ref([{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23', isSelected: false}]);
+// Array of notes
+const notes = ref([{title: 'New Note', description: 'note description', isSelected: false}]);
 const showSettings = ref(false);
 const isCloudOn = ref(false);
-const val = ref(false)
+const selectAll = ref(false)
 
-// Clicking add icon adds a reminder to the list for the selected date
+
+// Function to add a reminder to the list on the specified calendar date
 function addReminder() {
     reminders.value.push({
         eventType: 'New Reminder',
@@ -185,10 +204,59 @@ function addReminder() {
     });
 }
 
-// Function to clear/delete all reminders from the list as a test
-function deleteReminder() {
-    reminders.value = [];
+// Function to add a note to the list on the specified calendar date
+function addNote() {
+    notes.value.push({
+        title: 'New Note',
+        description: 'note description',
+        isSelected: false
+    });
 }
+
+// Function to delete selected individual checkbox reminders
+function deleteReminder() {
+  // Remove reminders that have checkbox selected from reminders array
+  // Creates new filtered array to render that only includes reminders that are not selected
+    reminders.value = reminders.value.filter(reminder => !reminder.isSelected);
+}
+
+// Function to delete selected individual checkbox notes
+function deleteNote() {
+  // Remove notes that have checkbox selected from notes array
+  // Creates new filtered array to render that only includes notes that are not selected
+    notes.value = notes.value.filter(note => !note.isSelected);
+}
+
+// Toggles behavior of add button. If on reminder tab, add a reminder to array. If on notes tab, add a note to array.
+function addArrayItem() {
+  if (tab.value === 'reminders') {
+    addReminder();
+  } else if (tab.value === 'notes') {
+    addNote();
+  }
+}
+
+// Toggles behavior of delete button. If on reminder tab, delete a reminder from array. If on notes tab, delete a note from array.
+function deleteArrayItem() {
+  if (tab.value === 'reminders') {
+    deleteReminder();
+  } else if (tab.value === 'notes') {
+    deleteNote();
+  }
+}
+
+// Watcher on the checkbox to select and deselect all reminders or notes when select all checkbox is toggled
+watch(selectAll, (selectionVal) => {
+  if (tab.value === 'reminders') {
+    filteredReminders.value.forEach(reminder => {
+      reminder.isSelected = selectionVal;
+    });
+  } else if (tab.value === 'notes') {
+    notes.value.forEach(note => {
+      note.isSelected = selectionVal;
+    });
+  }
+});
 
 // template and script source code from mini-mode navigation example
 // https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
@@ -202,6 +270,21 @@ const formattedMonth = computed(() => {
   const formatter = monthFormatter()
   return formatter ? formatter.format(date) : ''
 })
+
+// Filtered reminder array for specific date
+const filteredReminders = computed(() => {
+  return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+});
+
+// Watcher to unselect the select all checkbox if there are no reminders in the array (ex. none made or after deletion)
+watch([filteredReminders, notes, tab], () =>{
+  if (tab.value == 'reminders' && filteredReminders.value.length === 0) {
+    selectAll.value = false;
+  }
+  if (tab.value === 'notes' && notes.value.length === 0) {
+    selectAll.value = false;
+  }
+});
 
 function monthFormatter() {
   try {
@@ -248,9 +331,6 @@ function onChange(data: { start: Timestamp; end: Timestamp; days: Timestamp[] })
   console.info('onChange', data)
 }
 
-const filteredReminders = computed(() => {
-  return reminders.value.filter(reminder => reminder.date === selectedDate.value)
-});
 
 function onClickDate(data: Timestamp) {
   console.info('onClickDate', data)
