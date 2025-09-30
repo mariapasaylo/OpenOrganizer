@@ -30,8 +30,8 @@
           <div class="settings-container">
            <div class="settings-sidebar">
             <q-tabs v-model="tab" vertical>
-                <q-tab style="color: rgb(71, 71, 71)" name="cloud" label="Cloud" icon="cloud" />
-                <q-tab style="color: rgb(71, 71, 71)" name="local" label="Local" icon="storage" />
+                <q-tab style="color: #474747" name="cloud" label="Cloud" icon="cloud" />
+                <q-tab style="color: #474747" name="local" label="Local" icon="storage" />
             </q-tabs>
             </div>
              <div v-if="tab === 'cloud'">
@@ -43,6 +43,11 @@
     </q-dialog> 
 <!--Left column - File Explorer-->
         <div class="grid-seperator">
+          <q-breadcrumbs>
+            <q-breadcrumbs-el label="Home" />
+            <q-breadcrumbs-el label="Hotels" />
+            <q-breadcrumbs-el label="Breadcrumbs" />
+            </q-breadcrumbs>
             <button @click="$router.push('/')">Index Screen</button>
         </div>
 <!--Middle column - List View of Notes/Reminders-->
@@ -56,7 +61,7 @@
             <div class="reminder-note-card-container">
             <div v-if="tab === 'reminders'">
             <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
-              <q-expansion-item expand-icon="keyboard_arrow_down">
+              <q-expansion-item v-model = "item.expanded" expand-icon="keyboard_arrow_down">
                 <template v-slot:header>
                   <div class="reminder-header-container">
                     <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
@@ -72,7 +77,7 @@
             </div>
             <div v-if=" tab === 'notes'">
             <q-card class="reminder-note-cards" v-for= "(item, index) in notes" :key="index">
-              <q-expansion-item expand-icon="keyboard_arrow_down">
+              <q-expansion-item v-model= "item.expanded" expand-icon="keyboard_arrow_down">
                 <template v-slot:header>
                   <div class="reminder-header-container">
                     <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
@@ -80,8 +85,20 @@
                   </div>
                 </template>
                 <q-card-section>
-                  <h3>Title: {{ item.title }}</h3>
-                  <p>Description: {{ item.description}} <br>Index: {{ index }}</p>
+                   <q-btn-dropdown style="margin-bottom: 10px;" color="grey" label="Save in folder">
+                  <q-list>
+                      <q-item clickable v-close-popup>
+                      <q-item-section>
+                        <q-item-label>Folder 1</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  </q-btn-dropdown>
+                  <q-input class="note-box" outlined v-model="noteText" type="textarea" placeholder="Write your note here..."/>
+                   <div class="row"> 
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel"></q-btn>
+                   </div>
                 </q-card-section>
               </q-expansion-item>
             </q-card>
@@ -164,7 +181,6 @@
             <q-btn class = "account-and-settings-button" flat icon="settings" @click = "showSettings = true"></q-btn>
             </div>
         </div>
-
     </qpage>
 </template>
 
@@ -185,13 +201,14 @@ import { ref, computed, watch} from 'vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
-// Array of reminders
-const reminders = ref([{eventType: 'Hotel', description: 'Hotel check-out at 9 am', date: '2025-09-23', isSelected: false}]);
+// Array of reminders. Default reminder adds to the current day's date
+const reminders = ref([{eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true}]);
 // Array of notes
-const notes = ref([{title: 'New Note', description: 'note description', isSelected: false}]);
+const notes = ref([{title: 'New Note', description: 'note description', isSelected: false, expanded: true}]);
 const showSettings = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
+const noteText = ref('');
 
 
 // Function to add a reminder to the list on the specified calendar date
@@ -200,7 +217,8 @@ function addReminder() {
         eventType: 'New Reminder',
         description: 'reminder description',
         date: selectedDate.value,
-        isSelected: false
+        isSelected: false,
+        expanded: true // Have reminder carat expanded open by default when addding new reminder to fill out fields
     });
 }
 
@@ -209,7 +227,8 @@ function addNote() {
     notes.value.push({
         title: 'New Note',
         description: 'note description',
-        isSelected: false
+        isSelected: false,
+        expanded: true // Have note carat expanded open by default when addding new note to fill out fields
     });
 }
 
