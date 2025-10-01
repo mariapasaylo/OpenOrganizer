@@ -167,6 +167,11 @@
   width: 100%;
 }
 
+// No bullet points for file list and bigger font size
+.file-list {
+  list-style: none;
+  font-size: 20px;
+}
 
 // Delete this if you want to see scrollbar as this hides it
 ::-webkit-scrollbar {

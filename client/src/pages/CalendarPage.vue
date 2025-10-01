@@ -49,6 +49,7 @@
             <q-breadcrumbs-el label="Check-in" />
             <q-breadcrumbs-el label="Check-out" />
             </q-breadcrumbs>
+            <RecursiveFolderTree :folders="nestedFolderTree" />
             <button @click="$router.push('/')">Index Screen</button>
         </div>
 <!--Middle column - List View of Notes/Reminders-->
@@ -185,7 +186,6 @@
     </qpage>
 </template>
 
-
 <script setup lang="ts">
 
 import {
@@ -199,6 +199,8 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch} from 'vue';
+// To display the folder tree list on the frontend
+import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -219,10 +221,13 @@ type Folder = {
   children?: Folder[];
 };
 
+// For use in frontend recursive folder display component
+export type { Folder };
+
 // Example flat array of folders
 const folders: Folder[] = [{id: 1, name: 'Hotels', parent_id: 0}, {id: 2, name: 'Check-in', parent_id: 1}, {id: 3, name: 'Check-out', parent_id: 2}, {id: 4, name: 'Flights', parent_id: 0}];
 
-// example nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
+// example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
  const nest = (items: Folder[], id: number): 
  Folder[] =>
   // Filter finds all folders where the parent id is equal to the current folder id 
