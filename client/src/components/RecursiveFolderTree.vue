@@ -1,6 +1,6 @@
 <!--
  * Authors: Rachel Patella
- * Created: 2025-09-22
+ * Created: 2025-10-01
  * Updated: 2025-10-01
  *
  * This file is a recursive component to display the nested folder tree in the file explorer in the left column on the calendar page
