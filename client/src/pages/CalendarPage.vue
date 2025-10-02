@@ -58,8 +58,13 @@
                 <q-tab name="reminders" icon="alarm" label="Reminders"/>
                 <q-tab name="notes" icon="note" label="Notes"/>
             </q-tabs>
-            <q-btn style="font-size: 15px" flat icon="add" @click = "addArrayItem"></q-btn>
-            <q-checkbox v-model="selectAll" class="q-mr-sm" label = "Select All"/>
+            <div class="row justify-between items-center">
+               <div class="row items-center">
+                  <q-btn style="font-size: 15px" flat icon="add" @click="addArrayItem" class="q-mr-sm"/>
+                  <q-checkbox v-model="selectAll" label="Select All"/>
+                </div>
+              <q-btn style="font-size: 15px" flat icon="delete" @click = "deleteArrayItem"></q-btn>
+            </div>
             <div class="reminder-note-card-container">
             <div v-if="tab === 'reminders'">
             <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
@@ -104,9 +109,9 @@
                 </q-card-section>
               </q-expansion-item>
             </q-card>
+            </div>
           </div>
-             </div>
-              <q-btn style="font-size: 15px" flat icon="delete" @click = "deleteArrayItem"></q-btn>
+             
         </div>
 <!--Right column - Calendar View-->
         <div class="grid-seperator">
@@ -178,8 +183,8 @@
                 </div>
                 </div>
             </div>
-            <div class="row"> 
-            <q-btn style="margin-right: 6.65em" class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
+            <div class="row justify-between items-center"> 
+            <q-btn class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
             <q-btn class = "account-and-settings-button" flat icon="settings" @click = "showSettings = true"></q-btn>
             </div>
         </div>
