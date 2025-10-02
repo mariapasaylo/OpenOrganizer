@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-30
+ * Updated: 2025-10-01
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -12,6 +12,7 @@
  * https://vuejs.org/guide/essentials/list to render reminder cards in a list
  * https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme for qcalendar code
  * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
+ * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -44,10 +45,11 @@
 <!--Left column - File Explorer-->
         <div class="grid-seperator">
           <q-breadcrumbs>
-            <q-breadcrumbs-el label="Home" />
             <q-breadcrumbs-el label="Hotels" />
-            <q-breadcrumbs-el label="Breadcrumbs" />
+            <q-breadcrumbs-el label="Check-in" />
+            <q-breadcrumbs-el label="Check-out" />
             </q-breadcrumbs>
+            <RecursiveFolderTree :folders="nestedFolderTree" />
             <button @click="$router.push('/')">Index Screen</button>
         </div>
 <!--Middle column - List View of Notes/Reminders-->
@@ -96,7 +98,7 @@
                   </q-btn-dropdown>
                   <q-input class="note-box" outlined v-model="noteText" type="textarea" placeholder="Write your note here..."/>
                    <div class="row"> 
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"></q-btn>
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveNote"></q-btn>
                   <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel"></q-btn>
                    </div>
                 </q-card-section>
@@ -184,7 +186,6 @@
     </qpage>
 </template>
 
-
 <script setup lang="ts">
 
 import {
@@ -198,6 +199,8 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch} from 'vue';
+// To display the folder tree list on the frontend
+import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -209,7 +212,36 @@ const showSettings = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
+// Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
+// 0 is equal to the root level
+type Folder = {
+  id: number;
+  name: string;
+  parent_id: number;
+  children?: Folder[];
+};
 
+// For use in frontend recursive folder display component
+export type { Folder };
+
+// Example flat array of folders
+const folders: Folder[] = [{id: 1, name: 'Hotels', parent_id: 0}, {id: 2, name: 'Check-in', parent_id: 1}, {id: 3, name: 'Check-out', parent_id: 2}, {id: 4, name: 'Flights', parent_id: 0}];
+
+// example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
+ const nest = (items: Folder[], id: number): 
+ Folder[] =>
+  // Filter finds all folders where the parent id is equal to the current folder id 
+  items.filter(item => item.parent_id === id)
+  // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parent_id)
+  .map(item => ({
+      ...item,
+        // Add a children property to the item object and recursively call nest function to find children of the current folder
+      children: nest(items, item.id)
+    }));
+  
+  // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
+  const nestedFolderTree = nest(folders, 0);
+  console.log(nestedFolderTree);
 
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
@@ -222,7 +254,7 @@ function addReminder() {
     });
 }
 
-// Function to add a note to the list on the specified calendar date
+// Function to add a note to the list
 function addNote() {
     notes.value.push({
         title: 'New Note',
@@ -230,6 +262,11 @@ function addNote() {
         isSelected: false,
         expanded: true // Have note carat expanded open by default when addding new note to fill out fields
     });
+}
+
+// Function to save a note
+function saveNote() {
+    console.log("username: ", noteText)
 }
 
 // Function to delete selected individual checkbox reminders
@@ -295,7 +332,7 @@ const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
 });
 
-// Watcher to unselect the select all checkbox if there are no reminders in the array (ex. none made or after deletion)
+// Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
 watch([filteredReminders, notes, tab], () =>{
   if (tab.value == 'reminders' && filteredReminders.value.length === 0) {
     selectAll.value = false;

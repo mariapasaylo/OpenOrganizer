@@ -3,7 +3,7 @@
 /* 
  * Authors: Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-09-25
+ * Updated: 2025-10-01
  *
  * This file is the CSS global stylesheet for the application
  *
@@ -167,18 +167,10 @@
   width: 100%;
 }
 
-
-// On smaller screens sizes of 715 px or less wide, make sidebar for login/registration into topbar (portrait)
-@media screen and (max-width: 715px) {
-  .login-registration-container {
-    flex-direction: column; 
-  }
-  .login-registration-form {
-    width: 100%;
-  }
-  .login-register-sidebar {
-    width: 100%;
-  }
+// No bullet points for file list and bigger font size
+.file-list {
+  list-style: none;
+  font-size: 20px;
 }
 
 // Delete this if you want to see scrollbar as this hides it
