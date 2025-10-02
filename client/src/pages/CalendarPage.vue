@@ -256,6 +256,12 @@ function addReminder() {
         isSelected: false,
         expanded: true // Have reminder carat expanded open by default when addding new reminder to fill out fields
     });
+    //Close other reminders when a new one is added
+    reminders.value.forEach((reminder, index) => {
+      if (index < reminders.value.length - 1) {
+        reminder.expanded = false
+      }
+    })
 }
 
 // Function to add a note to the list
@@ -266,6 +272,12 @@ function addNote() {
         isSelected: false,
         expanded: true // Have note carat expanded open by default when addding new note to fill out fields
     });
+    //Close other notes when a new one is added
+    notes.value.forEach((note, index) => {
+      if (index < notes.value.length - 1) {
+        note.expanded = false
+      }
+    })
 }
 
 // Function to save a note
@@ -335,6 +347,8 @@ const formattedMonth = computed(() => {
 const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
 });
+
+
 
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
 watch([filteredReminders, notes, tab], () =>{
