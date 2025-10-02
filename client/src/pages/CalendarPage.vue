@@ -163,7 +163,6 @@
                         ref="calendar"
                         v-model="selectedDate"
                         mini-mode
-                        no-active-date
                         hoverable
                         focusable
                         :focus-type="['date', 'weekday']"
