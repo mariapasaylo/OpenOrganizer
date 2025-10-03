@@ -29,18 +29,18 @@
         <q-card-section>
           <div class="text-h6">Settings</div>
           <div class="settings-container">
-           <div class="settings-sidebar">
-            <q-tabs v-model="tab" vertical>
+            <div class="settings-sidebar">
+              <q-tabs v-model="tab" vertical>
                 <q-tab style="color: #474747" name="cloud" label="Cloud" icon="cloud" />
                 <q-tab style="color: #474747" name="local" label="Local" icon="storage" />
-            </q-tabs>
+              </q-tabs>
             </div>
-             <div v-if="tab === 'cloud'">
-            <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
+            <div v-if="tab === 'cloud'">
+              <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
             </div>
-            </div>
+          </div>
         </q-card-section>
-        </q-card>
+      </q-card>
     </q-dialog>
 
     <!-- Left column - File Explorer -->
@@ -56,8 +56,8 @@
     <!-- Middle column - List View of Notes/Reminders -->
     <div class="grid-seperator" style="background-color: #efefef; grid-area: reminder-notes;">
       <q-tabs v-model="tab" class="calendar-tabs dense">
-        <q-tab name="reminders" icon="alarm" label="Reminders"/>
-        <q-tab name="notes" icon="note" label="Notes"/>
+        <q-tab name="reminders" icon="alarm" label="Reminders" />
+        <q-tab name="notes" icon="note" label="Notes" />
       </q-tabs>
       <div class="row justify-between items-center">
         <div class="row items-center">
@@ -68,57 +68,60 @@
       </div>
       <div class="reminder-note-card-container">
         <div v-if="tab === 'reminders'">
-            <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
-              <q-expansion-item v-model = "item.expanded" expand-icon="keyboard_arrow_down">
-                <template v-slot:header>
-                  <div class="reminder-header-container">
-                    <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
-                    <div>{{ item.eventType }}</div>
-                  </div>
-                </template>
-                <q-card-section>
-                  <h3>Title: {{ item.eventType }}</h3>
-                  <p>Description: {{ item.description}} <br>Index: {{ index }} <br>Date: {{ item.date }}</p>
-                </q-card-section>
-              </q-expansion-item>
-            </q-card>
-            </div>
-            <div v-if=" tab === 'notes'">
-            <q-card class="reminder-note-cards" v-for= "(item, index) in notes" :key="index">
-              <q-expansion-item v-model= "item.expanded" expand-icon="keyboard_arrow_down">
-                <template v-slot:header>
-                  <div class="reminder-header-container">
-                    <q-checkbox v-model="item.isSelected" class="q-mr-sm"/>
-                    <div>{{ item.title }}</div>
-                  </div>
-                </template>
-                <q-card-section>
-                   <q-btn-dropdown style="margin-bottom: 10px;" color="grey" label="Save in folder">
+          <q-card class="reminder-note-cards" v-for="(item, index) in filteredReminders" :key="index">
+            <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
+              <template v-slot:header>
+                <div class="reminder-header-container">
+                  <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
+                  <div>{{ item.eventType }}</div>
+                </div>
+              </template>
+              <q-card-section>
+                <h3>Title: {{ item.eventType }}</h3>
+                <p>Description: {{ item.description }} <br>Index: {{ index }} <br>Date: {{ item.date }}</p>
+              </q-card-section>
+            </q-expansion-item>
+          </q-card>
+        </div>
+        <div v-if="tab === 'notes'">
+          <q-card class="reminder-note-cards" v-for="(item, index) in filteredNotes" :key="index">
+            <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
+              <template v-slot:header>
+                <div class="reminder-header-container">
+                  <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
+                  <div>{{ item.title }}</div>
+                </div>
+              </template>
+              <p>Created on: {{ item.date }}</p>
+              <q-card-section>
+                <q-btn-dropdown style="margin-bottom: 10px;" color="grey" label="Save in folder">
                   <q-list>
-                      <q-item clickable v-close-popup>
+                    <q-item clickable v-close-popup>
                       <q-item-section>
                         <q-item-label>Folder 1</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
-                  </q-btn-dropdown>
-                  <q-input class="note-box" outlined v-model="noteText" type="textarea" placeholder="Write your note here..."/>
-                   <div class="row"> 
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveNote"></q-btn>
-                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel"></q-btn>
-                   </div>
-                </q-card-section>
-              </q-expansion-item>
-            </q-card>
-          </div>
-             </div>
+                </q-btn-dropdown>
+                <q-input class="note-box" outlined v-model="noteText" type="textarea"
+                  placeholder="Write your note here..." />
+                <div class="row">
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
+                    @click="saveNote"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
+                    label="Cancel"></q-btn>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
+          </q-card>
+        </div>
+      </div>
     </div>
 
     <!-- Right column - Calendar (top row) -->
     <div style="grid-area: calendar; padding: 20px" data-area="calendar">
       <div style="display: flex; justify-content: center">
-        <div
-          style="
+        <div style="
             max-width: 400px;
             width: 100%;
             display: flex;
@@ -127,8 +130,7 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             padding: 10px;
-          "
-        >
+          ">
           <div style="width: 100%; display: flex; justify-content: space-evenly">
             <div style="width: 50%; display: flex; justify-content: space-between">
               <span class="q-button" style="cursor: pointer; user-select: none" @click="onPrev">&lt;</span>
@@ -143,24 +145,10 @@
           </div>
           <div style="display: flex; justify-content: center; align-items: center;">
             <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;">
-              <q-calendar-month
-                ref="calendar"
-                v-model="selectedDate"
-                mini-mode
-                hoverable
-                focusable
-                :focus-type="['date', 'weekday']"
-                :min-weeks="6"
-                animated
-                @change="onChange"
-                @moved="onMoved"
-                @click-date="onClickDate"
-                @click-day="onClickDay"
-                @click-workweek="onClickWorkweek"
-                @click-head-workweek="onClickHeadWorkweek"
-                @click-head-day="onClickHeadDay"
-                style="height: 400px;"
-              />
+              <q-calendar-month ref="calendar" v-model="selectedDate" mini-mode hoverable focusable
+                :focus-type="['date', 'weekday']" :min-weeks="6" animated @change="onChange" @moved="onMoved"
+                @click-date="onClickDate" @click-day="onClickDay" @click-workweek="onClickWorkweek"
+                @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" />
             </div>
           </div>
         </div>
@@ -192,16 +180,16 @@ import {
 import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
-import { ref, computed, watch} from 'vue';
+import { ref, computed, watch } from 'vue';
 // To display the folder tree list on the frontend
 import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true}]);
+const reminders = ref([{ eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true }]);
 // Array of notes
-const notes = ref([{title: 'New Note', description: 'note description', isSelected: false, expanded: true}]);
+const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true }]);
 const showSettings = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
@@ -219,74 +207,75 @@ type Folder = {
 export type { Folder };
 
 // Example flat array of folders
-const folders: Folder[] = [{id: 1, name: 'Hotels', parent_id: 0}, {id: 2, name: 'Check-in', parent_id: 1}, {id: 3, name: 'Check-out', parent_id: 2}, {id: 4, name: 'Flights', parent_id: 0}];
+const folders: Folder[] = [{ id: 1, name: 'Hotels', parent_id: 0 }, { id: 2, name: 'Check-in', parent_id: 1 }, { id: 3, name: 'Check-out', parent_id: 2 }, { id: 4, name: 'Flights', parent_id: 0 }];
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
- const nest = (items: Folder[], id: number): 
- Folder[] =>
+const nest = (items: Folder[], id: number):
+  Folder[] =>
   // Filter finds all folders where the parent id is equal to the current folder id 
   items.filter(item => item.parent_id === id)
-  // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parent_id)
-  .map(item => ({
+    // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parent_id)
+    .map(item => ({
       ...item,
-        // Add a children property to the item object and recursively call nest function to find children of the current folder
+      // Add a children property to the item object and recursively call nest function to find children of the current folder
       children: nest(items, item.id)
     }));
-  
-  // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
-  const nestedFolderTree = nest(folders, 0);
-  console.log(nestedFolderTree);
+
+// Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
+const nestedFolderTree = nest(folders, 0);
+console.log(nestedFolderTree);
 
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
-    reminders.value.push({
-        eventType: 'New Reminder',
-        description: 'reminder description',
-        date: selectedDate.value,
-        isSelected: false,
-        expanded: true // Have reminder carat expanded open by default when addding new reminder to fill out fields
-    });
-    //Close other reminders when a new one is added
-    reminders.value.forEach((reminder, index) => {
-      if (index < reminders.value.length - 1) {
-        reminder.expanded = false
-      }
-    })
+  reminders.value.push({
+    eventType: 'New Reminder',
+    description: 'reminder description',
+    date: selectedDate.value,
+    isSelected: false,
+    expanded: true // Have reminder carat expanded open by default when addding new reminder to fill out fields
+  });
+  //Close other reminders when a new one is added
+  reminders.value.forEach((reminder, index) => {
+    if (index < reminders.value.length - 1) {
+      reminder.expanded = false
+    }
+  })
 }
 
 // Function to add a note to the list
 function addNote() {
-    notes.value.push({
-        title: 'New Note',
-        description: 'note description',
-        isSelected: false,
-        expanded: true // Have note carat expanded open by default when addding new note to fill out fields
-    });
-    //Close other notes when a new one is added
-    notes.value.forEach((note, index) => {
+  notes.value.push({
+    title: 'New Note',
+    description: 'note description',
+    date: selectedDate.value,
+    isSelected: false,
+    expanded: true // Have note carat expanded open by default when addding new note to fill out fields
+  });
+  //Close other notes when a new one is added
+  notes.value.forEach((note, index) => {
     if (index < notes.value.length - 1) {
       note.expanded = false
-      }
-    })
+    }
+  })
 }
 
 // Function to save a note
 function saveNote() {
-    console.log("username: ", noteText)
+  console.log("username: ", noteText)
 }
 
 // Function to delete selected individual checkbox reminders
 function deleteReminder() {
   // Remove reminders that have checkbox selected from reminders array
   // Creates new filtered array to render that only includes reminders that are not selected
-    reminders.value = reminders.value.filter(reminder => !reminder.isSelected);
+  reminders.value = reminders.value.filter(reminder => !reminder.isSelected);
 }
 
 // Function to delete selected individual checkbox notes
 function deleteNote() {
   // Remove notes that have checkbox selected from notes array
   // Creates new filtered array to render that only includes notes that are not selected
-    notes.value = notes.value.filter(note => !note.isSelected);
+  notes.value = notes.value.filter(note => !note.isSelected);
 }
 
 // Toggles behavior of add button. If on reminder tab, add a reminder to array. If on notes tab, add a note to array.
@@ -338,8 +327,13 @@ const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
 });
 
+// Filtered note array for specific date
+const filteredNotes = computed(() => {
+  return notes.value.filter(note => note.date === selectedDate.value)
+});
+
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
-watch([filteredReminders, notes, tab], () =>{
+watch([filteredReminders, notes, tab], () => {
   if (tab.value == 'reminders' && filteredReminders.value.length === 0) {
     selectAll.value = false;
   }
