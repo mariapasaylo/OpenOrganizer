@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-02
+ * Updated: 2025-10-03
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -69,9 +69,10 @@
           node-key="id"
           no-connectors
           default-expand-all
+          v-model:selected="selectedFolderId"
         />
         <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
-          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" />
+          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="addFolder" />
         </div>
       </div>
       
@@ -209,9 +210,8 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch } from 'vue';
-// To display the folder tree list on the frontend
+// To display the folder tree list on the frontend - not used right now
 import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
-
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -220,10 +220,14 @@ const reminders = ref([{ eventType: 'New Reminder', description: 'reminder descr
 // Array of notes
 const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true }]);
 const showSettings = ref(false);
+const showAddFolderName = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
 const searchQuery = ref('');
+// Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
+// null is if there is no folder selected on the tree, this by default
+const selectedFolderId = ref<number | null>(null);
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
 // This type represents the way that we store the folder data
@@ -248,7 +252,13 @@ type QTreeFolder = {
 export type { Folder };
 
 // Example flat array of folders
-const folders: Folder[] = [{ id: 1, name: 'Hotels', parent_id: 0 }, { id: 2, name: 'Check-in', parent_id: 1 }, { id: 3, name: 'Check-out', parent_id: 2 }, { id: 4, name: 'Flights', parent_id: 0 }, { id: 5, name: 'Arrival', parent_id: 4 }, { id: 6, name: 'Departure', parent_id: 5 }];
+ const folders = ref<Folder[]>([{ id: 1, name: 'Hotels', parent_id: 0 }, 
+ { id: 2, name: 'Check-in', parent_id: 1 }, 
+ { id: 3, name: 'Check-out', parent_id: 2 }, 
+ { id: 4, name: 'Flights', parent_id: 0 }, 
+ { id: 5, name: 'Arrival', parent_id: 4 },
+ { id: 6, name: 'Departure', parent_id: 5 }
+]);
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
@@ -279,15 +289,13 @@ QTreeFolder[] {
 }
 
 // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
-const nestedFolderTree = computed(() => nest(folders, 0));
+const nestedFolderTree = computed(() => nest(folders.value, 0));
 console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
 
 // Convert nested folder tree to Q-Tree format
 // Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
 const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value));
 console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
-
-
 
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
@@ -321,6 +329,19 @@ function addNote() {
       note.expanded = false
     }
   })
+}
+
+// Function to add a folder
+// For now, assuming folders aren't deleted so new folder id is just length of folders array + 1
+function addFolder() {
+  // Sets parentID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parent_id = 0)
+  const newFolderParentId = selectedFolderId.value ?? 0;
+  const newFolderId = folders.value.length + 1;
+  folders.value.push({ 
+    id: newFolderId, 
+    name: 'New Folder', 
+    parent_id: newFolderParentId
+  });
 }
 
 // Function to save a note
@@ -450,7 +471,6 @@ function onMoved(data: Timestamp) {
 function onChange(data: { start: Timestamp; end: Timestamp; days: Timestamp[] }) {
   console.info('onChange', data)
 }
-
 
 function onClickDate(data: Timestamp) {
   console.info('onClickDate', data)
