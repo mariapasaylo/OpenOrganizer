@@ -66,7 +66,13 @@
 .calendar-container {
     display: grid;
     grid-template-columns: [file-explorer] 30% [notes-and-reminders] 40% [calendar] 30%;
-    grid-template-rows: 100vh;
+    grid-template-rows: 1fr 1fr auto;
+    // Creates 3 columns (file-explorer, notes calendar) with the third column having 3 rows (calendar, calendar-spacer, account-settings)
+    grid-template-areas:
+    "file-explorer reminder-notes calendar"
+    "file-explorer reminder-notes calendar-spacer"
+    "file-explorer reminder-notes account-settings";
+    height: 100vh
 }
 
 .reminder-note-card-container {
@@ -157,7 +163,7 @@
 .account-and-settings-button {
   color: #459dd8; 
   font-size: 30px; 
-  margin-top: 8em;
+  margin-top: auto;
 }
 
 .reminder-header-container {

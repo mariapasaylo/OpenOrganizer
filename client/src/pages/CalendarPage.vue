@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-01
+ * Updated: 2025-10-02
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -23,8 +23,8 @@
 -->
 
 <template>
-    <qpage class="calendar-container"> 
-      <q-dialog v-model="showSettings">
+  <qpage class="calendar-container">
+    <q-dialog v-model="showSettings">
       <q-card style="width: 500px" class="q-px-sm q-pb-md">
         <q-card-section>
           <div class="text-h6">Settings</div>
@@ -41,32 +41,33 @@
             </div>
         </q-card-section>
         </q-card>
-    </q-dialog> 
-<!--Left column - File Explorer-->
-        <div class="grid-seperator">
-          <q-breadcrumbs>
-            <q-breadcrumbs-el label="Hotels" />
-            <q-breadcrumbs-el label="Check-in" />
-            <q-breadcrumbs-el label="Check-out" />
-            </q-breadcrumbs>
-            <RecursiveFolderTree :folders="nestedFolderTree" />
-            <button @click="$router.push('/')">Index Screen</button>
+    </q-dialog>
+
+    <!-- Left column - File Explorer -->
+    <div class="grid-seperator" style="grid-area: file-explorer;">
+      <q-breadcrumbs>
+        <q-breadcrumbs-el label="Hotels" />
+        <q-breadcrumbs-el label="Check-in" />
+        <q-breadcrumbs-el label="Check-out" />
+      </q-breadcrumbs>
+      <RecursiveFolderTree :folders="nestedFolderTree" />
+    </div>
+
+    <!-- Middle column - List View of Notes/Reminders -->
+    <div class="grid-seperator" style="background-color: #efefef; grid-area: reminder-notes;">
+      <q-tabs v-model="tab" class="calendar-tabs dense">
+        <q-tab name="reminders" icon="alarm" label="Reminders"/>
+        <q-tab name="notes" icon="note" label="Notes"/>
+      </q-tabs>
+      <div class="row justify-between items-center">
+        <div class="row items-center">
+          <q-btn style="font-size: 15px" flat icon="add" @click="addArrayItem" class="q-mr-sm" />
+          <q-checkbox v-model="selectAll" label="Select All" />
         </div>
-<!--Middle column - List View of Notes/Reminders-->
-        <div class="grid-seperator" style="background-color: #efefef">
-            <q-tabs v-model="tab" class="calendar-tabs dense">
-                <q-tab name="reminders" icon="alarm" label="Reminders"/>
-                <q-tab name="notes" icon="note" label="Notes"/>
-            </q-tabs>
-            <div class="row justify-between items-center">
-               <div class="row items-center">
-                  <q-btn style="font-size: 15px" flat icon="add" @click="addArrayItem" class="q-mr-sm"/>
-                  <q-checkbox v-model="selectAll" label="Select All"/>
-                </div>
-              <q-btn style="font-size: 15px" flat icon="delete" @click = "deleteArrayItem"></q-btn>
-            </div>
-            <div class="reminder-note-card-container">
-            <div v-if="tab === 'reminders'">
+        <q-btn style="font-size: 15px" flat icon="delete" @click="deleteArrayItem"></q-btn>
+      </div>
+      <div class="reminder-note-card-container">
+        <div v-if="tab === 'reminders'">
             <q-card class="reminder-note-cards" v-for= "(item, index) in filteredReminders" :key="index">
               <q-expansion-item v-model = "item.expanded" expand-icon="keyboard_arrow_down">
                 <template v-slot:header>
@@ -109,85 +110,74 @@
                 </q-card-section>
               </q-expansion-item>
             </q-card>
+          </div>
+             </div>
+    </div>
+
+    <!-- Right column - Calendar (top row) -->
+    <div style="grid-area: calendar; padding: 20px" data-area="calendar">
+      <div style="display: flex; justify-content: center">
+        <div
+          style="
+            max-width: 400px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+          "
+        >
+          <div style="width: 100%; display: flex; justify-content: space-evenly">
+            <div style="width: 50%; display: flex; justify-content: space-between">
+              <span class="q-button" style="cursor: pointer; user-select: none" @click="onPrev">&lt;</span>
+              {{ formattedMonth }}
+              <span class="q-button" style="cursor: pointer; user-select: none" @click="onNext">&gt;</span>
+            </div>
+            <div style="width: 30%; display: flex; justify-content: space-between">
+              <span class="q-button" style="cursor: pointer; user-select: none" @click="addToYear(-1)">&lt;</span>
+              {{ selectedYear }}
+              <span class="q-button" style="cursor: pointer; user-select: none" @click="addToYear(1)">&gt;</span>
             </div>
           </div>
-             
-        </div>
-<!--Right column - Calendar View-->
-        <div class="grid-seperator">
-            <div class="subcontent">
-                <!--
-                // template and script source code from mini-mode navigation example
-                // https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
-                -->
-            <!--<navigation-bar @today="onToday" @prev="onPrev" @next="onNext" />-->
-            <!-- Increased calendar height/width size />-->
-
-                <div style="display: flex; justify-content: center">
-                <div
-                    style="
-                    max-width: 280px;
-                    width: 100%;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                    padding: 10px;
-                    "
-                >
-                    <div style="width: 100%; display: flex; justify-content: space-evenly">
-                    <div style="width: 50%; display: flex; justify-content: space-between">
-                        <span class="q-button" style="cursor: pointer; user-select: none" @click="onPrev"
-                        >&lt;</span
-                        >
-                        {{ formattedMonth }}
-                        <span class="q-button" style="cursor: pointer; user-select: none" @click="onNext"
-                        >&gt;</span
-                        >
-                    </div>
-                    <div style="width: 30%; display: flex; justify-content: space-between">
-                        <span class="q-button" style="cursor: pointer; user-select: none" @click="addToYear(-1)"
-                        >&lt;</span
-                        >
-                        {{ selectedYear }}
-                        <span class="q-button" style="cursor: pointer; user-select: none" @click="addToYear(1)"
-                        >&gt;</span
-                        >
-                    </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: center; align-items: center; flex-wrap: nowrap">
-                    <div style="display: flex; max-width: 280px; width: 100%">
-                        <q-calendar-month
-                        ref="calendar"
-                        v-model="selectedDate"
-                        mini-mode
-                        hoverable
-                        focusable
-                        :focus-type="['date', 'weekday']"
-                        :min-weeks="6"
-                        animated
-                        @change="onChange"
-                        @moved="onMoved"
-                        @click-date="onClickDate"
-                        @click-day="onClickDay"
-                        @click-workweek="onClickWorkweek"
-                        @click-head-workweek="onClickHeadWorkweek"
-                        @click-head-day="onClickHeadDay"
-                        style="height: 300px;"
-                        />
-                    </div>
-                    </div>
-                </div>
-                </div>
+          <div style="display: flex; justify-content: center; align-items: center;">
+            <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;">
+              <q-calendar-month
+                ref="calendar"
+                v-model="selectedDate"
+                mini-mode
+                hoverable
+                focusable
+                :focus-type="['date', 'weekday']"
+                :min-weeks="6"
+                animated
+                @change="onChange"
+                @moved="onMoved"
+                @click-date="onClickDate"
+                @click-day="onClickDay"
+                @click-workweek="onClickWorkweek"
+                @click-head-workweek="onClickHeadWorkweek"
+                @click-head-day="onClickHeadDay"
+                style="height: 400px;"
+              />
             </div>
-            <div class="row justify-between items-center"> 
-            <q-btn class = "account-and-settings-button" flat icon="account_circle" @click = "$router.push('/register')"></q-btn>
-            <q-btn class = "account-and-settings-button" flat icon="settings" @click = "showSettings = true"></q-btn>
-            </div>
+          </div>
         </div>
-    </qpage>
+      </div>
+    </div>
+
+    <!-- Right column - Spacer (middle row, can be empty) -->
+    <div style="grid-area: calendar-spacer;" data-area="calendar-spacer"></div>
+
+    <!-- Right column - Settings/Account Buttons (bottom row) -->
+    <div style="grid-area: account-settings;" data-area="account-settings">
+      <div class="row justify-between items-center">
+        <q-btn class="account-and-settings-button" flat icon="account_circle" @click="$router.push('/register')" />
+        <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
+      </div>
+    </div>
+  </qpage>
 </template>
 
 <script setup lang="ts">
@@ -274,8 +264,8 @@ function addNote() {
     });
     //Close other notes when a new one is added
     notes.value.forEach((note, index) => {
-      if (index < notes.value.length - 1) {
-        note.expanded = false
+    if (index < notes.value.length - 1) {
+      note.expanded = false
       }
     })
 }
@@ -347,8 +337,6 @@ const formattedMonth = computed(() => {
 const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
 });
-
-
 
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
 watch([filteredReminders, notes, tab], () =>{
