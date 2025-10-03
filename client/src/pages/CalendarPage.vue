@@ -45,6 +45,17 @@
 
     <!-- Left column - File Explorer -->
     <div class="grid-seperator" style="grid-area: file-explorer;">
+      <q-input
+        v-model="searchQuery"
+        dense
+        outlined
+        placeholder="Search notes here..."
+        class="search-input"
+      >
+        <template v-slot:prepend>
+          <q-icon name="search" />
+        </template>
+      </q-input>
       <q-breadcrumbs>
         <q-breadcrumbs-el label="Hotels" />
         <q-breadcrumbs-el label="Check-in" />
@@ -194,6 +205,7 @@ const showSettings = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
+const searchQuery = ref('');
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
 // 0 is equal to the root level
 type Folder = {

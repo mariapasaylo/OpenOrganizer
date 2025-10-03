@@ -89,6 +89,18 @@
 }
 
 
+.search-input {
+    &.q-field--outlined .q-field__control {
+        background-color: #cacaca;
+        border-color: #cacaca;
+        border-radius: 1rem;
+    }
+    // Style for the outline when focused
+    &.q-field--focused .q-field__control {
+        border-color: #459dd8; 
+    }
+}
+
 .calendar-tabs {
     background-color:#cacaca;
     color: #474747;
