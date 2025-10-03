@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-02
+ * Updated: 2025-10-03
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -23,7 +23,7 @@
 -->
 
 <template>
-  <qpage class="calendar-container">
+  <div class="calendar-container">
     <q-dialog v-model="showSettings">
       <q-card style="width: 500px" class="q-px-sm q-pb-md">
         <q-card-section>
@@ -39,6 +39,20 @@
               <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
             </div>
           </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+      <q-dialog v-model="showAddFolderName">
+      <q-card style="width: 500px" class="q-px-sm q-pb-md">
+        <q-card-section>
+        <!-- Error state will change to true if folderNameErrorMessage is set to true (in addFolder function)-->
+        <q-input
+          v-model="newFolderName"
+          :error="folderNameErrorMessage != ''"
+          :error-message="folderNameErrorMessage"
+          placeholder ="Enter name of new folder here..."
+        />
+        <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Add" @click="addFolder"/>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -64,9 +78,16 @@
           <q-breadcrumbs-el label="Check-in" />
           <q-breadcrumbs-el label="Check-out" />
         </q-breadcrumbs>
-        <RecursiveFolderTree :folders="nestedFolderTree" />
+        <q-tree 
+          :nodes="qNestedTree"
+          node-key="id"
+          no-connectors
+          default-expand-all
+          v-model:selected="selectedFolderId"
+        />
         <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
-          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" />
+          <!-- Clear folder error message when dialog first pops up -->
+          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="showAddFolderName = true; folderNameErrorMessage = ''" />
         </div>
       </div>
       
@@ -188,7 +209,7 @@
         <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
       </div>
     </div>
-  </qpage>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -204,7 +225,7 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch } from 'vue';
-// To display the folder tree list on the frontend
+// To display the folder tree list on the frontend - not used right now
 import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
@@ -214,12 +235,20 @@ const reminders = ref([{ eventType: 'New Reminder', description: 'reminder descr
 // Array of notes
 const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true }]);
 const showSettings = ref(false);
+const showAddFolderName = ref(false);
+const newFolderName = ref('');
+const folderNameErrorMessage = ref('');
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
 const searchQuery = ref('');
+// Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
+// null is if there is no folder selected on the tree, this by default
+const selectedFolderId = ref<number | null>(null);
+
+
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
-// 0 is equal to the root level
+// This type represents the way that we store the folder data
 type Folder = {
   id: number;
   name: string;
@@ -227,11 +256,27 @@ type Folder = {
   children?: Folder[];
 };
 
+// This type represents the way QTree stores its folder data
+type QTreeFolder = {
+  label: string;
+  id: number;
+  icon: string;
+  // Could use this later to change folder icon colors
+  iconColor: string;
+  children?: QTreeFolder[];
+};
+
 // For use in frontend recursive folder display component
 export type { Folder };
 
 // Example flat array of folders
-const folders: Folder[] = [{ id: 1, name: 'Hotels', parent_id: 0 }, { id: 2, name: 'Check-in', parent_id: 1 }, { id: 3, name: 'Check-out', parent_id: 2 }, { id: 4, name: 'Flights', parent_id: 0 }];
+ const folders = ref<Folder[]>([{ id: 1, name: 'Hotels', parent_id: 0 }, 
+ { id: 2, name: 'Check-in', parent_id: 1 }, 
+ { id: 3, name: 'Check-out', parent_id: 2 }, 
+ { id: 4, name: 'Flights', parent_id: 0 }, 
+ { id: 5, name: 'Arrival', parent_id: 4 },
+ { id: 6, name: 'Departure', parent_id: 5 }
+]);
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
@@ -245,9 +290,30 @@ const nest = (items: Folder[], id: number):
       children: nest(items, item.id)
     }));
 
+// Function to convert nested folder tree to Q-Tree format
+// Q-tree expects each node to have a label and children array (added id for unique identification)
+function convertFolderTreetoQTree(folders: Folder[]): 
+QTreeFolder[] {
+  // For each folder in the array, create a QTree node with label, id, and children properties
+  return folders.map(folder => ({
+    label: folder.name,
+    id: folder.id,
+    icon: 'folder',
+    iconColor: 'blue',
+    // Provide empty array ?? [] if there is no children of the folder (undefined since its optional)
+    // Recursively call convertFolderTreetoQTree function to find children of the current folder
+    children: convertFolderTreetoQTree(folder.children ?? [])
+  }));
+}
+
 // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
-const nestedFolderTree = nest(folders, 0);
-console.log(nestedFolderTree);
+const nestedFolderTree = computed(() => nest(folders.value, 0));
+console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
+
+// Convert nested folder tree to Q-Tree format
+// Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
+const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value));
+console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
 
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
@@ -281,6 +347,30 @@ function addNote() {
       note.expanded = false
     }
   })
+}
+
+// Function to add and name a new folder
+// For now, assuming folders aren't deleted so new folder id is just length of folders array + 1
+function addFolder() {
+  // Trim removes whitespace from beginning and end of string so if user enters nothing but spaces it is an empty string still
+  // If folder name (with whitespace removed) is empty, show error message and disable add folder button 
+    if (!newFolderName.value.trim()) {
+    folderNameErrorMessage.value = 'Folder name cannot be empty.';
+    return;
+  }
+  // Otherwise, folder name is good and add folder to tree
+  // Sets parentID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parent_id = 0)
+  const newFolderParentId = selectedFolderId.value ?? 0;
+  const newFolderId = folders.value.length + 1;
+  folders.value.push({ 
+    id: newFolderId, 
+    name: newFolderName.value, 
+    parent_id: newFolderParentId
+  });
+  // After adding new folder, reset new folder name input, error message, and close popup
+  newFolderName.value = '';
+  folderNameErrorMessage.value = '';
+  showAddFolderName.value = false;
 }
 
 // Function to save a note
@@ -410,7 +500,6 @@ function onMoved(data: Timestamp) {
 function onChange(data: { start: Timestamp; end: Timestamp; days: Timestamp[] }) {
   console.info('onChange', data)
 }
-
 
 function onClickDate(data: Timestamp) {
   console.info('onClickDate', data)
