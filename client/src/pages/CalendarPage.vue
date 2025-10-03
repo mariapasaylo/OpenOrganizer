@@ -43,8 +43,8 @@
       </q-card>
     </q-dialog>
 
-    <!-- Left column - File Explorer -->
-    <div class="grid-seperator" style="grid-area: file-explorer;">
+    <!-- Left column - File Explorer top row-->
+    <div style="grid-area: file-explorer-search; padding: 20px" data-area="file-explorer-search">
       <q-input
         v-model="searchQuery"
         dense
@@ -56,14 +56,26 @@
           <q-icon name="search" />
         </template>
       </q-input>
-      <q-breadcrumbs>
-        <q-breadcrumbs-el label="Hotels" />
-        <q-breadcrumbs-el label="Check-in" />
-        <q-breadcrumbs-el label="Check-out" />
-      </q-breadcrumbs>
-      <RecursiveFolderTree :folders="nestedFolderTree" />
     </div>
-
+     <!-- Left column - File Explorer middle row-->
+      <div style="grid-area: file-explorer-folders; padding: 0px 10px; display: flex; flex-direction: column; height: 100%" data-area="file-explorer-folders">
+        <q-breadcrumbs>
+          <q-breadcrumbs-el label="Hotels" />
+          <q-breadcrumbs-el label="Check-in" />
+          <q-breadcrumbs-el label="Check-out" />
+        </q-breadcrumbs>
+        <RecursiveFolderTree :folders="nestedFolderTree" />
+        <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
+          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" />
+        </div>
+      </div>
+      
+      <!-- Left column - File Explorer bottom row-->
+      <div style="grid-area: file-explorer-cloud; padding: 20px 30px; display: flex; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;" data-area="file-explorer-cloud">
+        <div style="color: #474747; font-size: 1.15rem;">Cloud Not Synced</div>
+        <q-icon name="cloud_off" size="20px" style="color: #474747" />
+      </div>
+      
     <!-- Middle column - List View of Notes/Reminders -->
     <div class="grid-seperator" style="background-color: #efefef; grid-area: reminder-notes;">
       <q-tabs v-model="tab" class="calendar-tabs dense">
