@@ -42,6 +42,20 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+      <q-dialog v-model="showAddFolderName">
+      <q-card style="width: 500px" class="q-px-sm q-pb-md">
+        <q-card-section>
+        <!-- Error state will change to true if folderNameErrorMessage is set to true (in addFolder function)-->
+        <q-input
+          v-model="newFolderName"
+          :error="folderNameErrorMessage != ''"
+          :error-message="folderNameErrorMessage"
+          placeholder ="Enter name of new folder here..."
+        />
+        <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Add" @click="addFolder"/>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
     <!-- Left column - File Explorer top row-->
     <div style="grid-area: file-explorer-search; padding: 20px" data-area="file-explorer-search">
@@ -72,7 +86,8 @@
           v-model:selected="selectedFolderId"
         />
         <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
-          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="addFolder" />
+          <!-- Clear folder error message when dialog first pops up -->
+          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="showAddFolderName = true; folderNameErrorMessage = ''" />
         </div>
       </div>
       
@@ -221,6 +236,8 @@ const reminders = ref([{ eventType: 'New Reminder', description: 'reminder descr
 const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true }]);
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
+const newFolderName = ref('');
+const folderNameErrorMessage = ref('');
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
@@ -228,6 +245,7 @@ const searchQuery = ref('');
 // Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderId = ref<number | null>(null);
+
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
 // This type represents the way that we store the folder data
@@ -331,17 +349,28 @@ function addNote() {
   })
 }
 
-// Function to add a folder
+// Function to add and name a new folder
 // For now, assuming folders aren't deleted so new folder id is just length of folders array + 1
 function addFolder() {
+  // Trim removes whitespace from beginning and end of string so if user enters nothing but spaces it is an empty string still
+  // If folder name (with whitespace removed) is empty, show error message and disable add folder button 
+    if (!newFolderName.value.trim()) {
+    folderNameErrorMessage.value = 'Folder name cannot be empty.';
+    return;
+  }
+  // Otherwise, folder name is good and add folder to tree
   // Sets parentID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parent_id = 0)
   const newFolderParentId = selectedFolderId.value ?? 0;
   const newFolderId = folders.value.length + 1;
   folders.value.push({ 
     id: newFolderId, 
-    name: 'New Folder', 
+    name: newFolderName.value, 
     parent_id: newFolderParentId
   });
+  // After adding new folder, reset new folder name input, error message, and close popup
+  newFolderName.value = '';
+  folderNameErrorMessage.value = '';
+  showAddFolderName.value = false;
 }
 
 // Function to save a note
