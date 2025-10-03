@@ -23,7 +23,7 @@
 -->
 
 <template>
-  <qpage class="calendar-container">
+  <div class="calendar-container">
     <q-dialog v-model="showSettings">
       <q-card style="width: 500px" class="q-px-sm q-pb-md">
         <q-card-section>
@@ -64,7 +64,12 @@
           <q-breadcrumbs-el label="Check-in" />
           <q-breadcrumbs-el label="Check-out" />
         </q-breadcrumbs>
-        <RecursiveFolderTree :folders="nestedFolderTree" />
+        <q-tree 
+          :nodes="qNestedTree"
+          node-key="id"
+          no-connectors
+          default-expand-all
+        />
         <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
           <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" />
         </div>
@@ -188,7 +193,7 @@
         <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
       </div>
     </div>
-  </qpage>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -207,6 +212,7 @@ import { ref, computed, watch } from 'vue';
 // To display the folder tree list on the frontend
 import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
+
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
@@ -218,8 +224,9 @@ const isCloudOn = ref(false);
 const selectAll = ref(false)
 const noteText = ref('');
 const searchQuery = ref('');
+
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
-// 0 is equal to the root level
+// This type represents the way that we store the folder data
 type Folder = {
   id: number;
   name: string;
@@ -227,11 +234,21 @@ type Folder = {
   children?: Folder[];
 };
 
+// This type represents the way QTree stores its folder data
+type QTreeFolder = {
+  label: string;
+  id: number;
+  icon: string;
+  // Could use this later to change folder icon colors
+  iconColor: string;
+  children?: QTreeFolder[];
+};
+
 // For use in frontend recursive folder display component
 export type { Folder };
 
 // Example flat array of folders
-const folders: Folder[] = [{ id: 1, name: 'Hotels', parent_id: 0 }, { id: 2, name: 'Check-in', parent_id: 1 }, { id: 3, name: 'Check-out', parent_id: 2 }, { id: 4, name: 'Flights', parent_id: 0 }];
+const folders: Folder[] = [{ id: 1, name: 'Hotels', parent_id: 0 }, { id: 2, name: 'Check-in', parent_id: 1 }, { id: 3, name: 'Check-out', parent_id: 2 }, { id: 4, name: 'Flights', parent_id: 0 }, { id: 5, name: 'Arrival', parent_id: 4 }, { id: 6, name: 'Departure', parent_id: 5 }];
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
@@ -245,9 +262,32 @@ const nest = (items: Folder[], id: number):
       children: nest(items, item.id)
     }));
 
+// Function to convert nested folder tree to Q-Tree format
+// Q-tree expects each node to have a label and children array (added id for unique identification)
+function convertFolderTreetoQTree(folders: Folder[]): 
+QTreeFolder[] {
+  // For each folder in the array, create a QTree node with label, id, and children properties
+  return folders.map(folder => ({
+    label: folder.name,
+    id: folder.id,
+    icon: 'folder',
+    iconColor: 'blue',
+    // Provide empty array ?? [] if there is no children of the folder (undefined since its optional)
+    // Recursively call convertFolderTreetoQTree function to find children of the current folder
+    children: convertFolderTreetoQTree(folder.children ?? [])
+  }));
+}
+
 // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
-const nestedFolderTree = nest(folders, 0);
-console.log(nestedFolderTree);
+const nestedFolderTree = computed(() => nest(folders, 0));
+console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
+
+// Convert nested folder tree to Q-Tree format
+// Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
+const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value));
+console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
+
+
 
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
