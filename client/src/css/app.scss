@@ -1,9 +1,9 @@
 // app global css in SCSS form
 
 /* 
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-01
+ * Updated: 2025-10-02
  *
  * This file is the CSS global stylesheet for the application
  *
@@ -66,7 +66,13 @@
 .calendar-container {
     display: grid;
     grid-template-columns: [file-explorer] 30% [notes-and-reminders] 40% [calendar] 30%;
-    grid-template-rows: 100vh;
+    grid-template-rows: 80px 1fr auto;
+    // Creates 3 columns (file-explorer, notes calendar) with the third column having 3 rows (calendar, calendar-spacer, account-settings)
+    grid-template-areas:
+    "file-explorer-search reminder-notes calendar"
+    "file-explorer-folders reminder-notes calendar-spacer"
+    "file-explorer-cloud reminder-notes account-settings";
+    height: 100vh
 }
 
 .reminder-note-card-container {
@@ -83,6 +89,18 @@
 }
 
 
+.search-input {
+    &.q-field--outlined .q-field__control {
+        background-color: #cacaca;
+        border-color: #cacaca;
+        border-radius: 1rem;
+    }
+    // Style for the outline when focused
+    &.q-field--focused .q-field__control {
+        border-color: #459dd8; 
+    }
+}
+
 .calendar-tabs {
     background-color:#cacaca;
     color: #474747;
@@ -96,7 +114,7 @@
 
 
 .grid-seperator {
-  border: 1px solid rgba(173, 173, 173, 0.8);
+  border: 1px solid #adadadcc;
   padding: 20px;
 }
 
@@ -157,7 +175,7 @@
 .account-and-settings-button {
   color: #459dd8; 
   font-size: 30px; 
-  margin-top: 8em;
+  margin-top: auto;
 }
 
 .reminder-header-container {
