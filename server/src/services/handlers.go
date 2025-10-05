@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-25
+ * Updated: 2025-10-05
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use the const values and helper functions defined here.
@@ -67,7 +67,16 @@ func login(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "read:\n%s", body)
 }
 
-func lastSyncup(w http.ResponseWriter, r *http.Request) {
+func changeLogin(w http.ResponseWriter, r *http.Request) {
+	body, err := readRequest(w, r, messageSizeLimit)
+	if err != nil {
+		return
+	}
+
+	fmt.Fprintf(w, "read:\n%s", body)
+}
+
+func lastUpdated(w http.ResponseWriter, r *http.Request) {
 	body, err := readRequest(w, r, messageSizeLimit)
 	if err != nil {
 		return

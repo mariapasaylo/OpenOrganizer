@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-27
+ * Updated: 2025-10-05
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -91,10 +91,10 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 // assigns HTTP routes to their respective handling functions
 func AssignHandlers() {
 	http.HandleFunc("/", root)
-
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
-	http.HandleFunc("/lastsyncup", lastSyncup)
+	http.HandleFunc("/changelogin", changeLogin)
+	http.HandleFunc("/lastupdated", lastUpdated)
 
 	http.HandleFunc("/syncup/notes", upNotes)
 	http.HandleFunc("/syncup/reminders", upReminders)
