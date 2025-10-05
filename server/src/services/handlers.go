@@ -16,7 +16,10 @@ package services
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+
+	"openorganizer/src/models"
 )
 
 const messageSizeLimit = 0x100
@@ -27,6 +30,14 @@ const timeoutMessage = "Content-Length is too high, body is too large, or other 
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
+func redirectHTTPS(w http.ResponseWriter, r *http.Request, env models.ENVVars) {
+	host, _, _ := net.SplitHostPort(r.Host)
+	url := r.URL
+	url.Scheme = "https"
+	url.Host = net.JoinHostPort(host, env.SERVER_PORT_HTTPS)
+	http.Redirect(w, r, url.String(), http.StatusPermanentRedirect)
 }
 
 func readRequest(w http.ResponseWriter, r *http.Request, sizeLimit int64) ([]byte, error) {

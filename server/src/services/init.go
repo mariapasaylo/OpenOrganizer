@@ -13,11 +13,13 @@
 package services
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -39,17 +41,22 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	}
 
 	var HTTPS = strings.ToUpper(os.Getenv("HTTPS"))
+	var SERVER_PORT_HTTPS = strings.ToUpper(os.Getenv("SERVER_PORT_HTTPS"))
 	if HTTPS == "TRUE" {
 		env.HTTPS = true
+		if SERVER_PORT_HTTPS == "" {
+			return env, errors.New("SERVER_PORT_HTTPS is null")
+		}
+		env.SERVER_PORT_HTTPS = SERVER_PORT_HTTPS
 	} else if HTTPS == "FALSE" {
 		env.HTTPS = false
 	} else {
 		return env, errors.New("HTTPS is invalid, try TRUE or FALSE")
 	}
 
-	var SERVER_PORT = os.Getenv("SERVER_PORT")
-	if SERVER_PORT == "" {
-		return env, errors.New("SERVER_PORT is null")
+	var SERVER_PORT_HTTP = os.Getenv("SERVER_PORT_HTTP")
+	if SERVER_PORT_HTTP == "" {
+		return env, errors.New("SERVER_PORT_HTTP is null")
 	}
 	var SERVER_CRT = os.Getenv("SERVER_CRT")
 	if env.HTTPS && SERVER_CRT == "" {
@@ -77,7 +84,7 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 		return env, errors.New("DB_PWD is null")
 	}
 
-	env.SERVER_PORT = SERVER_PORT
+	env.SERVER_PORT_HTTP = SERVER_PORT_HTTP
 	env.SERVER_CRT = SERVER_CRT
 	env.SERVER_KEY = SERVER_KEY
 	env.DB_HOST = DB_HOST
@@ -117,4 +124,52 @@ func AssignHandlers() {
 	http.HandleFunc("/syncdown/overrides", downOverrides)
 	http.HandleFunc("/syncdown/folders", downFolders)
 	http.HandleFunc("/syncdown/deleted", downDeleted)
+}
+
+// initialize HTTP (and HTTPS) servers
+func Run(env models.ENVVars) chan error {
+	var localOnly string = ""
+	if env.LOCAL_ONLY {
+		localOnly = "localhost"
+	}
+
+	serverHTTP := http.Server{
+		Addr: localOnly + ":" + env.SERVER_PORT_HTTP,
+		// write must stay longer than read to have responses
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 3 * time.Second,
+	}
+	serverHTTPS := http.Server{
+		Addr: localOnly + ":" + env.SERVER_PORT_HTTPS,
+		// write must stay longer than read to have responses
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 3 * time.Second,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			MaxVersion: tls.VersionTLS13,
+		},
+	}
+	if env.HTTPS {
+		serverHTTP.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			redirectHTTPS(w, r, env)
+		})
+	}
+
+	var errs = make(chan error)
+	if env.HTTPS {
+		go func() {
+			fmt.Printf("Initializing HTTPS server at %s:%s\n", localOnly, env.SERVER_PORT_HTTPS)
+			if err := serverHTTPS.ListenAndServeTLS(env.SERVER_CRT, env.SERVER_KEY); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	go func() {
+		fmt.Printf("Initializing HTTP server at %s:%s\n", localOnly, env.SERVER_PORT_HTTP)
+		if err := serverHTTP.ListenAndServe(); err != nil {
+			errs <- err
+		}
+	}()
+
+	return errs
 }

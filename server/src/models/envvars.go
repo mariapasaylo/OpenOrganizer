@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-27
+ * Updated: 2025-10-05
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -13,13 +13,14 @@
 package models
 
 type ENVVars struct {
-	LOCAL_ONLY  bool
-	HTTPS       bool
-	SERVER_PORT string
-	SERVER_CRT  string
-	SERVER_KEY  string
-	DB_HOST     string
-	DB_PORT     string
-	DB_USER     string
-	DB_PWD      string
+	LOCAL_ONLY        bool
+	HTTPS             bool
+	SERVER_PORT_HTTP  string
+	SERVER_PORT_HTTPS string
+	SERVER_CRT        string
+	SERVER_KEY        string
+	DB_HOST           string
+	DB_PORT           string
+	DB_USER           string
+	DB_PWD            string
 }
