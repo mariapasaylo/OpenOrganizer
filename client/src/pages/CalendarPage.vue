@@ -136,17 +136,19 @@
                   <div>{{ item.title }}</div>
                 </div>
               </template>
-              <p>Created on: {{ item.date }}</p>
+              <!-- Emit-value makes it so the dropdown option only saves the value (ex. folder id = 1 rather than the whole object {folder: name, id, etc.}) -->
               <q-card-section>
-                <q-btn-dropdown style="margin-bottom: 10px;" color="grey" label="Save in folder">
-                  <q-list>
-                    <q-item clickable v-close-popup>
-                      <q-item-section>
-                        <q-item-label>Folder 1</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
+                <p>Created on: {{ item.date }}</p>
+                <q-select
+                v-model="item.folderId"
+                :options="folderDropdownOptions"
+                label="Save in folder"
+                emit-value 
+                map-options
+                dense
+                outlined
+                style="background-color: #cacaca; margin-bottom: 10px"
+              />
                 <q-input class="note-box" outlined v-model="noteText" type="textarea"
                   placeholder="Write your note here..." />
                 <div class="row">
@@ -233,7 +235,7 @@ const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
 const reminders = ref([{ eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true }]);
 // Array of notes
-const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true }]);
+const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null }]);
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
@@ -277,6 +279,16 @@ export type { Folder };
  { id: 5, name: 'Arrival', parent_id: 4 },
  { id: 6, name: 'Departure', parent_id: 5 }
 ]);
+
+// Map folders to format for q-select dropdown menu
+// Each option has a label (name of the option/folder in the dropdown) and a value (actual folder to save note into)
+// Computed so it automatically updates whenever folders array updates (if new folder is added it shows up in the options)
+const folderDropdownOptions = computed(() => {
+  return folders.value.map(folder => ({
+    label: folder.name,
+    value: folder.id
+  }));
+});
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
@@ -339,7 +351,8 @@ function addNote() {
     description: 'note description',
     date: selectedDate.value,
     isSelected: false,
-    expanded: true // Have note carat expanded open by default when addding new note to fill out fields
+    expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
+    folderId: null // The folder ID of the folder the note is going to be saved into
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -375,7 +388,7 @@ function addFolder() {
 
 // Function to save a note
 function saveNote() {
-  console.log("username: ", noteText)
+  console.log("Note saved ", noteText)
 }
 
 // Function to delete selected individual checkbox reminders
