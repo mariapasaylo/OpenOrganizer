@@ -1,9 +1,9 @@
 /*
- * Authors: Michael Jagiello
+ * Authors: Michael Jagiello, Kevin Sirantoine
  * Created: 2025-09-27
- * Updated: 2025-09-28
+ * Updated: 2025-10-07
  *
- * This file defines wrapper functions for AES256 encryption/decryption, as well as padding helper functions for getting data and keys to the proper length.
+ * This file defines wrapper functions for AES256 encryption/decryption and key generation, as well as padding helper functions for getting data and keys to the proper length.
  * It also contains wrapper functions for SHA hashing algorithms 256, 512/256, and 512.
  *
  * This file is a part of OpenOrganizer.
@@ -59,6 +59,11 @@ export function encrypt(data: Buffer | string, key: Buffer | string, iv: Buffer 
 export function decrypt(data: Buffer, key: Buffer | string, iv: Buffer | string) {
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
   return Buffer.from(decipher.update(data));
+}
+
+// generate a private key for symmetric AES256
+export function generatePrivateKey() {
+  return crypto.randomBytes(32);
 }
 
 // hash using sha256, return 32-byte data buffer
