@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-03
+ * Updated: 2025-10-09
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -140,7 +140,7 @@
               <q-card-section>
                 <p>Created on: {{ item.date }}</p>
                 <q-select
-                v-model="item.folderId"
+                v-model="item.temporaryFolderId"
                 :options="folderDropdownOptions"
                 label="Save in folder"
                 emit-value 
@@ -152,8 +152,9 @@
                 <q-input class="note-box" outlined v-model="noteText" type="textarea"
                   placeholder="Write your note here..." />
                 <div class="row">
+                  <!-- Pass in current note item from v-for to save that specific note -->
                   <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
-                    @click="saveNote"></q-btn>
+                    @click="saveNote(item)"></q-btn>
                   <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
                     label="Cancel"></q-btn>
                 </div>
@@ -235,7 +236,7 @@ const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
 const reminders = ref([{ eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true }]);
 // Array of notes
-const notes = ref([{ id: 'note-1', title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null}]);
+const notes = ref([{ id: 'note-1', title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false}]);
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
@@ -248,6 +249,20 @@ const searchQuery = ref('');
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderId = ref<number | null>(null);
 
+// This type represents the way that we store the note data
+type Note = {
+  id: string; // unique ID ex. "note-1" incremented for each new note
+  title: string;
+  description: string;
+  date: string; // date it was created
+  isSelected: boolean; // checkbox selection
+  expanded: boolean; // open or closed
+  folderId: number | null; // null if not saved in any folder yet. The actual folder the note is saved in 
+   temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
+   // This is needed to retain the folder state before the note is saved again 
+  // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderId
+  isSaved: boolean; // if note is saved or not
+};
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
 // This type represents the way that we store the folder data
@@ -306,10 +321,10 @@ const nest = (items: Folder[], id: number):
 function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
   return folders.map(folder => {
     // Find notes saved in the current folder
-    const notesInCurrFolder = notes.value.filter(note => note.folderId === folder.id);
+    const notesInCurrFolder = notes.value.filter(note => note.folderId === folder.id && note.isSaved);
 
     // For each note, create a QTree node with label and id properties  and return it
-    const noteTreeNodes = notesInCurrFolder.map((note, idx) => {
+    const noteTreeNodes = notesInCurrFolder.map((note) => {
       // Log which note is being placed under which folder
       // for debugging: console.log(`Placing note "${note.title}" (id: ${note.id}) under folder "${folder.name}" (id: ${folder.id})`);
       return {
@@ -370,7 +385,9 @@ function addNote() {
       date: selectedDate.value,
       isSelected: false,
       expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
-      folderId: null // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet)
+      folderId: null, // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet),
+      temporaryFolderId: null,
+      isSaved: false // Not saved by default until user clicks save button 
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -405,9 +422,11 @@ function addFolder() {
   showAddFolderName.value = false;
 }
 
-// Function to save a note
-function saveNote() {
-  console.log("Note saved ", noteText);
+// Function to save note text when save button is clicked
+function saveNote(note: Note){
+  note.folderId = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
+  // Set note to be saved after clicking save button so it can show on tree
+  note.isSaved = true;
 }
 
 // Function to delete selected individual checkbox reminders
