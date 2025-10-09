@@ -235,7 +235,7 @@ const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
 const reminders = ref([{ eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true }]);
 // Array of notes
-const notes = ref([{ title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null }]);
+const notes = ref([{ id: 'note-1', title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null}]);
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
@@ -261,10 +261,10 @@ type Folder = {
 // This type represents the way QTree stores its folder data
 type QTreeFolder = {
   label: string;
-  id: number;
-  icon: string;
+  id: number  | string;
+  icon?: string;
   // Could use this later to change folder icon colors
-  iconColor: string;
+  iconColor?: string;
   children?: QTreeFolder[];
 };
 
@@ -303,19 +303,34 @@ const nest = (items: Folder[], id: number):
     }));
 
 // Function to convert nested folder tree to Q-Tree format
-// Q-tree expects each node to have a label and children array (added id for unique identification)
-function convertFolderTreetoQTree(folders: Folder[]): 
-QTreeFolder[] {
-  // For each folder in the array, create a QTree node with label, id, and children properties
-  return folders.map(folder => ({
-    label: folder.name,
-    id: folder.id,
-    icon: 'folder',
-    iconColor: 'blue',
-    // Provide empty array ?? [] if there is no children of the folder (undefined since its optional)
-    // Recursively call convertFolderTreetoQTree function to find children of the current folder
-    children: convertFolderTreetoQTree(folder.children ?? [])
-  }));
+function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
+  return folders.map(folder => {
+    // Find notes saved in the current folder
+    const notesInCurrFolder = notes.value.filter(note => note.folderId === folder.id);
+
+    // For each note, create a QTree node with label and id properties  and return it
+    const noteTreeNodes = notesInCurrFolder.map((note, idx) => {
+      // Log which note is being placed under which folder
+      // for debugging: console.log(`Placing note "${note.title}" (id: ${note.id}) under folder "${folder.name}" (id: ${folder.id})`);
+      return {
+        label: note.title,
+        id: `note-${note.id}`, 
+        // No icon, color, or children properties for notes
+      };
+    });
+
+    // For each folder, create a QTree node with label, id, and children properties and return it
+    return {
+      label: folder.name,
+      id: folder.id,
+      icon: 'folder',
+      iconColor: 'blue',
+      children: [
+        ...noteTreeNodes,
+        ...convertFolderTreetoQTree(folder.children ?? [])
+      ]
+    };
+  });
 }
 
 // Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
@@ -344,15 +359,18 @@ function addReminder() {
   })
 }
 
+let newNoteId = notes.value.length + 1;
 // Function to add a note to the list
 function addNote() {
-  notes.value.push({
-    title: 'New Note',
-    description: 'note description',
-    date: selectedDate.value,
-    isSelected: false,
-    expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
-    folderId: null // The folder ID of the folder the note is going to be saved into
+  // Increment noteID for each new note added so each one has a unique ID
+    notes.value.push({
+      id: `note-${newNoteId++}`,
+      title: 'New Note',
+      description: 'note description',
+      date: selectedDate.value,
+      isSelected: false,
+      expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
+      folderId: null // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet)
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -376,6 +394,7 @@ function addFolder() {
   const newFolderParentId = selectedFolderId.value ?? 0;
   const newFolderId = folders.value.length + 1;
   folders.value.push({ 
+    // Folder IDs are not incremented like notes because folders can't be deleted yet so no risk of duplicate ids
     id: newFolderId, 
     name: newFolderName.value, 
     parent_id: newFolderParentId
@@ -388,7 +407,7 @@ function addFolder() {
 
 // Function to save a note
 function saveNote() {
-  console.log("Note saved ", noteText)
+  console.log("Note saved ", noteText);
 }
 
 // Function to delete selected individual checkbox reminders
