@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-05
+ * Updated: 2025-10-09
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,8 @@ import (
 
 	"openorganizer/src/models"
 )
+
+var maxRecordCount uint32
 
 // retrieves vital variables from local .env file
 func RetrieveENVVars() (env models.ENVVars, err error) {
@@ -83,6 +86,10 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	if DB_PWD == "" {
 		return env, errors.New("DB_PWD is null")
 	}
+	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
+	if MAX_RECORD_COUNT == "" {
+		return env, errors.New("MAX_RECORD_COUNT is null")
+	}
 
 	env.SERVER_PORT_HTTP = SERVER_PORT_HTTP
 	env.SERVER_CRT = SERVER_CRT
@@ -91,6 +98,13 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.DB_PORT = DB_PORT
 	env.DB_USER = DB_USER
 	env.DB_PWD = DB_PWD
+
+	recordCount, err := strconv.Atoi(MAX_RECORD_COUNT)
+	if err != nil {
+		return env, errors.New("invalid value in MAX_RECORD_COUNT, must be convertible to int32")
+	}
+	maxRecordCount = uint32(recordCount)
+	env.MAX_RECORD_COUNT = maxRecordCount
 
 	return env, err
 }
@@ -154,6 +168,7 @@ func Run(env models.ENVVars) chan error {
 			redirectHTTPS(w, r, env)
 		})
 	}
+	fmt.Printf("Max record count per transmission: %v\n", maxRecordCount)
 
 	var errs = make(chan error)
 	if env.HTTPS {

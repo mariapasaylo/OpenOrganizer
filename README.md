@@ -64,6 +64,7 @@ DB_HOST="ADDRESS"
 DB_PORT="PORT"
 DB_USER="USERNAME"
 DB_PWD="PASSWORD"
+MAX_RECORD_COUNT="NUMBER"
 ```
 Example:
 ```
@@ -77,6 +78,7 @@ DB_HOST="localhost"
 DB_PORT="3002"
 DB_USER="postgres"
 DB_PWD="password"
+MAX_RECORD_COUNT="1000"
 ```
 4. To build / run the application:
 * `make` (or `mingw32-make` for Windows) will fully build and run the application

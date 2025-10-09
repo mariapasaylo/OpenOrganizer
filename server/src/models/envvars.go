@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-05
+ * Updated: 2025-10-09
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -23,4 +23,5 @@ type ENVVars struct {
 	DB_PORT           string
 	DB_USER           string
 	DB_PWD            string
+	MAX_RECORD_COUNT  uint32
 }
