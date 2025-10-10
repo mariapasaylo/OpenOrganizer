@@ -112,22 +112,39 @@
       </div>
       <div class="reminder-note-card-container">
         <div v-if="tab === 'reminders'">
+          <!-- Reminder Cards -->
           <q-card class="reminder-note-cards" v-for="(item, index) in filteredReminders" :key="index">
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
                 <div class="reminder-header-container">
                   <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
-                  <div>{{ item.eventType }}</div>
+                  <div>{{ item.title }}</div>
                 </div>
               </template>
               <q-card-section>
-                <h3>Title: {{ item.eventType }}</h3>
-                <p>Description: {{ item.description }} <br>Index: {{ index }} <br>Date: {{ item.date }}</p>
+                <p>Description: {{ item.description }} <br>Date: {{ item.date }}</p>
+                 <q-select
+                v-model="item.temporaryFolderId"
+                :options="folderDropdownOptions"
+                label="Save in folder"
+                emit-value 
+                map-options
+                dense
+                outlined
+                style="background-color: #cacaca; margin-bottom: 10px"
+              />
+                <div class="row">
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
+                    @click="saveReminder(item)"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
+                    label="Cancel"></q-btn>
+                </div>
               </q-card-section>
             </q-expansion-item>
           </q-card>
         </div>
         <div v-if="tab === 'notes'">
+          <!-- Note Cards -->
           <q-card class="reminder-note-cards" v-for="(item, index) in filteredNotes" :key="index">
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
@@ -234,7 +251,7 @@ import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{ eventType: 'New Reminder', description: 'reminder description', date: today(), isSelected: false, expanded: true }]);
+const reminders = ref([{id: 'reminder-1', title: 'New Reminder', description: 'event type field description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false}]);
 // Array of notes
 const notes = ref([{ id: 'note-1', title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false}]);
 const showSettings = ref(false);
@@ -251,17 +268,30 @@ const selectedFolderId = ref<number | null>(null);
 
 // This type represents the way that we store the note data
 type Note = {
-  id: string; // unique ID ex. "note-1" incremented for each new note
-  title: string;
-  description: string;
+  id: string; // unique item ID ex. "note-1" incremented for each new note
+  title: string; 
+  description: string; // text stored within the note
   date: string; // date it was created
   isSelected: boolean; // checkbox selection
   expanded: boolean; // open or closed
-  folderId: number | null; // null if not saved in any folder yet. The actual folder the note is saved in 
-   temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
+  folderId: number | null; // null if not saved in any folder yet. The parent folder id the note is saved in 
+  temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
    // This is needed to retain the folder state before the note is saved again 
   // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderId
   isSaved: boolean; // if note is saved or not
+};
+
+// This type represents the way that we store the reminder data
+type Reminder = {
+  id: string; // unique item ID ex. "reminder-1" incremented for each new reminder
+  title: string; 
+  description: string; // text stored within the reminder. Later this will be split into event type fields.
+  date: string; // date it was created
+  isSelected: boolean; // checkbox selection
+  expanded: boolean; // open or closed
+  folderId: number | null; // null if not saved in any folder yet. The parent folder id the reminder is saved in 
+  temporaryFolderId: number | null; // The folder selected in the dropdown before the reminder is saved
+  isSaved: boolean; // if reminder is saved or not
 };
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
@@ -323,7 +353,7 @@ function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
     // Find notes saved in the current folder
     const notesInCurrFolder = notes.value.filter(note => note.folderId === folder.id && note.isSaved);
 
-    // For each note, create a QTree node with label and id properties  and return it
+    // For each note, create a QTree node with label and id properties and return it
     const noteTreeNodes = notesInCurrFolder.map((note) => {
       // Log which note is being placed under which folder
       // for debugging: console.log(`Placing note "${note.title}" (id: ${note.id}) under folder "${folder.name}" (id: ${folder.id})`);
@@ -331,6 +361,18 @@ function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
         label: note.title,
         id: `note-${note.id}`, 
         // No icon, color, or children properties for notes
+      };
+    });
+
+    // Find reminders saved in the current folder
+    const remindersInCurrFolder = reminders.value.filter(reminder => reminder.folderId === folder.id && reminder.isSaved);
+
+    // For each reminder, create a QTree node with label and id properties and return it
+    const reminderTreeNodes = remindersInCurrFolder.map((reminder) => {
+      return {
+        label: reminder.title,
+        id: `reminder-${reminder.id}`, 
+        // No icon, color, or children properties for reminders
       };
     });
 
@@ -342,6 +384,7 @@ function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
       iconColor: 'blue',
       children: [
         ...noteTreeNodes,
+        ...reminderTreeNodes,
         ...convertFolderTreetoQTree(folder.children ?? [])
       ]
     };
@@ -357,14 +400,19 @@ console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2)
 const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value));
 console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
 
+let newReminderId = reminders.value.length + 1;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   reminders.value.push({
-    eventType: 'New Reminder',
-    description: 'reminder description',
+    id: `reminder-${newReminderId++}`,
+    title: 'New Reminder',
+    description: 'event type field',
     date: selectedDate.value,
     isSelected: false,
-    expanded: true // Have reminder carat expanded open by default when addding new reminder to fill out fields
+    expanded: true, 
+    folderId: null, 
+    temporaryFolderId: null,
+    isSaved: false 
   });
   //Close other reminders when a new one is added
   reminders.value.forEach((reminder, index) => {
@@ -427,6 +475,13 @@ function saveNote(note: Note){
   note.folderId = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
   // Set note to be saved after clicking save button so it can show on tree
   note.isSaved = true;
+}
+
+// Function to save reminder fields when save button is clicked
+function saveReminder(reminder: Reminder){
+  reminder.folderId = reminder.temporaryFolderId;
+  // Set reminder to be saved after clicking save button so it can show on tree
+  reminder.isSaved = true;
 }
 
 // Function to delete selected individual checkbox reminders
