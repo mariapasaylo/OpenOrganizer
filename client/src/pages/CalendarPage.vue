@@ -178,6 +178,7 @@
                 <p>Created on: {{ item.date }}</p>
                 <q-select
                 v-model="item.temporaryFolderId"
+
                 :options="folderDropdownOptions"
                 label="Save in folder"
                 emit-value 
@@ -274,6 +275,7 @@ const tab = ref('reminders');
 const reminders = ref([{id: 'reminder-1', title: 'New Reminder', temporaryTitle: '', description: 'event type field description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
 // Array of notes
 const notes = ref([{ id: 'note-1', title: 'New Note', temporaryTitle: '', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
+
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
