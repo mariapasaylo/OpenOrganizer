@@ -1,154 +1,116 @@
+/*
+ * Authors: Michael Jagiello
+ * Created: 2025-09-20
+ * Updated: 2025-10-09
+ *
+ * This file defines handlers for non-syncing requests, helper functions, and general services const values.
+ * The other handler files use const values and helper functions defined here.
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
+ * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
+ */
+
 package services
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
-	"openorganizer/src/db"
+	"strconv"
+
+	"openorganizer/src/models"
 )
+
+const messageSizeLimit = 0x100
+const timeoutMessage = "Content-Length is too high, body is too large, or other read timeout"
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 }
 
-func Root(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	fmt.Fprint(w, "connected")
+func redirectHTTPS(w http.ResponseWriter, r *http.Request, env models.ENVVars) {
+	host, _, _ := net.SplitHostPort(r.Host)
+	url := r.URL
+	url.Scheme = "https"
+	url.Host = net.JoinHostPort(host, env.SERVER_PORT_HTTPS)
+	http.Redirect(w, r, url.String(), http.StatusPermanentRedirect)
 }
 
-func Create(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	r.ParseForm()
-	k := r.FormValue("k")
-	v := r.FormValue("v")
-
-	if (k == "") || (v == "") {
-		http.Error(w, "invalid input", http.StatusBadRequest)
-		return
+func verifyRequestSize(w http.ResponseWriter, r *http.Request, headerSize uint32, recordSize uint32, recordCount uint32) bool {
+	if recordCount > maxRecordCount {
+		http.Error(w, "recordCount higher than server limit of "+strconv.Itoa(int(maxRecordCount)), http.StatusBadRequest)
+		return false
 	}
-
-	if (len(k) > 32) || (len(v) > 32) {
-		http.Error(w, "string(s) too long", http.StatusBadRequest)
-		return
+	var expectedSize = headerSize + (recordSize * recordCount)
+	if r.ContentLength == int64(expectedSize) {
+		return true
 	}
-
-	err := db.Create(k, v)
-	if err != nil {
-		fmt.Printf("error inserting into table: %v\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "stored '%s', '%s'", k, v)
+	http.Error(w, "content length header does not match expected body size", http.StatusBadRequest)
+	return false
 }
 
-func Read(w http.ResponseWriter, r *http.Request) {
+func readRequestGeneral(w http.ResponseWriter, r *http.Request, headerSize uint32) ([]byte, error) {
 	enableCors(&w)
 
-	r.ParseForm()
-	k := r.FormValue("k")
-
-	if k == "" {
-		http.Error(w, "invalid input", http.StatusBadRequest)
-		return
-	}
-
-	if len(k) > 32 {
-		http.Error(w, "string too long", http.StatusBadRequest)
-		return
-	}
-
-	values, err := db.Read(k)
-	if err != nil {
-		fmt.Printf("Error creating table: %v\n", err)
-		return
-	}
-
-	if len(values) == 0 {
-		fmt.Fprintf(w, "no values found under id = %s", k)
-		return
-	}
-
-	for i := range values {
-		fmt.Fprintf(w, "retrieved '%s' using '%s'\n", values[i], k)
-	}
-}
-
-func Update(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	r.ParseForm()
-	k := r.FormValue("k")
-	v := r.FormValue("v")
-
-	if (k == "") || (v == "") {
-		http.Error(w, "invalid input", http.StatusBadRequest)
-		return
-	}
-
-	if (len(k) > 32) || (len(v) > 32) {
-		http.Error(w, "string(s) too long", http.StatusBadRequest)
-		return
-	}
-
-	err := db.Update(k, v)
-	if err != nil {
-		fmt.Printf("error updating table: %v\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "updated '%s' to '%s'", k, v)
-}
-
-func Delete(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	r.ParseForm()
-	k := r.FormValue("k")
-
-	if k == "" {
-		http.Error(w, "invalid input", http.StatusBadRequest)
-		return
-	}
-
-	if len(k) > 32 {
-		http.Error(w, "string(s) too long", http.StatusBadRequest)
-		return
-	}
-
-	err := db.Delete(k)
-	if err != nil {
-		fmt.Printf("error deleting from table: %v\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "attempted to / deleted '%s'", k)
-}
-
-func Formdata(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	//r.ParseForm() for only urlencoded
-	r.ParseMultipartForm(0x100)
-	k := r.FormValue("k")
-
-	if k == "" {
-		http.Error(w, "k is empty", http.StatusBadRequest)
-		return
-	}
-
-	fmt.Fprintf(w, "k = %s", k)
-}
-
-func Raw(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-
-	r.Body = http.MaxBytesReader(w, r.Body, 0x100)
+	r.Body = http.MaxBytesReader(w, r.Body, messageSizeLimit)
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Content-Length is too high, body is too small, or other read timeout", http.StatusBadRequest)
+		http.Error(w, timeoutMessage, http.StatusBadRequest)
+		return nil, errors.New("")
+	}
+	if !verifyRequestSize(w, r, headerSize, 0, 0) {
+		return nil, errors.New("")
+	}
+
+	return body, nil
+}
+
+// bound HTTP handlers
+
+func root(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	fmt.Fprintf(w, "%v", maxRecordCount)
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+	const headerSize = 128
+	body, err := readRequestGeneral(w, r, headerSize)
+	if err != nil {
+		return
+	}
+
+	fmt.Fprintf(w, "read:\n%s", body)
+}
+
+func login(w http.ResponseWriter, r *http.Request) {
+	const headerSize = 64
+	body, err := readRequestGeneral(w, r, headerSize)
+	if err != nil {
+		return
+	}
+
+	fmt.Fprintf(w, "read:\n%s", body)
+}
+
+func changeLogin(w http.ResponseWriter, r *http.Request) {
+	const headerSize = 192
+	body, err := readRequestGeneral(w, r, headerSize)
+	if err != nil {
+		return
+	}
+
+	fmt.Fprintf(w, "read:\n%s", body)
+}
+
+func lastUpdated(w http.ResponseWriter, r *http.Request) {
+	const headerSize = 40
+	body, err := readRequestGeneral(w, r, headerSize)
+	if err != nil {
 		return
 	}
 

@@ -56,25 +56,29 @@ It is required to set up PostgreSQL and get database access information to be ab
 ```
 LOCAL_ONLY="BOOLEAN"
 HTTPS="BOOLEAN"
-SERVER_PORT="PORT"
+SERVER_PORT_HTTP="PORT"
+SERVER_PORT_HTTPS="PORT"
 SERVER_CRT="FILE_NAME"
 SERVER_KEY="FILE_NAME"
 DB_HOST="ADDRESS"
 DB_PORT="PORT"
 DB_USER="USERNAME"
 DB_PWD="PASSWORD"
+MAX_RECORD_COUNT="NUMBER"
 ```
 Example:
 ```
 LOCAL_ONLY="TRUE"
 HTTPS="FALSE"
-SERVER_PORT="3001"
+SERVER_PORT_HTTP="3001"
+SERVER_PORT_HTTPS="3003"
 SERVER_CRT="server.crt"
 SERVER_KEY="server.key"
 DB_HOST="localhost"
 DB_PORT="3002"
 DB_USER="postgres"
 DB_PWD="password"
+MAX_RECORD_COUNT="1000"
 ```
 4. To build / run the application:
 * `make` (or `mingw32-make` for Windows) will fully build and run the application
