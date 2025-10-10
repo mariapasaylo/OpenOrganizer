@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-09-25
+ * Updated: 2025-10-09
  *
  * This file defines handlers for receiving syncdown requests.
  *
@@ -13,12 +13,33 @@
 package services
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 )
 
+func readRequestSyncdown(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	enableCors(&w)
+	const syncdownHeaderSize = 56
+
+	r.Body = http.MaxBytesReader(w, r.Body, syncdownHeaderSize)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, timeoutMessage, http.StatusBadRequest)
+		return nil, errors.New("")
+	}
+	if !verifyRequestSize(w, r, syncdownHeaderSize, 0, 0) {
+		return nil, errors.New("")
+	}
+
+	return body, nil
+}
+
+// bound HTTP handlers
+
 func downNotes(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -27,7 +48,7 @@ func downNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 func downReminders(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -36,7 +57,7 @@ func downReminders(w http.ResponseWriter, r *http.Request) {
 }
 
 func downRemindersDaily(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -45,7 +66,7 @@ func downRemindersDaily(w http.ResponseWriter, r *http.Request) {
 }
 
 func downRemindersWeekly(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -54,7 +75,7 @@ func downRemindersWeekly(w http.ResponseWriter, r *http.Request) {
 }
 
 func downRemindersMonthly(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -63,7 +84,7 @@ func downRemindersMonthly(w http.ResponseWriter, r *http.Request) {
 }
 
 func downRemindersYearly(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -72,7 +93,7 @@ func downRemindersYearly(w http.ResponseWriter, r *http.Request) {
 }
 
 func downExtensions(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -81,7 +102,7 @@ func downExtensions(w http.ResponseWriter, r *http.Request) {
 }
 
 func downOverrides(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -90,7 +111,7 @@ func downOverrides(w http.ResponseWriter, r *http.Request) {
 }
 
 func downFolders(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
@@ -99,7 +120,7 @@ func downFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 func downDeleted(w http.ResponseWriter, r *http.Request) {
-	body, err := readRequest(w, r, syncdownSizeLimit)
+	body, err := readRequestSyncdown(w, r)
 	if err != nil {
 		return
 	}
