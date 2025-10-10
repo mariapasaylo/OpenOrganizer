@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-09
+ * Updated: 2025-10-10
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -116,10 +116,20 @@
           <q-card class="reminder-note-cards" v-for="(item, index) in filteredReminders" :key="index">
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
-                <div class="reminder-header-container">
-                  <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
-                  <div>{{ item.title }}</div>
-                </div>
+                  <div class="reminder-header-container">
+                    <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
+                    <q-input
+                      v-model="item.temporaryTitle"
+                      :error="item.titleMessageError != ''"
+                      :error-message="item.titleMessageError"
+                      placeholder="Enter reminder title..."
+                      borderless
+                      dense
+                      style="max-width: 300px; padding-top: 20px"
+                      @click.stop
+                      @focus.stop
+                      />
+                    </div>
               </template>
               <q-card-section>
                 <p>Description: {{ item.description }} <br>Date: {{ item.date }}</p>
@@ -150,7 +160,17 @@
               <template v-slot:header>
                 <div class="reminder-header-container">
                   <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
-                  <div>{{ item.title }}</div>
+                  <q-input
+                      v-model="item.temporaryTitle"
+                      :error="item.titleMessageError != ''"
+                      :error-message="item.titleMessageError"
+                      placeholder="Enter note title..."
+                      borderless
+                      dense
+                      style="max-width: 300px; padding-top: 20px"
+                      @click.stop
+                      @focus.stop
+                    />
                 </div>
               </template>
               <!-- Emit-value makes it so the dropdown option only saves the value (ex. folder id = 1 rather than the whole object {folder: name, id, etc.}) -->
@@ -251,9 +271,9 @@ import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{id: 'reminder-1', title: 'New Reminder', description: 'event type field description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false}]);
+const reminders = ref([{id: 'reminder-1', title: 'New Reminder', temporaryTitle: '', description: 'event type field description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
 // Array of notes
-const notes = ref([{ id: 'note-1', title: 'New Note', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false}]);
+const notes = ref([{ id: 'note-1', title: 'New Note', temporaryTitle: '', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
@@ -278,7 +298,9 @@ type Note = {
   temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
    // This is needed to retain the folder state before the note is saved again 
   // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderId
+  temporaryTitle: string; // This is needed to retain the title state before the note is saved again - just like folder
   isSaved: boolean; // if note is saved or not
+  titleMessageError?: string; // error message for title validation. Each note has this property so error message only shows up for the specific notes that have an error
 };
 
 // This type represents the way that we store the reminder data
@@ -286,12 +308,14 @@ type Reminder = {
   id: string; // unique item ID ex. "reminder-1" incremented for each new reminder
   title: string; 
   description: string; // text stored within the reminder. Later this will be split into event type fields.
-  date: string; // date it was created
-  isSelected: boolean; // checkbox selection
-  expanded: boolean; // open or closed
-  folderId: number | null; // null if not saved in any folder yet. The parent folder id the reminder is saved in 
-  temporaryFolderId: number | null; // The folder selected in the dropdown before the reminder is saved
-  isSaved: boolean; // if reminder is saved or not
+  date: string; 
+  isSelected: boolean; 
+  expanded: boolean;
+  folderId: number | null; 
+  temporaryFolderId: number | null; 
+  temporaryTitle: string; 
+  isSaved: boolean; 
+  titleMessageError?: string; 
 };
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
@@ -313,7 +337,7 @@ type QTreeFolder = {
   children?: QTreeFolder[];
 };
 
-// For use in frontend recursive folder display component
+// For use in frontend recursive folder display component, not currently being used
 export type { Folder };
 
 // Example flat array of folders
@@ -405,14 +429,16 @@ let newReminderId = reminders.value.length + 1;
 function addReminder() {
   reminders.value.push({
     id: `reminder-${newReminderId++}`,
-    title: 'New Reminder',
+    title: 'New Reminder', // saved title
+    temporaryTitle: '', // editable title
     description: 'event type field',
     date: selectedDate.value,
     isSelected: false,
     expanded: true, 
     folderId: null, 
     temporaryFolderId: null,
-    isSaved: false 
+    isSaved: false,
+    titleMessageError: '' // error message for title validation
   });
   //Close other reminders when a new one is added
   reminders.value.forEach((reminder, index) => {
@@ -429,13 +455,15 @@ function addNote() {
     notes.value.push({
       id: `note-${newNoteId++}`,
       title: 'New Note',
+      temporaryTitle: '', // editable title
       description: 'note description',
       date: selectedDate.value,
       isSelected: false,
       expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
       folderId: null, // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet),
       temporaryFolderId: null,
-      isSaved: false // Not saved by default until user clicks save button 
+      isSaved: false, // Not saved by default until user clicks save button 
+      titleMessageError: '' // error message for title validation
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -472,16 +500,32 @@ function addFolder() {
 
 // Function to save note text when save button is clicked
 function saveNote(note: Note){
+  // If note title (with whitespace removed) is empty, show error message and disable save button
+    if (!note.temporaryTitle.trim()) {
+    note.titleMessageError = 'Note title cannot be empty.';
+    return;
+  }
+  note.title = note.temporaryTitle; // Update saved note title to whatever is in editable title field on save
   note.folderId = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
   // Set note to be saved after clicking save button so it can show on tree
   note.isSaved = true;
+  // After saving note, reset error message
+    note.titleMessageError = '';
 }
 
 // Function to save reminder fields when save button is clicked
 function saveReminder(reminder: Reminder){
+  // If reminder title (with whitespace removed) is empty, show error message and disable save button
+  if (!reminder.temporaryTitle.trim()) {
+    reminder.titleMessageError = 'Reminder title cannot be empty.';
+    return;
+  }
+  reminder.title = reminder.temporaryTitle;
   reminder.folderId = reminder.temporaryFolderId;
   // Set reminder to be saved after clicking save button so it can show on tree
   reminder.isSaved = true;
+  // After saving reminder, reset error message
+  reminder.titleMessageError = '';
 }
 
 // Function to delete selected individual checkbox reminders
