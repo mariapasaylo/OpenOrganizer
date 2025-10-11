@@ -40,7 +40,7 @@
     width: 50%;
     height: 100vh;
     // Same background color as canva mockups
-    background-color: #459dd8;
+    background-color:$primary;
     // Text color
     color: white;
     justify-content: center;
@@ -50,7 +50,7 @@
 .settings-sidebar {
     display:flex;
     flex-direction: column;
-    background-color: #efefef;
+    background-color: $tertiary;
     color: black;
     font-weight: bold;
     width: 20%;
@@ -91,19 +91,19 @@
 
 .search-input {
     &.q-field--outlined .q-field__control {
-        background-color: #cacaca;
-        border-color: #cacaca;
+        background-color: $accent;
+        border-color: $accent;
         border-radius: 1rem;
     }
     // Style for the outline when focused
     &.q-field--focused .q-field__control {
-        border-color: #459dd8; 
+        border-color: $primary;
     }
 }
 
 .calendar-tabs {
-    background-color:#cacaca;
-    color: #474747;
+    background-color:$accent;
+    color: $secondary;
     width: 100%;
 }
 
@@ -114,7 +114,7 @@
 
 
 .grid-seperator {
-  border: 1px solid #adadadcc;
+  border: 1px solid $tertiary;
   padding: 20px;
 }
 
@@ -132,7 +132,7 @@
 
 .username-password-box {
    background-color: rgb(255, 255, 255);
-   color: #7e7e7e;
+   color: $tertiary;
    border: none;
    width: 350px;
    height:60px;
@@ -163,7 +163,7 @@
 }
 
 .login-register-button {
-    background-color: #459dd8;
+    background-color: $primary;
     color: white;
     font-weight: bold;
     border: none;
@@ -173,7 +173,7 @@
 }
 
 .account-and-settings-button {
-  color: #459dd8; 
+  color: $primary;
   font-size: 30px; 
   margin-top: auto;
 }
