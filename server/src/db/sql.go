@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-20
+ * Updated: 2025-10-11
  *
  * This file declares const values and defines functions for SQL statements to store and retrieve from the database.
  *
@@ -12,24 +12,145 @@
 
 package db
 
-const createExampleTableSQL = `
-	CREATE TABLE IF NOT EXISTS example (
-		id VARCHAR(32),
-		value VARCHAR(32)
-	);`
+const createTableUsers = `
+CREATE TABLE IF NOT EXISTS users (
+	username CHAR(32),
+	userID BIGINT,
+	lastUpdated BIGINT,
+	lastLogin BIGINT,
+	passwordHashHash BYTEA,
+	salt INT,
+	encrPrivateKey BYTEA,
+	encrPrivateKey2 BYTEA
+);`
 
-func sqlCreate(k string, v string) string {
-	return "INSERT INTO example (id, value) VALUES ('" + k + "','" + v + "');"
-}
+const createTableTokens = `
+CREATE TABLE IF NOT EXISTS tokens (
+	userID BIGINT,
+	creationTime BIGINT,
+	expirationTime BIGINT,
+	authToken BYTEA
+);`
 
-func sqlRead(k string) string {
-	return "SELECT * FROM example WHERE id = '" + k + "'"
-}
+const createTableLastUpdated = `
+CREATE TABLE IF NOT EXISTS last_updated (
+	userID BIGINT,
+	lastUpNotes BIGINT,
+	lastUpReminders BIGINT,
+	lastUpDaily BIGINT,
+	lastUpWeekly BIGINT,
+	lastUpMonthly BIGINT,
+	lastUpYearly BIGINT,
+	lastUpExtensions BIGINT,
+	lastUpOverrides BIGINT,
+	lastUpFolders BIGINT,
+	lastUpDeleted BIGINT
+);`
 
-func sqlUpdate(k string, v string) string {
-	return "UPDATE example SET value='" + v + "' WHERE id='" + k + "';"
-}
+const createTableNotes = `
+CREATE TABLE IF NOT EXISTS notes (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
 
-func sqlDelete(k string) string {
-	return "DELETE FROM example WHERE id='" + k + "';"
-}
+const createTableReminders = `
+CREATE TABLE IF NOT EXISTS reminders (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableDaily = `
+CREATE TABLE IF NOT EXISTS daily_reminders (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableWeekly = `
+CREATE TABLE IF NOT EXISTS weekly_reminders (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableMonthly = `
+CREATE TABLE IF NOT EXISTS monthly_reminders (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableYearly = `
+CREATE TABLE IF NOT EXISTS yearly_reminders (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableExtensions = `
+CREATE TABLE IF NOT EXISTS extensions (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	sequenceNum INT,
+	encryptedData BYTEA
+);`
+
+const createTableOverrides = `
+CREATE TABLE IF NOT EXISTS overrides (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	linkedItemID BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableFolders = `
+CREATE TABLE IF NOT EXISTS folders (
+	userID BIGINT,
+	folderID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	encryptedData BYTEA
+);`
+
+const createTableDeleted = `
+CREATE TABLE IF NOT EXISTS deleted (
+	userID BIGINT,
+	itemID BIGINT,
+	lastModified BIGINT,
+	lastUpdated BIGINT,
+	itemTable SMALLINT
+);`
+
+const dropAllTables = `
+DROP TABLE users;
+DROP TABLE tokens;
+DROP TABLE last_updated;
+DROP TABLE notes;
+DROP TABLE reminders;
+DROP TABLE daily_reminders;
+DROP TABLE weekly_reminders;
+DROP TABLE monthly_reminders;
+DROP TABLE yearly_reminders;
+DROP TABLE extensions;
+DROP TABLE overrides;
+DROP TABLE folders;
+DROP TABLE deleted;
+`

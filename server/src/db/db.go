@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-20
+ * Updated: 2025-10-11
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -17,6 +17,7 @@ import (
 	"database/sql"
 	"fmt"
 	"openorganizer/src/models"
+	"openorganizer/src/utils"
 )
 
 var db *sql.DB
@@ -34,10 +35,42 @@ func ConnectToDB(env models.ENVVars) error {
 }
 
 // creates all required db tables that do not already exist
-func EnsureDBTables() error {
-	//services.DB.Exec("DROP TABLE example;")
-	_, err := db.Exec(createExampleTableSQL)
-	return err
+func EnsureDBTables(dropAll bool) chan error {
+	var errs = make(chan error)
+
+	if dropAll {
+		_, err := db.Exec(dropAllTables)
+		utils.AddError(err, errs)
+	}
+
+	_, err := db.Exec(createTableUsers)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableTokens)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableLastUpdated)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableNotes)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableReminders)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableDaily)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableWeekly)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableMonthly)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableYearly)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableExtensions)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableOverrides)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableFolders)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableDeleted)
+	utils.AddError(err, errs)
+
+	return errs
 }
 
 // defer this function in main to close the database connection after program termination
@@ -46,37 +79,3 @@ func CloseDatabase() {
 }
 
 // SQL execution functions
-
-func Create(k string, v string) error {
-	_, err := db.Query(sqlCreate(k, v))
-	return err
-}
-
-func Read(k string) (values []string, err error) {
-	rows, err := db.Query(sqlRead(k))
-	if err != nil {
-		return values, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var key string
-		var value string
-		if err := rows.Scan(&key, &value); err != nil {
-			return values, err
-		}
-		values = append(values, value)
-	}
-
-	return values, err
-}
-
-func Update(k string, v string) error {
-	_, err := db.Query(sqlUpdate(k, v))
-	return err
-}
-
-func Delete(k string) error {
-	_, err := db.Query(sqlDelete(k))
-	return err
-}
