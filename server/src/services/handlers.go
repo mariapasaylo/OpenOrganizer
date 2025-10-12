@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-09
+ * Updated: 2025-10-11
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"openorganizer/src/db"
 	"openorganizer/src/models"
 )
 
@@ -84,6 +85,16 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userLogin = models.UserLogin{
+		Username:     [32]byte(body[0:32]),
+		PasswordHash: [32]byte(body[32:64]),
+	}
+	var userData = models.UserData{
+		EncrPrivateKey:  [32]byte(body[64:96]),
+		EncrPrivateKey2: [32]byte(body[96:128]),
+	}
+	db.RegisterUser(userLogin, userData)
+
 	fmt.Fprintf(w, "read:\n%s", body)
 }
 
@@ -94,6 +105,12 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userLogin = models.UserLogin{
+		Username:     [32]byte(body[0:32]),
+		PasswordHash: [32]byte(body[32:64]),
+	}
+	db.Login(userLogin)
+
 	fmt.Fprintf(w, "read:\n%s", body)
 }
 
@@ -103,6 +120,20 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	var userLogin = models.UserLogin{
+		Username:     [32]byte(body[0:32]),
+		PasswordHash: [32]byte(body[32:64]),
+	}
+	var userLoginNew = models.UserLogin{
+		Username:     [32]byte(body[64:96]),
+		PasswordHash: [32]byte(body[96:128]),
+	}
+	var userData = models.UserData{
+		EncrPrivateKey:  [32]byte(body[128:160]),
+		EncrPrivateKey2: [32]byte(body[160:192]),
+	}
+	db.ModifyUser(userLogin, userLoginNew, userData)
 
 	fmt.Fprintf(w, "read:\n%s", body)
 }
