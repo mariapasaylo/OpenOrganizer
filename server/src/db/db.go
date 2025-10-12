@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-11
+ * Updated: 2025-10-12
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -16,6 +16,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+
 	"openorganizer/src/models"
 	"openorganizer/src/utils"
 )
@@ -49,17 +50,17 @@ func EnsureDBTables(dropAll bool) chan error {
 	utils.AddError(err, errs)
 	_, err = db.Exec(createTableLastUpdated)
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableNotes)
+	_, err = db.Exec(createTableItems("notes"))
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableReminders)
+	_, err = db.Exec(createTableItems("reminders"))
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableDaily)
+	_, err = db.Exec(createTableItems("daily_reminders"))
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableWeekly)
+	_, err = db.Exec(createTableItems("weekly_reminders"))
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableMonthly)
+	_, err = db.Exec(createTableItems("monthly_reminders"))
 	utils.AddError(err, errs)
-	_, err = db.Exec(createTableYearly)
+	_, err = db.Exec(createTableItems("yearly_reminders"))
 	utils.AddError(err, errs)
 	_, err = db.Exec(createTableExtensions)
 	utils.AddError(err, errs)

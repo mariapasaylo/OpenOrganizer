@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-11
+ * Updated: 2025-10-12
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -86,16 +86,20 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userLogin = models.UserLogin{
-		Username:     [32]byte(body[0:32]),
-		PasswordHash: [32]byte(body[32:64]),
+		Username:     body[0:32],
+		PasswordHash: body[32:64],
 	}
 	var userData = models.UserData{
-		EncrPrivateKey:  [32]byte(body[64:96]),
-		EncrPrivateKey2: [32]byte(body[96:128]),
+		EncrPrivateKey:  body[64:96],
+		EncrPrivateKey2: body[96:128],
 	}
-	db.RegisterUser(userLogin, userData)
+	err = db.RegisterUser(userLogin, userData)
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	if err != nil {
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	fmt.Fprintf(w, "registered")
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -106,12 +110,16 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userLogin = models.UserLogin{
-		Username:     [32]byte(body[0:32]),
-		PasswordHash: [32]byte(body[32:64]),
+		Username:     body[0:32],
+		PasswordHash: body[32:64],
 	}
-	db.Login(userLogin)
+	err = db.Login(userLogin)
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	if err != nil {
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	fmt.Fprintf(w, "authenticated")
 }
 
 func changeLogin(w http.ResponseWriter, r *http.Request) {
@@ -122,16 +130,16 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userLogin = models.UserLogin{
-		Username:     [32]byte(body[0:32]),
-		PasswordHash: [32]byte(body[32:64]),
+		Username:     body[0:32],
+		PasswordHash: body[32:64],
 	}
 	var userLoginNew = models.UserLogin{
-		Username:     [32]byte(body[64:96]),
-		PasswordHash: [32]byte(body[96:128]),
+		Username:     body[64:96],
+		PasswordHash: body[96:128],
 	}
 	var userData = models.UserData{
-		EncrPrivateKey:  [32]byte(body[128:160]),
-		EncrPrivateKey2: [32]byte(body[160:192]),
+		EncrPrivateKey:  body[128:160],
+		EncrPrivateKey2: body[160:192],
 	}
 	db.ModifyUser(userLogin, userLoginNew, userData)
 

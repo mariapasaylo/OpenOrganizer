@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-11
+ * Updated: 2025-10-12
  *
  * This file declares structs for all database tables.
  *
@@ -13,21 +13,21 @@
 package models
 
 type RowUsers struct {
-	Username         [32]byte
+	Username         []byte // size 32
 	UserID           int64
 	LastUpdated      int64
 	LastLogin        int64
-	PasswordHashHash [32]byte
+	PasswordHashHash []byte // size 32
 	Salt             int32
-	EncrPrivateKey   [32]byte
-	EncrPrivateKey2  [32]byte
+	EncrPrivateKey   []byte // size 32
+	EncrPrivateKey2  []byte // size 32
 }
 
 type RowTokens struct {
 	UserID         int64
 	CreationTime   int64
 	ExpirationTime int64
-	AuthToken      [32]byte
+	AuthToken      []byte // size 32
 }
 
 type RowLastUpdated struct {
@@ -50,7 +50,7 @@ type RowItems struct {
 	ItemID        int64
 	LastModified  int64
 	LastUpdated   int64
-	EncryptedData [32]byte
+	EncryptedData []byte // size depends on table
 }
 
 type RowExtensions struct {
@@ -59,7 +59,7 @@ type RowExtensions struct {
 	LastModified  int64
 	LastUpdated   int64
 	SequenceNum   int32
-	EncryptedData [32]byte
+	EncryptedData []byte // size 64
 }
 
 type RowOverrides struct {
@@ -68,7 +68,7 @@ type RowOverrides struct {
 	LastModified  int64
 	LastUpdated   int64
 	LinkedItemID  int64
-	EncryptedData [32]byte
+	EncryptedData []byte // size 64
 }
 
 type RowFolders struct {
@@ -76,7 +76,7 @@ type RowFolders struct {
 	FolderID      int64
 	LastModified  int64
 	LastUpdated   int64
-	EncryptedData [32]byte
+	EncryptedData []byte // size 64
 }
 
 type RowDeleted struct {

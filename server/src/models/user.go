@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-11
+ * Updated: 2025-10-12
  *
  * This file defines a few helper structs for passing user information as a single function parameter.
  *
@@ -13,11 +13,11 @@
 package models
 
 type UserLogin struct {
-	Username     [32]byte
-	PasswordHash [32]byte
+	Username     []byte // size 32
+	PasswordHash []byte // size 32
 }
 
 type UserData struct {
-	EncrPrivateKey  [32]byte
-	EncrPrivateKey2 [32]byte
+	EncrPrivateKey  []byte // size 32
+	EncrPrivateKey2 []byte // size 32
 }
