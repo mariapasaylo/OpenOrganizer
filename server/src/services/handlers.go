@@ -45,7 +45,7 @@ func verifyRequestSize(w http.ResponseWriter, r *http.Request, headerSize uint32
 		http.Error(w, "recordCount higher than server limit of "+strconv.Itoa(int(maxRecordCount)), http.StatusBadRequest)
 		return false
 	}
-	var expectedSize = headerSize + (recordSize * recordCount)
+	expectedSize := headerSize + (recordSize * recordCount)
 	if r.ContentLength == int64(expectedSize) {
 		return true
 	}
@@ -85,21 +85,21 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userLogin = models.UserLogin{
+	userLogin := models.UserLogin{
 		Username:     body[0:32],
 		PasswordHash: body[32:64],
 	}
-	var userData = models.UserData{
+	userData := models.UserData{
 		EncrPrivateKey:  body[64:96],
 		EncrPrivateKey2: body[96:128],
 	}
-	err = db.RegisterUser(userLogin, userData)
-
+	response, err := db.RegisterUser(userLogin, userData)
 	if err != nil {
-		fmt.Fprintf(w, "%v", err)
+		http.Error(w, "Account with that username already exists.", http.StatusUnauthorized)
 		return
 	}
-	fmt.Fprintf(w, "registered")
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -109,17 +109,17 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userLogin = models.UserLogin{
+	userLogin := models.UserLogin{
 		Username:     body[0:32],
 		PasswordHash: body[32:64],
 	}
-	err = db.Login(userLogin)
-
+	response, err := db.Login(userLogin)
 	if err != nil {
-		fmt.Fprintf(w, "%v", err)
+		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
 		return
 	}
-	fmt.Fprintf(w, "authenticated")
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func changeLogin(w http.ResponseWriter, r *http.Request) {
@@ -129,21 +129,25 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userLogin = models.UserLogin{
+	userLogin := models.UserLogin{
 		Username:     body[0:32],
 		PasswordHash: body[32:64],
 	}
-	var userLoginNew = models.UserLogin{
+	userLoginNew := models.UserLogin{
 		Username:     body[64:96],
 		PasswordHash: body[96:128],
 	}
-	var userData = models.UserData{
+	userData := models.UserData{
 		EncrPrivateKey:  body[128:160],
 		EncrPrivateKey2: body[160:192],
 	}
-	db.ModifyUser(userLogin, userLoginNew, userData)
+	response, err := db.ModifyUser(userLogin, userLoginNew, userData)
+	if err != nil {
+		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
+		return
+	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	fmt.Fprintf(w, "%s", response)
 }
 
 func lastUpdated(w http.ResponseWriter, r *http.Request) {

@@ -124,7 +124,9 @@ DROP TABLE IF EXISTS deleted;
 // users
 
 const usersCreate = `
-INSERT INTO users (username, lastUpdated, lastLogin, passwordHashHash, salt, encrPrivateKey, encrPrivateKey2) VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO users (username, lastUpdated, lastLogin, passwordHashHash, salt, encrPrivateKey, encrPrivateKey2) 
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING userID;
 `
 
 const usersCreateManualID = `
@@ -135,10 +137,14 @@ const usersRead = `
 SELECT * FROM users WHERE username = $1;
 `
 
-const usersUpdateAll = `
+const usersUpdate = `
 UPDATE users 
 SET username = $1, lastUpdated = $2, lastLogin = $3, passwordHashHash = $4, salt = $5, encrPrivateKey = $6, encrPrivateKey2 = $7 
 WHERE username = $1;
+`
+
+const usersUpdateLastLogin = `
+UPDATE users SET lastLogin = $2 WHERE username = $1;
 `
 
 const usersDelete = `
@@ -148,7 +154,7 @@ DELETE FROM users WHERE username = $1;
 // tokens
 
 const tokensCreate = `
-INSERT INTO users VALUES ($1, $2, $3, $4);
+INSERT INTO tokens VALUES ($1, $2, $3, $4);
 `
 
 const tokensRead = `

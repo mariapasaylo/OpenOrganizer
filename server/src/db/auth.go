@@ -22,10 +22,11 @@ import (
 	"reflect"
 
 	"openorganizer/src/models"
+	"openorganizer/src/utils"
 )
 
 func hashPassword(passwordHash []byte, salt int32) []byte {
-	var saltA = make([]byte, 4)
+	saltA := make([]byte, 4)
 	binary.LittleEndian.PutUint32(saltA, uint32(salt))
 	var input []byte
 	input = append(input, passwordHash...)
@@ -35,50 +36,85 @@ func hashPassword(passwordHash []byte, salt int32) []byte {
 	return hasher.Sum(nil)
 }
 
+func authReturn(userID int64) (response []byte) {
+	userIDBuf := make([]byte, 8)
+	token := AddToken(userID)
+	binary.LittleEndian.PutUint64(userIDBuf, uint64(userID))
+	response = append(response, userIDBuf...)
+	response = append(response, token...)
+	return response
+}
+
 // users
 
 // register a new account
-func RegisterUser(userLogin models.UserLogin, userData models.UserData) error {
+func RegisterUser(userLogin models.UserLogin, userData models.UserData) (response []byte, err error) {
 	salt := rand.Int31()
-	var passwordHashHash []byte = hashPassword(userLogin.PasswordHash, salt)
-	_, err := db.Query(usersCreate, userLogin.Username, 1, 1, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
-	return err
+	passwordHashHash := hashPassword(userLogin.PasswordHash, salt)
+	now := utils.Now()
+	row, err := db.Query(usersCreate, userLogin.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
+	if err != nil {
+		return nil, err
+	}
+	var userID int64
+	row.Next()
+	err = row.Scan(&userID)
+	response = authReturn(userID)
+	return response, err
 }
 
 // try to verify username + password combo
-func Login(userLogin models.UserLogin) error {
+func Login(userLogin models.UserLogin) (response []byte, err error) {
 	row, err := db.Query(usersRead, userLogin.Username)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer row.Close()
 
 	var rowUser models.RowUsers
 	if !row.Next() {
-		return errors.New("no entry found")
+		return nil, errors.New("no entry found")
 	}
 	if err = row.Scan(&rowUser.Username, &rowUser.UserID, &rowUser.LastUpdated, &rowUser.LastLogin,
 		&rowUser.PasswordHashHash, &rowUser.Salt, &rowUser.EncrPrivateKey, &rowUser.EncrPrivateKey2); err != nil {
 		fmt.Print(err)
 	}
 
-	var passwordHashHash []byte = hashPassword(userLogin.PasswordHash, rowUser.Salt)
-	if reflect.DeepEqual(passwordHashHash, rowUser.PasswordHashHash) {
-		return nil
+	passwordHashHash := hashPassword(userLogin.PasswordHash, rowUser.Salt)
+	if !reflect.DeepEqual(passwordHashHash, rowUser.PasswordHashHash) {
+		return nil, errors.New("incorrect password")
 	}
-	return errors.New("incorrect password")
+	_, _ = db.Query(usersUpdateLastLogin, userLogin.Username, utils.Now())
+	response = authReturn(rowUser.UserID)
+	response = append(response, rowUser.EncrPrivateKey...)
+	response = append(response, rowUser.EncrPrivateKey2...)
+	return response, nil
 }
 
 // change user information
-func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userData models.UserData) {
+func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userData models.UserData) (response []byte, err error) {
+	response, err = Login(userLogin)
+	if err != nil {
+		return nil, err
+	}
 
+	salt := rand.Int31()
+	passwordHashHash := hashPassword(userLogin.PasswordHash, salt)
+	now := utils.Now()
+	_, err = db.Query(usersUpdate, userLoginNew.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
+	return response, err
 }
 
 // tokens
 
 // create auth token and store
-func AddToken(userID int64) {
-
+func AddToken(userID int64) (token []byte) {
+	token = utils.RandArray(32)
+	now := utils.Now()
+	// currently hardcoded for 28 days before expiration, will add to .env later
+	expirationTime := now + 2419200000
+	_, _ = db.Query(tokensCreate, userID, now, expirationTime, token)
+	return token
 }
 
 // check if token is valid
