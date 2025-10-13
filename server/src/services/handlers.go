@@ -14,6 +14,7 @@
 package services
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -141,9 +142,14 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 		EncrPrivateKey:  body[128:160],
 		EncrPrivateKey2: body[160:192],
 	}
-	response, err := db.ModifyUser(userLogin, userLoginNew, userData)
+	_, err = db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
+		return
+	}
+	response, err := db.ModifyUser(userLogin, userLoginNew, userData)
+	if err != nil {
+		http.Error(w, "Username already exists.", http.StatusUnauthorized)
 		return
 	}
 
@@ -154,6 +160,15 @@ func lastUpdated(w http.ResponseWriter, r *http.Request) {
 	const headerSize = 40
 	body, err := readRequestGeneral(w, r, headerSize)
 	if err != nil {
+		return
+	}
+
+	userAuth := models.UserAuth{
+		UserID:    int64(binary.LittleEndian.Uint64(body[0:8])),
+		AuthToken: body[8:40],
+	}
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
 		return
 	}
 

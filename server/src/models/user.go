@@ -21,3 +21,8 @@ type UserData struct {
 	EncrPrivateKey  []byte // size 32
 	EncrPrivateKey2 []byte // size 32
 }
+
+type UserAuth struct {
+	UserID    int64
+	AuthToken []byte // size 32
+}

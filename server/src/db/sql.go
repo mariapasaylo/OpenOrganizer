@@ -139,8 +139,9 @@ SELECT * FROM users WHERE username = $1;
 
 const usersUpdate = `
 UPDATE users 
-SET username = $1, lastUpdated = $2, lastLogin = $3, passwordHashHash = $4, salt = $5, encrPrivateKey = $6, encrPrivateKey2 = $7 
-WHERE username = $1;
+SET username = $2, lastUpdated = $3, lastLogin = $4, passwordHashHash = $5, salt = $6, encrPrivateKey = $7, encrPrivateKey2 = $8 
+WHERE username = $1
+RETURNING userID;
 `
 
 const usersUpdateLastLogin = `
@@ -157,8 +158,8 @@ const tokensCreate = `
 INSERT INTO tokens VALUES ($1, $2, $3, $4);
 `
 
-const tokensRead = `
-SELECT * FROM tokens WHERE userID = $1;
+const tokensReadExpiration = `
+SELECT expirationTime FROM tokens WHERE userID = $1 AND authToken = $2;
 `
 
 const tokensUpdateExpiration = `
@@ -176,7 +177,7 @@ DELETE FROM tokens WHERE expirationTime < $1;
 // last updated
 
 const lastupCreate = `
-INSERT INTO last_updated VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+INSERT INTO last_updated VALUES ($1, $2, $2, $2, $2, $2, $2, $2, $2, $2, $2);
 `
 
 const lastupRead = `

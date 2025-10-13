@@ -14,6 +14,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"time"
 )
 
@@ -32,4 +33,22 @@ func RandArray(length int32) []byte {
 	array := make([]byte, length)
 	rand.Read(array)
 	return array
+}
+
+func BigintToBytes(value int64) (eight []byte) {
+	eight = make([]byte, 8)
+	binary.LittleEndian.PutUint64(eight, uint64(value))
+	return eight
+}
+
+func IntToBytes(value int32) (four []byte) {
+	four = make([]byte, 4)
+	binary.LittleEndian.PutUint32(four, uint32(value))
+	return four
+}
+
+func SmallintToBytes(value int16) (two []byte) {
+	two = make([]byte, 2)
+	binary.LittleEndian.PutUint16(two, uint16(value))
+	return two
 }

@@ -79,4 +79,19 @@ func CloseDatabase() {
 	db.Close()
 }
 
-// SQL execution functions
+// general non-account / authentication or syncing functions
+
+func GetLastUpdated(userAuth models.UserAuth) (row models.RowLastUpdated) {
+	rows, err := db.Query(lastupRead, userAuth.UserID, userAuth.AuthToken)
+	if err != nil {
+		return models.RowLastUpdated{}
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return models.RowLastUpdated{}
+	}
+	_ = rows.Scan(&row.UserID, &row.LastUpNotes, &row.LastUpReminders,
+		&row.LastUpDaily, &row.LastUpMonthly, &row.LastUpMonthly, &row.LastUpYearly,
+		&row.LastUpExtensions, &row.LastUpOverrides, &row.LastUpFolders, &row.LastUpDeleted)
+	return row
+}
