@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-09-25
+ * Updated: 2025-10-14
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -10,11 +10,31 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
+import type {
+  Note,
+  Extension,
+  Folder,
+  Reminder,
+  DailyReminder,
+  WeeklyReminder,
+  MonthlyReminder,
+  YearlyReminder
+} from "app/src-electron/types/shared-types";
+
 export {};
 
 declare global {
   interface Window {
     sqliteAPI: {
+      createNote: (newNote: Note) => void;
+      createReminder: (newRem: Reminder) => void;
+      createDailyReminder: (newDailyRem: DailyReminder) => void;
+      createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => void;
+      createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => void;
+      createYearlyReminder: (newYearlyRem: YearlyReminder) => void;
+      createExtension: (newExt: Extension) => void;
+      createFolder: (newFolder: Folder) => void;
+
       sqliteRead: (key: string) => Promise<string>;
       sqliteCreate: (key: string, value: string) => Promise<boolean>;
       sqliteUpdate: (key: string, value: string) => Promise<boolean>;

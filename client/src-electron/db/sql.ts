@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-06
+ * Updated: 2025-10-14
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -10,6 +10,8 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
+
+// Table creation SQL
 export const createNotesTable = `
   CREATE TABLE IF NOT EXISTS notes (
     itemID BIGINT PRIMARY KEY,
@@ -191,7 +193,7 @@ export const createFoldersTable = `
     folderID BIGINT PRIMARY KEY,
     lastModified BIGINT NOT NULL,
     parentFolderID BIGINT NOT NULL,
-    colorCode INT,
+    colorCode INT NOT NULL,
     folderName CHAR(24) NOT NULL
   )`;
 
@@ -201,6 +203,50 @@ export const createDeletedTable = `
     lastModified BIGINT NOT NULL,
     itemTable SMALLINT NOT NULL
   )`;
+
+
+// create entry SQL statements
+export const createNoteStmt = `
+INSERT INTO notes (itemID, lastModified, folderID, isExtended, title, text)
+VALUES (?, ?, ?, ?, ?, ?)`;
+
+export const createReminderStmt = `
+INSERT INTO reminders (
+  itemID, lastModified, folderID, eventType, eventStartYear, eventStartDay, eventStartMin, eventEndYear, eventEndDay,
+  eventEndMin, notifYear, notifDay, notifMin, isExtended, hasNotif, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createDailyReminderStmt = `
+INSERT INTO daily_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, everyNDays, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createWeeklyReminderStmt = `
+INSERT INTO weekly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, everyNWeeks, daysOfWeek, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createMonthlyReminderStmt = `
+INSERT INTO monthly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, lastDayOfMonth, daysOfMonth, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createYearlyReminderStmt = `
+INSERT INTO yearly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, dayOfYear, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createExtensionStmt = `
+INSERT INTO extensions (itemID, sequenceNum, lastModified, data)
+VALUES (?, ?, ?, ?)`;
+
+export const createFolderStmt = `
+INSERT INTO folders (folderID, lastModified, parentFolderID, colorCode, folderName)
+VALUES (?, ?, ?, ?, ?)`;
 
 // Example SQL
 export const createExTable = `

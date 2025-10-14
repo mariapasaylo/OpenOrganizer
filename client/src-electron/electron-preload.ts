@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-09-25
+ * Updated: 2025-10-14
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -41,8 +41,28 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  **/
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  Note,
+  Extension,
+  Folder,
+  Reminder,
+  DailyReminder,
+  WeeklyReminder,
+  MonthlyReminder,
+  YearlyReminder
+} from "app/src-electron/types/shared-types";
 
 contextBridge.exposeInMainWorld('sqliteAPI', {
+  createNote: (newNote: Note) => ipcRenderer.invoke('createNote', newNote),
+  createReminder: (newRem: Reminder) => ipcRenderer.invoke('createReminder', newRem),
+  createDailyReminder: (newDailyRem: DailyReminder) => ipcRenderer.invoke('createDailyReminder', newDailyRem),
+  createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => ipcRenderer.invoke('createWeeklyReminder', newWeeklyRem),
+  createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => ipcRenderer.invoke('createMonthlyReminder', newMonthlyRem),
+  createYearlyReminder: (newYearlyRem: YearlyReminder) => ipcRenderer.invoke('createYearlyReminder', newYearlyRem),
+  createExtension: (newExt: Extension) => ipcRenderer.invoke('createExtension', newExt),
+  createFolder: (newFolder: Folder) => ipcRenderer.invoke('createFolder', newFolder),
+
+  // Example functions
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),
   sqliteRead: (key: string) => ipcRenderer.invoke('sqliteRead', key),
   sqliteUpdate: (key: string, value: string) => ipcRenderer.invoke('sqliteUpdate', key, value),
