@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-12
+ * Updated: 2025-10-14
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -14,7 +14,6 @@
 package services
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -24,6 +23,7 @@ import (
 
 	"openorganizer/src/db"
 	"openorganizer/src/models"
+	"openorganizer/src/utils"
 )
 
 const messageSizeLimit = 0x100
@@ -86,14 +86,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userLogin := models.UserLogin{
-		Username:     body[0:32],
-		PasswordHash: body[32:64],
-	}
-	userData := models.UserData{
-		EncrPrivateKey:  body[64:96],
-		EncrPrivateKey2: body[96:128],
-	}
+	userLogin, userData := utils.UnpackRegister(body)
 	response, err := db.RegisterUser(userLogin, userData)
 	if err != nil {
 		http.Error(w, "Account with that username already exists.", http.StatusUnauthorized)
@@ -110,10 +103,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userLogin := models.UserLogin{
-		Username:     body[0:32],
-		PasswordHash: body[32:64],
-	}
+	userLogin := utils.UnpackLogin(body)
 	response, err := db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
@@ -130,18 +120,7 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userLogin := models.UserLogin{
-		Username:     body[0:32],
-		PasswordHash: body[32:64],
-	}
-	userLoginNew := models.UserLogin{
-		Username:     body[64:96],
-		PasswordHash: body[96:128],
-	}
-	userData := models.UserData{
-		EncrPrivateKey:  body[128:160],
-		EncrPrivateKey2: body[160:192],
-	}
+	userLogin, userLoginNew, userData := utils.UnpackChangeLogin(body)
 	_, err = db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
@@ -149,7 +128,7 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	response, err := db.ModifyUser(userLogin, userLoginNew, userData)
 	if err != nil {
-		http.Error(w, "Username already exists.", http.StatusUnauthorized)
+		http.Error(w, "An account with that username already exists.", http.StatusUnauthorized)
 		return
 	}
 
@@ -163,10 +142,7 @@ func lastUpdated(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userAuth := models.UserAuth{
-		UserID:    int64(binary.LittleEndian.Uint64(body[0:8])),
-		AuthToken: body[8:40],
-	}
+	userAuth := utils.UnpackUserAuth(body)
 	if !db.CheckTokenAuth(userAuth) {
 		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
 		return
