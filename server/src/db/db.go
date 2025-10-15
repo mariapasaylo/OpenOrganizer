@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-12
+ * Updated: 2025-10-14
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -22,6 +22,7 @@ import (
 )
 
 var db *sql.DB
+var tokenExpireTime uint32
 
 // connects to the postgresql server using provided env variables
 func ConnectToDB(env models.ENVVars) error {
@@ -32,6 +33,9 @@ func ConnectToDB(env models.ENVVars) error {
 	}
 	db = conn
 	err = db.Ping()
+
+	tokenExpireTime = env.TOKEN_EXPIRE_TIME
+
 	return err
 }
 

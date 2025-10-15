@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-12
+ * Updated: 2025-10-14
  *
  * This file provides authentication functionality that interfaces with the database.
  * This includes CRUD operations on user accounts and tokens.
@@ -120,8 +120,7 @@ func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userD
 func AddToken(userID int64) (token []byte) {
 	token = utils.RandArray(32)
 	now := utils.Now()
-	// currently hardcoded to expire after 24 hours, will add to .env later
-	expirationTime := now + (1000 * 60 * 60 * 24)
+	expirationTime := now + (int64(tokenExpireTime) * 1000)
 	_, _ = db.Query(tokensCreate, userID, now, expirationTime, token)
 	return token
 }
