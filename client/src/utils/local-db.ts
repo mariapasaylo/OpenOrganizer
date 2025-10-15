@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * todo: write description
  *
@@ -22,9 +22,11 @@ import type {
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
-  YearlyReminder
+  YearlyReminder,
+  Deleted
 } from "app/src-electron/types/shared-types";
 
+// create
 export function createNote(folderID: number, title: string, text: string) {
   const timeMs = Date.now();
   const extensions = Math.ceil(text.length/64) - 1;
@@ -36,7 +38,7 @@ export function createNote(folderID: number, title: string, text: string) {
     isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
     title: title,
     text: text.substring(0, 64)
-  }
+  };
   window.sqliteAPI.createNote(newNote);
 
   for (let i = 1; i <= extensions; i++) {
@@ -45,7 +47,7 @@ export function createNote(folderID: number, title: string, text: string) {
       sequenceNum: i,
       lastModified: timeMs,
       data: text.substring(64*i, 64*(i+1))
-    }
+    };
     window.sqliteAPI.createExtension(newExt);
   }
 }
@@ -72,7 +74,7 @@ export function createReminder(
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
     hasNotif: (hasNotif) ? 1 : 0,
     title: title
-  }
+  };
   window.sqliteAPI.createReminder(newRem);
 
   /* Todo: add specific extension implementation depending on eventType value
@@ -81,7 +83,7 @@ export function createReminder(
       sequenceNum: 1,
       lastModified: timeMs,
       data: ???
-    }
+    };
     window.sqliteAPI.createExtension(newExt);
    */
 }
@@ -109,7 +111,7 @@ export function createDailyReminder(
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
     everyNDays: everyNDays,
     title: title
-  }
+  };
   window.sqliteAPI.createDailyReminder(newDailyRem);
 
   // Todo: add specific extension implementation depending on eventType value
@@ -139,7 +141,7 @@ export function createWeeklyReminder(
     everyNWeeks: everyNWeeks,
     daysOfWeek: daysOfWeek,
     title: title
-  }
+  };
   window.sqliteAPI.createWeeklyReminder(newWeeklyRem);
 
   // Todo: add specific extension implementation depending on eventType value
@@ -169,7 +171,7 @@ export function createMonthlyReminder(
     lastDayOfMonth: (lastDayOfMonth) ? 1 : 0,
     daysOfMonth: daysOfMonth,
     title: title
-  }
+  };
   window.sqliteAPI.createMonthlyReminder(newMonthlyRem);
 
   // Todo: add specific extension implementation depending on eventType value
@@ -198,7 +200,7 @@ export function createYearlyReminder(
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
     dayOfYear: dayOfYear,
     title: title
-  }
+  };
   window.sqliteAPI.createYearlyReminder(newYearlyRem);
 
   // Todo: add specific extension implementation depending on eventType value
@@ -212,7 +214,7 @@ export function createFolder(parentFolderID: number, colorCode: number, folderNa
     parentFolderID: parentFolderID,
     colorCode: colorCode,
     folderName: folderName
-  }
+  };
   window.sqliteAPI.createFolder(newFolder);
 }
 
@@ -224,6 +226,86 @@ export function createRootFolder(colorCode: number) { // -1 treated as no colorC
     parentFolderID: -1,
     colorCode: colorCode,
     folderName: "root"
-  }
+  };
   window.sqliteAPI.createFolder(rootFolder);
+}
+
+export function createDeleted(itemID: number, itemTable: number) {
+  const timeMs = Date.now();
+  const newDeleted: Deleted = {
+    itemID: itemID,
+    lastModified: timeMs,
+    itemTable: itemTable,
+  };
+  window.sqliteAPI.createDeleted(newDeleted);
+}
+
+
+// delete
+export function deleteItem(itemID: number, itemTable: number) { // used for all but specific extensions and folders
+  let deleteOccurred = false;
+  switch (itemTable) {
+    case 0: {// note
+      deleteOccurred = window.sqliteAPI.deleteNote(itemID); // itemID MUST be present
+      break;
+    }
+    case 1: { // reminder
+      deleteOccurred = window.sqliteAPI.deleteReminder(itemID);
+      break;
+    }
+    case 2: { // daily_reminder
+      deleteOccurred = window.sqliteAPI.deleteDailyReminder(itemID);
+      break;
+    }
+    case 3: { // weekly_reminder
+      deleteOccurred = window.sqliteAPI.deleteWeeklyReminder(itemID);
+      break;
+    }
+    case 4: { // monthly_reminder
+      deleteOccurred = window.sqliteAPI.deleteMonthlyReminder(itemID);
+      break;
+    }
+    case 5: { // yearly_reminder
+      deleteOccurred = window.sqliteAPI.deleteYearlyReminder(itemID);
+      break;
+    }
+    default:
+      break;
+  }
+
+  if (deleteOccurred) {
+    window.sqliteAPI.deleteAllExtensions(itemID); // delete all extensions associated with deleted item
+    createDeleted(itemID, itemTable); // create deleted entry for the deleted item
+  }
+}
+
+export function deleteExtension(itemID: number, sequenceNum: number) {
+  window.sqliteAPI.deleteExtension(itemID, sequenceNum); // delete an individual extension
+}
+
+export function deleteFolder(folderID: number) {
+  if (folderID === 0) return // root folder cannot be deleted
+
+  let items = window.sqliteAPI.readNotesInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 0); // delete all items in the folder
+
+  items = window.sqliteAPI.readRemindersInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 1);
+
+  items = window.sqliteAPI.readDailyRemindersInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 2);
+
+  items = window.sqliteAPI.readWeeklyRemindersInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 3);
+
+  items = window.sqliteAPI.readMonthlyRemindersInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 4);
+
+  items = window.sqliteAPI.readYearlyRemindersInFolder(folderID);
+  for (const item of items) deleteItem(item.itemID, 5);
+
+  const subFolders = window.sqliteAPI.readFoldersInFolder(folderID);
+  for (const subFolder of subFolders) deleteFolder(subFolder.folderID); // recursively delete subfolders
+
+  if (window.sqliteAPI.deleteFolder(folderID)) createDeleted(folderID, 7); // finally, delete the folder and create deleted entry
 }

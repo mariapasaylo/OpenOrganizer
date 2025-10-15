@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -21,12 +21,14 @@ import type {
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
-  YearlyReminder
+  YearlyReminder,
+  Deleted
 } from "app/src-electron/types/shared-types";
 
 export function registerHandlers()
 {
   // SQLite Handlers
+  // create
   ipcMain.handle('createNote', (event, newNote: Note) => {
     db.createNote(newNote);
   });
@@ -57,6 +59,78 @@ export function registerHandlers()
 
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
     db.createFolder(newFolder);
+  });
+
+  ipcMain.handle('createDeleted', (event, newDeleted: Deleted) => {
+    db.createDeleted(newDeleted);
+  });
+
+
+  // read
+  ipcMain.handle('readNotesInFolder', (event, folderID: number) => {
+    return db.readNotesInFolder(folderID);
+  });
+
+  ipcMain.handle('readRemindersInFolder', (event, folderID: number) => {
+    return db.readRemindersInFolder(folderID);
+  });
+
+  ipcMain.handle('readDailyRemindersInFolder', (event, folderID: number) => {
+    return db.readDailyRemindersInFolder(folderID);
+  });
+
+  ipcMain.handle('readWeeklyRemindersInFolder', (event, folderID: number) => {
+    return db.readWeeklyRemindersInFolder(folderID);
+  });
+
+  ipcMain.handle('readMonthlyRemindersInFolder', (event, folderID: number) => {
+    return db.readMonthlyRemindersInFolder(folderID);
+  });
+
+  ipcMain.handle('readYearlyRemindersInFolder', (event, folderID: number) => {
+    return db.readYearlyRemindersInFolder(folderID);
+  });
+
+  ipcMain.handle('readFoldersInFolder', (event, parentFolderID: number) => {
+    return db.readFoldersInFolder(parentFolderID);
+  });
+
+
+  // delete
+  ipcMain.handle('deleteNote', (event, itemID: number) => {
+    return db.deleteNote(itemID);
+  });
+
+  ipcMain.handle('deleteReminder', (event, itemID: number) => {
+    return db.deleteReminder(itemID);
+  });
+
+  ipcMain.handle('deleteDailyReminder', (event, itemID: number) => {
+    return db.deleteDailyReminder(itemID);
+  });
+
+  ipcMain.handle('deleteWeeklyReminder', (event, itemID: number) => {
+    return db.deleteWeeklyReminder(itemID);
+  });
+
+  ipcMain.handle('deleteMonthlyReminder', (event, itemID: number) => {
+    return db.deleteMonthlyReminder(itemID);
+  });
+
+  ipcMain.handle('deleteYearlyReminder', (event, itemID: number) => {
+    return db.deleteYearlyReminder(itemID);
+  });
+
+  ipcMain.handle('deleteExtension', (event, itemID: number, sequenceNum: number) => {
+    db.deleteExtension(itemID, sequenceNum);
+  });
+
+  ipcMain.handle('deleteAllExtensions', (event, itemID: number) => {
+    db.deleteAllExtensions(itemID);
+  });
+
+  ipcMain.handle('deleteFolder', (event, folderID: number) => {
+    return db.deleteFolder(folderID);
   });
 
 

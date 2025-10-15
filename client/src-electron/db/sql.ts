@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -247,6 +247,80 @@ VALUES (?, ?, ?, ?)`;
 export const createFolderStmt = `
 INSERT INTO folders (folderID, lastModified, parentFolderID, colorCode, folderName)
 VALUES (?, ?, ?, ?, ?)`;
+
+export const createDeletedStmt = `
+  INSERT INTO deleted (itemID, lastModified, itemTable)
+  VALUES (?, ?, ?)`;
+
+
+// read entry SQL statements
+// get IDs based on folderID
+export const readNotesInFolderStmt = `
+SELECT itemID FROM notes
+WHERE folderID = ?`;
+
+export const readRemindersInFolderStmt = `
+SELECT itemID FROM reminders
+WHERE folderID = ?`;
+
+export const readDailyRemindersInFolderStmt = `
+SELECT itemID FROM daily_reminders
+WHERE folderID = ?`;
+
+export const readWeeklyRemindersInFolderStmt = `
+SELECT itemID FROM weekly_reminders
+WHERE folderID = ?`;
+
+export const readMonthlyRemindersInFolderStmt = `
+SELECT itemID FROM monthly_reminders
+WHERE folderID = ?`;
+
+export const readYearlyRemindersInFolderStmt = `
+SELECT itemID FROM yearly_reminders
+WHERE folderID = ?`;
+
+export const readFoldersInFolderStmt = `
+SELECT folderID FROM folders
+WHERE parentFolderID = ?`;
+
+
+// delete entry SQL statements
+export const deleteNoteStmt = `
+DELETE FROM notes
+WHERE itemID = ?`;
+
+export const deleteReminderStmt = `
+DELETE FROM reminders
+WHERE itemID = ?`;
+
+export const deleteDailyReminderStmt = `
+DELETE FROM daily_reminders
+WHERE itemID = ?`;
+
+export const deleteWeeklyReminderStmt = `
+DELETE FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const deleteMonthlyReminderStmt = `
+DELETE FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const deleteYearlyReminderStmt = `
+DELETE FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const deleteExtensionStmt = `
+DELETE FROM extensions
+WHERE itemID = ? AND sequenceNum = ?`;
+
+export const deleteAllExtensionsStmt = `
+DELETE FROM extensions
+WHERE itemID = ?`;
+
+export const deleteFolderStmt = `
+DELETE FROM folders
+WHERE folderID = ?`;
+
 
 // Example SQL
 export const createExTable = `

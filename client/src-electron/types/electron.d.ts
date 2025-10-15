@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -18,7 +18,8 @@ import type {
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
-  YearlyReminder
+  YearlyReminder,
+  Deleted
 } from "app/src-electron/types/shared-types";
 
 export {};
@@ -26,6 +27,7 @@ export {};
 declare global {
   interface Window {
     sqliteAPI: {
+      // create
       createNote: (newNote: Note) => void;
       createReminder: (newRem: Reminder) => void;
       createDailyReminder: (newDailyRem: DailyReminder) => void;
@@ -34,7 +36,29 @@ declare global {
       createYearlyReminder: (newYearlyRem: YearlyReminder) => void;
       createExtension: (newExt: Extension) => void;
       createFolder: (newFolder: Folder) => void;
+      createDeleted: (newDeleted: Deleted) => void;
 
+      // read
+      readNotesInFolder: (folderID: number) => { itemID: number }[];
+      readRemindersInFolder: (folderID: number) => { itemID: number }[];
+      readDailyRemindersInFolder: (folderID: number) => { itemID: number }[];
+      readWeeklyRemindersInFolder: (folderID: number) => { itemID: number }[];
+      readMonthlyRemindersInFolder: (folderID: number) => { itemID: number }[];
+      readYearlyRemindersInFolder: (folderID: number) => { itemID: number }[];
+      readFoldersInFolder: (parentFolderID: number) => { folderID: number }[];
+
+      // delete
+      deleteNote: (itemID: number) => boolean;
+      deleteReminder: (itemID: number) => boolean;
+      deleteDailyReminder: (itemID: number) => boolean;
+      deleteWeeklyReminder: (itemID: number) => boolean;
+      deleteMonthlyReminder: (itemID: number) => boolean;
+      deleteYearlyReminder: (itemID: number) => boolean;
+      deleteExtension: (itemID: number, sequenceNum: number) => void;
+      deleteAllExtensions: (itemID: number) => void;
+      deleteFolder: (folderID: number) => boolean;
+
+      // Example functions
       sqliteRead: (key: string) => Promise<string>;
       sqliteCreate: (key: string, value: string) => Promise<boolean>;
       sqliteUpdate: (key: string, value: string) => Promise<boolean>;
@@ -44,6 +68,6 @@ declare global {
     electronStoreAPI: {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
-    }
+    };
   }
 }

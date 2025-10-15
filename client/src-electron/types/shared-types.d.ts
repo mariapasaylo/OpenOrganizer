@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * todo: write description
  *
@@ -133,4 +133,10 @@ export interface YearlyReminder {
   isExtended: number;
   dayOfYear: number;
   title: string;
+}
+
+export interface Deleted {
+  itemID: number;
+  lastModified: number;
+  itemTable: number;
 }

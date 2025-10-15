@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * This file Initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -22,7 +22,8 @@ import type {
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
-  YearlyReminder
+  YearlyReminder,
+  Deleted
 } from "app/src-electron/types/shared-types";
 
 // local.db located in ..\AppData\Roaming\Electron
@@ -51,10 +52,29 @@ const createMonthlyReminderStmt = db.prepare(sql.createMonthlyReminderStmt);
 const createYearlyReminderStmt = db.prepare(sql.createYearlyReminderStmt);
 const createExtensionStmt = db.prepare(sql.createExtensionStmt);
 const createFolderStmt = db.prepare(sql.createFolderStmt);
+const createDeletedStmt = db.prepare(sql.createDeletedStmt);
+
+const readNotesInFolderStmt = db.prepare(sql.readNotesInFolderStmt);
+const readRemindersInFolderStmt = db.prepare(sql.readRemindersInFolderStmt);
+const readDailyRemindersInFolderStmt = db.prepare(sql.readDailyRemindersInFolderStmt);
+const readWeeklyRemindersInFolderStmt = db.prepare(sql.readWeeklyRemindersInFolderStmt);
+const readMonthlyRemindersInFolderStmt = db.prepare(sql.readMonthlyRemindersInFolderStmt);
+const readYearlyRemindersInFolderStmt = db.prepare(sql.readYearlyRemindersInFolderStmt);
+const readFoldersInFolderStmt = db.prepare(sql.readFoldersInFolderStmt);
+
+const deleteNoteStmt = db.prepare(sql.deleteNoteStmt);
+const deleteReminderStmt = db.prepare(sql.deleteReminderStmt);
+const deleteDailyReminderStmt = db.prepare(sql.deleteDailyReminderStmt);
+const deleteWeeklyReminderStmt = db.prepare(sql.deleteWeeklyReminderStmt);
+const deleteMonthlyReminderStmt = db.prepare(sql.deleteMonthlyReminderStmt);
+const deleteYearlyReminderStmt = db.prepare(sql.deleteYearlyReminderStmt);
+const deleteExtensionStmt = db.prepare(sql.deleteExtensionStmt);
+const deleteAllExtensionsStmt = db.prepare(sql.deleteAllExtensionsStmt);
+const deleteFolderStmt = db.prepare(sql.deleteFolderStmt);
 
 
 // Table CRUD functions:
-// Create entry in example table
+// create
 export function createNote(newNote: Note) {
   createNoteStmt.run(newNote.itemID, newNote.lastModified, newNote.folderID, newNote.isExtended, newNote.title, newNote.text);
 }
@@ -104,6 +124,78 @@ export function createExtension(newExt: Extension) {
 
 export function createFolder(newFolder: Folder) { // -1 treated as no colorCode
   createFolderStmt.run(newFolder.folderID, newFolder.lastModified, newFolder.parentFolderID, newFolder.colorCode, newFolder.folderName);
+}
+
+export function createDeleted(newDeleted: Deleted) {
+  createDeletedStmt.run(newDeleted.itemID, newDeleted.lastModified, newDeleted.itemTable);
+}
+
+
+// read
+export function readNotesInFolder(folderID: number) {
+  return readNotesInFolderStmt.all(folderID);
+}
+
+export function readRemindersInFolder(folderID: number) {
+  return readRemindersInFolderStmt.all(folderID);
+}
+
+export function readDailyRemindersInFolder(folderID: number) {
+  return readDailyRemindersInFolderStmt.all(folderID);
+}
+
+export function readWeeklyRemindersInFolder(folderID: number) {
+  return readWeeklyRemindersInFolderStmt.all(folderID);
+}
+
+export function readMonthlyRemindersInFolder(folderID: number) {
+  return readMonthlyRemindersInFolderStmt.all(folderID);
+}
+
+export function readYearlyRemindersInFolder(folderID: number) {
+  return readYearlyRemindersInFolderStmt.all(folderID);
+}
+
+export function readFoldersInFolder(parentFolderID: number) {
+  return readFoldersInFolderStmt.all(parentFolderID);
+}
+
+
+// delete
+export function deleteNote(itemID: number) {
+  return (deleteNoteStmt.run(itemID).changes != 0);
+}
+
+export function deleteReminder(itemID: number) {
+  return (deleteReminderStmt.run(itemID).changes != 0);
+}
+
+export function deleteDailyReminder(itemID: number) {
+  return (deleteDailyReminderStmt.run(itemID).changes != 0);
+}
+
+export function deleteWeeklyReminder(itemID: number) {
+  return (deleteWeeklyReminderStmt.run(itemID).changes != 0);
+}
+
+export function deleteMonthlyReminder(itemID: number) {
+  return (deleteMonthlyReminderStmt.run(itemID).changes != 0);
+}
+
+export function deleteYearlyReminder(itemID: number) {
+  return (deleteYearlyReminderStmt.run(itemID).changes != 0);
+}
+
+export function deleteExtension(itemID: number, sequenceNum: number) {
+  deleteExtensionStmt.run(itemID, sequenceNum);
+}
+
+export function deleteAllExtensions(itemID: number) {
+  deleteAllExtensionsStmt.run(itemID);
+}
+
+export function deleteFolder(folderID: number) {
+  return (deleteFolderStmt.run(folderID).changes != 0);
 }
 
 

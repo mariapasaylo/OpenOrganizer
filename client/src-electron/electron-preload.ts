@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-14
+ * Updated: 2025-10-15
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -49,10 +49,12 @@ import type {
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
-  YearlyReminder
+  YearlyReminder,
+  Deleted
 } from "app/src-electron/types/shared-types";
 
 contextBridge.exposeInMainWorld('sqliteAPI', {
+  // create
   createNote: (newNote: Note) => ipcRenderer.invoke('createNote', newNote),
   createReminder: (newRem: Reminder) => ipcRenderer.invoke('createReminder', newRem),
   createDailyReminder: (newDailyRem: DailyReminder) => ipcRenderer.invoke('createDailyReminder', newDailyRem),
@@ -61,6 +63,27 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   createYearlyReminder: (newYearlyRem: YearlyReminder) => ipcRenderer.invoke('createYearlyReminder', newYearlyRem),
   createExtension: (newExt: Extension) => ipcRenderer.invoke('createExtension', newExt),
   createFolder: (newFolder: Folder) => ipcRenderer.invoke('createFolder', newFolder),
+  createDeleted: (newDeleted: Deleted) => ipcRenderer.invoke('createDeleted', newDeleted),
+
+  // read
+  readNotesInFolder: (folderID: number) => ipcRenderer.invoke('readNotesInFolder', folderID),
+  readRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readRemindersInFolder', folderID),
+  readDailyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),
+  readWeeklyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readWeeklyRemindersInFolder', folderID),
+  readMonthlyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
+  readYearlyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
+  readFoldersInFolder: (parentFolderID: number) => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
+
+  // delete
+  deleteNote: (itemID: number) => ipcRenderer.invoke('deleteNote', itemID),
+  deleteReminder: (itemID: number) => ipcRenderer.invoke('deleteReminder', itemID),
+  deleteDailyReminder: (itemID: number) => ipcRenderer.invoke('deleteDailyReminder', itemID),
+  deleteWeeklyReminder: (itemID: number) => ipcRenderer.invoke('deleteWeeklyReminder', itemID),
+  deleteMonthlyReminder: (itemID: number) => ipcRenderer.invoke('deleteMonthlyReminder', itemID),
+  deleteYearlyReminder: (itemID: number) => ipcRenderer.invoke('deleteYearlyReminder', itemID),
+  deleteExtension: (itemID: number, sequenceNum: number) => ipcRenderer.invoke('deleteExtension', itemID, sequenceNum),
+  deleteAllExtensions: (itemID: number) => ipcRenderer.invoke('deleteAllExtensions', itemID),
+  deleteFolder: (folderID: number) => ipcRenderer.invoke('deleteFolder', folderID),
 
   // Example functions
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),
