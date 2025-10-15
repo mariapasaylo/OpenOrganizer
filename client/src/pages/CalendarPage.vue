@@ -710,6 +710,7 @@ function saveReminder(reminder: Reminder){
   reminder.isSaved = true;
   // After saving reminder, reset error message
   reminder.titleMessageError = '';
+  window.notificationAPI.showReminderNotification({ title: reminder.title, date: reminder.date });
 }
 
 // Function to delete selected individual checkbox reminders
