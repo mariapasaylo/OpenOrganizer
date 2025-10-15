@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-10
+ * Updated: 2025-10-15
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -13,6 +13,7 @@
  * https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme for qcalendar code
  * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
  * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
+ * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -272,11 +273,24 @@
             </div>
           </div>
           <div style="display: flex; justify-content: center; align-items: center;">
-            <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;">
+            <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;"> 
               <q-calendar-month ref="calendar" v-model="selectedDate" mini-mode hoverable focusable
                 :focus-type="['date', 'weekday']" :min-weeks="6" animated @change="onChange" @moved="onMoved"
                 @click-date="onClickDate" @click-day="onClickDay" @click-workweek="onClickWorkweek"
-                @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" />
+                @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" >
+              <template #day="{ scope: { timestamp } }">
+              <template v-for="event in eventsMap[timestamp.date]" :key="event.id">
+                <div
+                  :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
+                  style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
+                >
+                  <div class="event-title" style="width: 100%; max-width: 100%;">
+                  {{ event.title }}
+                  </div>
+                </div>
+              </template>
+            </template>
+              </q-calendar-month>
             </div>
           </div>
         </div>
@@ -456,6 +470,14 @@ type Reminder = {
   extension: Record<string, string | number | null>; // Essentially extension is a json-like object with string ID/keys and any type values  
   // useful for adding on custom event type fields/extensions that we may not know the types to yet
   // Need to parse and store this text data in the separate extensions table in the backend
+};
+
+// Reminder on calendar
+type CalendarEvent = {
+  id: string;
+  title: string;
+  date: string;
+  color: string;
 };
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
@@ -744,8 +766,8 @@ reminders.value.forEach(reminder => {
 });
 
 
-// template and script source code from mini-mode navigation example
-// https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
+// template and script source code from slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
 const calendar = ref<QCalendarMonth>(),
   selectedDate = ref(today()),
   selectedYear = ref(new Date().getFullYear()),
@@ -760,6 +782,33 @@ const formattedMonth = computed(() => {
 // Filtered reminder array for specific date
 const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+});
+
+
+// Create events on calendar from reminders
+// script source code similar to slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
+const events = computed<CalendarEvent[]>(() =>
+// Only show saved reminders on calendar
+  reminders.value.filter(reminder => reminder.isSaved).
+  map(reminder => ({
+    id: reminder.itemID,
+    title: reminder.title,
+    date: reminder.date,
+    // Have background color be same as event type color
+    color: getEventTypeColor(reminder.eventType)
+  }))
+);
+
+// Map dates to array of events
+// script source code similar to slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
+const eventsMap = computed<Record<string, CalendarEvent[]>>(() => {
+  const map: Record<string, CalendarEvent[]> = {};
+  events.value.forEach(event => {
+    (map[event.date] = map[event.date] || []).push(event);
+  });
+  return map;
 });
 
 // Filtered note array for specific date
@@ -805,6 +854,7 @@ function onToday() {
     calendar.value.moveToToday()
   }
 }
+
 function onPrev() {
   if (calendar.value) {
     calendar.value.prev()

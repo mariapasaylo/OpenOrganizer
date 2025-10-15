@@ -3,7 +3,7 @@
 /* 
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-02
+ * Updated: 2025-10-15
  *
  * This file is the CSS global stylesheet for the application
  *
@@ -194,4 +194,27 @@
 // Delete this if you want to see scrollbar as this hides it
 ::-webkit-scrollbar {
   display: none;
+}
+
+ .event-card {
+position: relative;
+font-size: 12px;
+width: 100%;
+max-width: 100%;
+margin: 1px 0 0 0;
+padding: 0 2px;
+justify-content: start;
+text-overflow: ellipsis;
+overflow: hidden;
+white-space: nowrap;
+cursor: pointer;
+}
+
+.event-title {
+position: relative;
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100%;
+max-width: 100%;
 }
