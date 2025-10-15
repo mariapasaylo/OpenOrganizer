@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-09-20
+ * Updated: 2025-10-14
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -16,10 +16,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+
 	"openorganizer/src/models"
+	"openorganizer/src/utils"
 )
 
 var db *sql.DB
+var tokenExpireTime uint32
 
 // connects to the postgresql server using provided env variables
 func ConnectToDB(env models.ENVVars) error {
@@ -30,14 +33,49 @@ func ConnectToDB(env models.ENVVars) error {
 	}
 	db = conn
 	err = db.Ping()
+
+	tokenExpireTime = env.TOKEN_EXPIRE_TIME
+
 	return err
 }
 
 // creates all required db tables that do not already exist
-func EnsureDBTables() error {
-	//services.DB.Exec("DROP TABLE example;")
-	_, err := db.Exec(createExampleTableSQL)
-	return err
+func EnsureDBTables(dropAll bool) chan error {
+	var errs = make(chan error)
+
+	if dropAll {
+		_, err := db.Exec(dropAllTables)
+		utils.AddError(err, errs)
+	}
+
+	_, err := db.Exec(createTableUsers)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableTokens)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableLastUpdated)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("notes"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("reminders"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("daily_reminders"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("weekly_reminders"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("monthly_reminders"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableItems("yearly_reminders"))
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableExtensions)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableOverrides)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableFolders)
+	utils.AddError(err, errs)
+	_, err = db.Exec(createTableDeleted)
+	utils.AddError(err, errs)
+
+	return errs
 }
 
 // defer this function in main to close the database connection after program termination
@@ -45,38 +83,19 @@ func CloseDatabase() {
 	db.Close()
 }
 
-// SQL execution functions
+// general non-account / authentication or syncing functions
 
-func Create(k string, v string) error {
-	_, err := db.Query(sqlCreate(k, v))
-	return err
-}
-
-func Read(k string) (values []string, err error) {
-	rows, err := db.Query(sqlRead(k))
+func GetLastUpdated(userAuth models.UserAuth) (row models.RowLastUpdated) {
+	rows, err := db.Query(lastupRead, userAuth.UserID, userAuth.AuthToken)
 	if err != nil {
-		return values, err
+		return models.RowLastUpdated{}
 	}
 	defer rows.Close()
-
-	for rows.Next() {
-		var key string
-		var value string
-		if err := rows.Scan(&key, &value); err != nil {
-			return values, err
-		}
-		values = append(values, value)
+	if !rows.Next() {
+		return models.RowLastUpdated{}
 	}
-
-	return values, err
-}
-
-func Update(k string, v string) error {
-	_, err := db.Query(sqlUpdate(k, v))
-	return err
-}
-
-func Delete(k string) error {
-	_, err := db.Query(sqlDelete(k))
-	return err
+	_ = rows.Scan(&row.UserID, &row.LastUpNotes, &row.LastUpReminders,
+		&row.LastUpDaily, &row.LastUpMonthly, &row.LastUpMonthly, &row.LastUpYearly,
+		&row.LastUpExtensions, &row.LastUpOverrides, &row.LastUpFolders, &row.LastUpDeleted)
+	return row
 }
