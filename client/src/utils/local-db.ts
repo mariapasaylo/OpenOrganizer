@@ -12,7 +12,8 @@
  */
 import {
   type Timestamp,
-  getDayOfYear
+  getDayOfYear,
+  isLeapYear
 } from '@quasar/quasar-ui-qcalendar';
 import type {
   Note,
@@ -181,6 +182,12 @@ export function createYearlyReminder(
   folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
   const timeMs = Date.now();
+  let dayOfYear = getDayOfYear(recurTime);
+  if (isLeapYear(recurTime.year))
+  {
+    if (dayOfYear === 60) dayOfYear = 366; // set to 366 if dayOfYear is leap day
+    else if (dayOfYear > 60) dayOfYear -= 1;
+  }
 
   const newYearlyRem: YearlyReminder = {
     itemID: timeMs,
@@ -198,7 +205,7 @@ export function createYearlyReminder(
     notifOffsetTimeMin: notifOffsetTimeMin,
     hasNotifs: (hasNotifs) ? 1 : 0,
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
-    dayOfYear: getDayOfYear(recurTime),
+    dayOfYear: dayOfYear,
     title: title
   };
   window.sqliteAPI.createYearlyReminder(newYearlyRem);
@@ -397,6 +404,12 @@ export function updateYearlyReminder(
   itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
   const timeMs = Date.now();
+  let dayOfYear = getDayOfYear(recurTime);
+  if (isLeapYear(recurTime.year))
+  {
+    if (dayOfYear === 60) dayOfYear = 366; // set to 366 if dayOfYear is leap day
+    else if (dayOfYear > 60) dayOfYear -= 1;
+  }
 
   const modYearlyRem: YearlyReminder = {
     itemID: itemID,
@@ -414,7 +427,7 @@ export function updateYearlyReminder(
     notifOffsetTimeMin: notifOffsetTimeMin,
     hasNotifs: (hasNotifs) ? 1 : 0,
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
-    dayOfYear: getDayOfYear(recurTime),
+    dayOfYear: dayOfYear,
     title: title
   };
   window.sqliteAPI.updateYearlyReminder(modYearlyRem);
