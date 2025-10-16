@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -282,6 +282,48 @@ WHERE folderID = ?`;
 export const readFoldersInFolderStmt = `
 SELECT folderID FROM folders
 WHERE parentFolderID = ?`;
+
+
+// update entry SQL statements
+export const updateNoteStmt = `
+UPDATE notes
+SET lastModified = ?, folderID = ?, isExtended = ?, title = ?, text = ?
+WHERE itemID = ?`;
+
+export const updateReminderStmt = `
+UPDATE reminder
+SET lastModified = ?, folderID = ?, eventType = ?, eventStartYear = ?, eventStartDay = ?, eventStartMin = ?, eventEndYear = ?, eventEndDay = ?,
+    eventEndMin = ?, notifYear = ?, notifDay = ?, notifMin = ?, isExtended = ?, hasNotif = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateDailyReminderStmt = `
+UPDATE daily_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, everyNDays = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateWeeklyReminderStmt = `
+UPDATE weekly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, everyNWeeks = ?, daysOfWeek = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateMonthlyReminderStmt = `
+UPDATE monthly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, lastDayOfMonth = ?, daysOfMonth = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateYearlyReminderStmt = `
+UPDATE yearly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, dayOfYear = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateFolderStmt = `
+UPDATE folders
+SET lastModified = ?, parentFolderID = ?, colorCode = ?, folderName = ?
+WHERE folderID = ?`;
 
 
 // delete entry SQL statements

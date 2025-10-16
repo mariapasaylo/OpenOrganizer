@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * todo: write description
  *
@@ -179,7 +179,7 @@ export function createMonthlyReminder(
 
 export function createYearlyReminder(
   folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
-  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, dayOfYear: number, title: string) {
+  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
   const timeMs = Date.now();
 
   const newYearlyRem: YearlyReminder = {
@@ -198,7 +198,7 @@ export function createYearlyReminder(
     notifOffsetTimeMin: notifOffsetTimeMin,
     hasNotifs: (hasNotifs) ? 1 : 0,
     isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
-    dayOfYear: dayOfYear,
+    dayOfYear: getDayOfYear(recurTime),
     title: title
   };
   window.sqliteAPI.createYearlyReminder(newYearlyRem);
@@ -238,6 +238,200 @@ export function createDeleted(itemID: number, itemTable: number) {
     itemTable: itemTable,
   };
   window.sqliteAPI.createDeleted(newDeleted);
+}
+
+
+// update
+export function updateNote(itemID: number, folderID: number, title: string, text: string) {
+  const timeMs = Date.now();
+  const extensions = Math.ceil(text.length/64) - 1;
+  window.sqliteAPI.deleteAllExtensions(itemID); // delete all extensions associated with note as they are recreated during an update
+
+  const modNote: Note = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
+    title: title,
+    text: text.substring(0, 64)
+  };
+  window.sqliteAPI.updateNote(modNote);
+
+  for (let i = 1; i <= extensions; i++) {
+    const newExt: Extension = {
+      itemID: timeMs,
+      sequenceNum: i,
+      lastModified: timeMs,
+      data: text.substring(64*i, 64*(i+1))
+    };
+    window.sqliteAPI.createExtension(newExt);
+  }
+}
+
+export function updateReminder(
+  itemID: number, folderID: number, eventType: number, eventStartTime: Timestamp, eventEndTime: Timestamp,
+  notifTime: Timestamp, hasNotif: boolean, title: string) {
+  const timeMs = Date.now();
+
+  const modRem: Reminder = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    eventType: eventType,
+    eventStartYear: eventStartTime.year,
+    eventStartDay: getDayOfYear(eventStartTime),
+    eventStartMin: (eventStartTime.hour * 60) + eventStartTime.minute,
+    eventEndYear: eventEndTime.year,
+    eventEndDay: getDayOfYear(eventEndTime),
+    eventEndMin: (eventEndTime.hour * 60) + eventEndTime.minute,
+    notifYear: notifTime.year,
+    notifDay: getDayOfYear(notifTime),
+    notifMin: (notifTime.hour * 60) + notifTime.minute,
+    isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
+    hasNotif: (hasNotif) ? 1 : 0,
+    title: title
+  };
+  window.sqliteAPI.updateReminder(modRem);
+
+  /* Todo: add specific extension implementation depending on eventType value
+     const newExt: Extension = {
+      itemID: timeMs,
+      sequenceNum: 1,
+      lastModified: timeMs,
+      data: ???
+    };
+    window.sqliteAPI.createExtension(newExt);
+   */
+}
+
+export function updateDailyReminder(
+  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNDays: number, title: string) {
+  const timeMs = Date.now();
+
+  const modDailyRem: DailyReminder = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    eventType: eventType,
+    seriesStartYear: seriesStartTime.year,
+    seriesStartDay: getDayOfYear(seriesStartTime),
+    seriesStartMin: (seriesStartTime.hour * 60) + seriesStartTime.minute,
+    seriesEndYear: seriesEndTime.year,
+    seriesEndDay: getDayOfYear(seriesEndTime),
+    seriesEndMin: (seriesEndTime.hour * 60) + seriesEndTime.minute,
+    timeOfDayMin: timeOfDayMin,
+    eventDurationMin: eventDurationMin,
+    notifOffsetTimeMin: notifOffsetTimeMin,
+    hasNotifs: (hasNotifs) ? 1 : 0,
+    isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
+    everyNDays: everyNDays,
+    title: title
+  };
+  window.sqliteAPI.updateDailyReminder(modDailyRem);
+
+  // Todo: add specific extension implementation depending on eventType value
+}
+
+export function updateWeeklyReminder(
+  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNWeeks: number, daysOfWeek: string, title: string) {
+  const timeMs = Date.now();
+
+  const modWeeklyRem: WeeklyReminder = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    eventType: eventType,
+    seriesStartYear: seriesStartTime.year,
+    seriesStartDay: getDayOfYear(seriesStartTime),
+    seriesStartMin: (seriesStartTime.hour * 60) + seriesStartTime.minute,
+    seriesEndYear: seriesEndTime.year,
+    seriesEndDay: getDayOfYear(seriesEndTime),
+    seriesEndMin: (seriesEndTime.hour * 60) + seriesEndTime.minute,
+    timeOfDayMin: timeOfDayMin,
+    eventDurationMin: eventDurationMin,
+    notifOffsetTimeMin: notifOffsetTimeMin,
+    hasNotifs: (hasNotifs) ? 1 : 0,
+    isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
+    everyNWeeks: everyNWeeks,
+    daysOfWeek: daysOfWeek,
+    title: title
+  };
+  window.sqliteAPI.updateWeeklyReminder(modWeeklyRem);
+
+  // Todo: add specific extension implementation depending on eventType value
+}
+
+export function updateMonthlyReminder(
+  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, lastDayOfMonth: boolean, daysOfMonth: string, title: string) {
+  const timeMs = Date.now();
+
+  const modMonthlyRem: MonthlyReminder = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    eventType: eventType,
+    seriesStartYear: seriesStartTime.year,
+    seriesStartDay: getDayOfYear(seriesStartTime),
+    seriesStartMin: (seriesStartTime.hour * 60) + seriesStartTime.minute,
+    seriesEndYear: seriesEndTime.year,
+    seriesEndDay: getDayOfYear(seriesEndTime),
+    seriesEndMin: (seriesEndTime.hour * 60) + seriesEndTime.minute,
+    timeOfDayMin: timeOfDayMin,
+    eventDurationMin: eventDurationMin,
+    notifOffsetTimeMin: notifOffsetTimeMin,
+    hasNotifs: (hasNotifs) ? 1 : 0,
+    isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
+    lastDayOfMonth: (lastDayOfMonth) ? 1 : 0,
+    daysOfMonth: daysOfMonth,
+    title: title
+  };
+  window.sqliteAPI.updateMonthlyReminder(modMonthlyRem);
+
+  // Todo: add specific extension implementation depending on eventType value
+}
+
+export function updateYearlyReminder(
+  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
+  const timeMs = Date.now();
+
+  const modYearlyRem: YearlyReminder = {
+    itemID: itemID,
+    lastModified: timeMs,
+    folderID: folderID,
+    eventType: eventType,
+    seriesStartYear: seriesStartTime.year,
+    seriesStartDay: getDayOfYear(seriesStartTime),
+    seriesStartMin: (seriesStartTime.hour * 60) + seriesStartTime.minute,
+    seriesEndYear: seriesEndTime.year,
+    seriesEndDay: getDayOfYear(seriesEndTime),
+    seriesEndMin: (seriesEndTime.hour * 60) + seriesEndTime.minute,
+    timeOfDayMin: timeOfDayMin,
+    eventDurationMin: eventDurationMin,
+    notifOffsetTimeMin: notifOffsetTimeMin,
+    hasNotifs: (hasNotifs) ? 1 : 0,
+    isExtended: (eventType != 0) ? 1 : 0, // If reminder has eventType, isExtended is true
+    dayOfYear: getDayOfYear(recurTime),
+    title: title
+  };
+  window.sqliteAPI.updateYearlyReminder(modYearlyRem);
+
+  // Todo: add specific extension implementation depending on eventType value
+}
+
+export function updateFolder(folderID: number, parentFolderID: number, colorCode: number, folderName: string) { // -1 treated as no colorCode
+  const timeMs = Date.now();
+  const modFolder: Folder = {
+    folderID: folderID,
+    lastModified: timeMs,
+    parentFolderID: parentFolderID,
+    colorCode: colorCode,
+    folderName: folderName
+  };
+  window.sqliteAPI.updateFolder(modFolder);
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -95,6 +95,35 @@ export function registerHandlers()
     return db.readFoldersInFolder(parentFolderID);
   });
 
+
+  // update
+  ipcMain.handle('updateNote', (event, modNote: Note) => {
+    db.updateNote(modNote);
+  });
+
+  ipcMain.handle('updateReminder', (event, modRem: Reminder) => {
+    db.updateReminder(modRem);
+  });
+
+  ipcMain.handle('updateDailyReminder', (event, modDailyRem: DailyReminder) => {
+    db.updateDailyReminder(modDailyRem);
+  });
+
+  ipcMain.handle('updateWeeklyReminder', (event, modWeeklyRem: WeeklyReminder) => {
+    db.updateWeeklyReminder(modWeeklyRem);
+  });
+
+  ipcMain.handle('updateMonthlyReminder', (event, modMonthlyRem: MonthlyReminder) => {
+    db.updateMonthlyReminder(modMonthlyRem);
+  });
+
+  ipcMain.handle('updateYearlyReminder', (event, modYearlyRem: YearlyReminder) => {
+    db.updateYearlyReminder(modYearlyRem);
+  });
+
+  ipcMain.handle('updateFolder', (event, modFolder: Folder) => {
+    db.updateFolder(modFolder);
+  });
 
   // delete
   ipcMain.handle('deleteNote', (event, itemID: number) => {

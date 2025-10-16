@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -46,6 +46,15 @@ declare global {
       readMonthlyRemindersInFolder: (folderID: number) => { itemID: number }[];
       readYearlyRemindersInFolder: (folderID: number) => { itemID: number }[];
       readFoldersInFolder: (parentFolderID: number) => { folderID: number }[];
+
+      // update
+      updateNote: (modNote: Note) => void;
+      updateReminder: (modRem: Reminder) => void;
+      updateDailyReminder: (modDailyRem: DailyReminder) => void;
+      updateWeeklyReminder: (modWeeklyRem: WeeklyReminder) => void;
+      updateMonthlyReminder: (modMonthlyRem: MonthlyReminder) => void;
+      updateYearlyReminder: (modYearlyRem: YearlyReminder) => void;
+      updateFolder: (modFolder: Folder) => void;
 
       // delete
       deleteNote: (itemID: number) => boolean;

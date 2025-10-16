@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file Initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -44,6 +44,7 @@ db.exec(sql.createFoldersTable);
 db.exec(sql.createDeletedTable);
 
 // prepare all sql queries once
+// create
 const createNoteStmt = db.prepare(sql.createNoteStmt);
 const createReminderStmt = db.prepare(sql.createReminderStmt);
 const createDailyReminderStmt = db.prepare(sql.createDailyReminderStmt);
@@ -54,6 +55,7 @@ const createExtensionStmt = db.prepare(sql.createExtensionStmt);
 const createFolderStmt = db.prepare(sql.createFolderStmt);
 const createDeletedStmt = db.prepare(sql.createDeletedStmt);
 
+// read
 const readNotesInFolderStmt = db.prepare(sql.readNotesInFolderStmt);
 const readRemindersInFolderStmt = db.prepare(sql.readRemindersInFolderStmt);
 const readDailyRemindersInFolderStmt = db.prepare(sql.readDailyRemindersInFolderStmt);
@@ -62,6 +64,16 @@ const readMonthlyRemindersInFolderStmt = db.prepare(sql.readMonthlyRemindersInFo
 const readYearlyRemindersInFolderStmt = db.prepare(sql.readYearlyRemindersInFolderStmt);
 const readFoldersInFolderStmt = db.prepare(sql.readFoldersInFolderStmt);
 
+// update
+const updateNoteStmt = db.prepare(sql.updateNoteStmt);
+const updateReminderStmt = db.prepare(sql.updateReminderStmt);
+const updateDailyReminderStmt = db.prepare(sql.updateDailyReminderStmt);
+const updateWeeklyReminderStmt = db.prepare(sql.updateWeeklyReminderStmt);
+const updateMonthlyReminderStmt = db.prepare(sql.updateMonthlyReminderStmt);
+const updateYearlyReminderStmt = db.prepare(sql.updateYearlyReminderStmt);
+const updateFolderStmt = db.prepare(sql.updateFolderStmt);
+
+//delete
 const deleteNoteStmt = db.prepare(sql.deleteNoteStmt);
 const deleteReminderStmt = db.prepare(sql.deleteReminderStmt);
 const deleteDailyReminderStmt = db.prepare(sql.deleteDailyReminderStmt);
@@ -83,39 +95,44 @@ export function createReminder(newRem: Reminder) {
   createReminderStmt.run(
     newRem.itemID, newRem.lastModified, newRem.folderID, newRem.eventType, newRem.eventStartYear, newRem.eventStartDay,
     newRem.eventStartMin, newRem.eventEndYear, newRem.eventEndDay, newRem.eventEndMin, newRem.notifYear,
-    newRem.notifDay, newRem.notifMin, newRem.isExtended, newRem.hasNotif, newRem.title);
+    newRem.notifDay, newRem.notifMin, newRem.isExtended, newRem.hasNotif, newRem.title
+  );
 }
 
 export function createDailyReminder(newDailyRem: DailyReminder) {
   createDailyReminderStmt.run(
     newDailyRem.itemID, newDailyRem.lastModified, newDailyRem.folderID, newDailyRem.eventType, newDailyRem.seriesStartYear,
     newDailyRem.seriesStartDay, newDailyRem.seriesStartMin, newDailyRem.seriesEndYear, newDailyRem.seriesEndDay,
-    newDailyRem.seriesEndMin, newDailyRem.timeOfDayMin, newDailyRem.eventDurationMin, newDailyRem.notifOffsetTimeMin, newDailyRem.hasNotifs,
-    newDailyRem.isExtended, newDailyRem.everyNDays, newDailyRem.title);
+    newDailyRem.seriesEndMin, newDailyRem.timeOfDayMin, newDailyRem.eventDurationMin, newDailyRem.notifOffsetTimeMin,
+    newDailyRem.hasNotifs, newDailyRem.isExtended, newDailyRem.everyNDays, newDailyRem.title
+  );
 }
 
 export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
   createWeeklyReminderStmt.run(
     newWeeklyRem.itemID, newWeeklyRem.lastModified, newWeeklyRem.folderID, newWeeklyRem.eventType, newWeeklyRem.seriesStartYear,
     newWeeklyRem.seriesStartDay, newWeeklyRem.seriesStartMin, newWeeklyRem.seriesEndYear, newWeeklyRem.seriesEndDay,
-    newWeeklyRem.seriesEndMin, newWeeklyRem.timeOfDayMin, newWeeklyRem.eventDurationMin, newWeeklyRem.notifOffsetTimeMin, newWeeklyRem.hasNotifs,
-    newWeeklyRem.isExtended, newWeeklyRem.everyNWeeks, newWeeklyRem.daysOfWeek, newWeeklyRem.title);
+    newWeeklyRem.seriesEndMin, newWeeklyRem.timeOfDayMin, newWeeklyRem.eventDurationMin, newWeeklyRem.notifOffsetTimeMin,
+    newWeeklyRem.hasNotifs, newWeeklyRem.isExtended, newWeeklyRem.everyNWeeks, newWeeklyRem.daysOfWeek, newWeeklyRem.title
+  );
 }
 
 export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
   createMonthlyReminderStmt.run(
     newMonthlyRem.itemID, newMonthlyRem.lastModified, newMonthlyRem.folderID, newMonthlyRem.eventType, newMonthlyRem.seriesStartYear,
     newMonthlyRem.seriesStartDay, newMonthlyRem.seriesStartMin, newMonthlyRem.seriesEndYear, newMonthlyRem.seriesEndDay,
-    newMonthlyRem.seriesEndMin, newMonthlyRem.timeOfDayMin, newMonthlyRem.eventDurationMin, newMonthlyRem.notifOffsetTimeMin, newMonthlyRem.hasNotifs,
-    newMonthlyRem.isExtended, newMonthlyRem.lastDayOfMonth, newMonthlyRem.daysOfMonth, newMonthlyRem.title);
+    newMonthlyRem.seriesEndMin, newMonthlyRem.timeOfDayMin, newMonthlyRem.eventDurationMin, newMonthlyRem.notifOffsetTimeMin,
+    newMonthlyRem.hasNotifs, newMonthlyRem.isExtended, newMonthlyRem.lastDayOfMonth, newMonthlyRem.daysOfMonth, newMonthlyRem.title
+  );
 }
 
 export function createYearlyReminder(newYearlyRem: YearlyReminder) {
   createYearlyReminderStmt.run(
     newYearlyRem.itemID, newYearlyRem.lastModified, newYearlyRem.folderID, newYearlyRem.eventType, newYearlyRem.seriesStartYear,
     newYearlyRem.seriesStartDay, newYearlyRem.seriesStartMin, newYearlyRem.seriesEndYear, newYearlyRem.seriesEndDay,
-    newYearlyRem.seriesEndMin, newYearlyRem.timeOfDayMin, newYearlyRem.eventDurationMin, newYearlyRem.notifOffsetTimeMin, newYearlyRem.hasNotifs,
-    newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title);
+    newYearlyRem.seriesEndMin, newYearlyRem.timeOfDayMin, newYearlyRem.eventDurationMin, newYearlyRem.notifOffsetTimeMin,
+    newYearlyRem.hasNotifs, newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title
+  );
 }
 
 export function createExtension(newExt: Extension) {
@@ -158,6 +175,63 @@ export function readYearlyRemindersInFolder(folderID: number) {
 
 export function readFoldersInFolder(parentFolderID: number) {
   return readFoldersInFolderStmt.all(parentFolderID);
+}
+
+
+// update
+export function updateNote(modNote: Note) {
+  updateNoteStmt.run(
+    modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
+}
+
+export function updateReminder(modRem: Reminder) {
+  updateReminderStmt.run(
+    modRem.lastModified, modRem.folderID, modRem.eventType, modRem.eventStartYear, modRem.eventStartDay,
+    modRem.eventStartMin, modRem.eventEndYear, modRem.eventEndDay, modRem.eventEndMin, modRem.notifYear,
+    modRem.notifDay, modRem.notifMin, modRem.isExtended, modRem.hasNotif, modRem.title, modRem.itemID
+  ); // itemID last
+}
+
+export function updateDailyReminder(modDailyRem: DailyReminder) {
+  updateDailyReminderStmt.run(
+    modDailyRem.lastModified, modDailyRem.folderID, modDailyRem.eventType, modDailyRem.seriesStartYear,
+    modDailyRem.seriesStartDay, modDailyRem.seriesStartMin, modDailyRem.seriesEndYear, modDailyRem.seriesEndDay,
+    modDailyRem.seriesEndMin, modDailyRem.timeOfDayMin, modDailyRem.eventDurationMin, modDailyRem.notifOffsetTimeMin,
+    modDailyRem.hasNotifs, modDailyRem.isExtended, modDailyRem.everyNDays, modDailyRem.title, modDailyRem.itemID
+  ); // itemID last
+}
+
+export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
+  updateWeeklyReminderStmt.run(
+    modWeeklyRem.lastModified, modWeeklyRem.folderID, modWeeklyRem.eventType, modWeeklyRem.seriesStartYear,
+    modWeeklyRem.seriesStartDay, modWeeklyRem.seriesStartMin, modWeeklyRem.seriesEndYear, modWeeklyRem.seriesEndDay,
+    modWeeklyRem.seriesEndMin, modWeeklyRem.timeOfDayMin, modWeeklyRem.eventDurationMin, modWeeklyRem.notifOffsetTimeMin,
+    modWeeklyRem.hasNotifs, modWeeklyRem.isExtended, modWeeklyRem.everyNWeeks, modWeeklyRem.daysOfWeek, modWeeklyRem.title,
+    modWeeklyRem.itemID
+  ); // itemID last
+}
+
+export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
+  updateMonthlyReminderStmt.run(
+    modMonthlyRem.lastModified, modMonthlyRem.folderID, modMonthlyRem.eventType, modMonthlyRem.seriesStartYear,
+    modMonthlyRem.seriesStartDay, modMonthlyRem.seriesStartMin, modMonthlyRem.seriesEndYear, modMonthlyRem.seriesEndDay,
+    modMonthlyRem.seriesEndMin, modMonthlyRem.timeOfDayMin, modMonthlyRem.eventDurationMin, modMonthlyRem.notifOffsetTimeMin,
+    modMonthlyRem.hasNotifs, modMonthlyRem.isExtended, modMonthlyRem.lastDayOfMonth, modMonthlyRem.daysOfMonth, modMonthlyRem.title,
+    modMonthlyRem.itemID
+  ); // itemID last
+}
+
+export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
+  updateYearlyReminderStmt.run(
+    modYearlyRem.lastModified, modYearlyRem.folderID, modYearlyRem.eventType, modYearlyRem.seriesStartYear,
+    modYearlyRem.seriesStartDay, modYearlyRem.seriesStartMin, modYearlyRem.seriesEndYear, modYearlyRem.seriesEndDay,
+    modYearlyRem.seriesEndMin, modYearlyRem.timeOfDayMin, modYearlyRem.eventDurationMin, modYearlyRem.notifOffsetTimeMin,
+    modYearlyRem.hasNotifs, modYearlyRem.isExtended, modYearlyRem.dayOfYear, modYearlyRem.title, modYearlyRem.itemID
+  ); // itemID last
+}
+
+export function updateFolder(modFolder: Folder) {
+  updateFolderStmt.run(modFolder.lastModified, modFolder.parentFolderID, modFolder.colorCode, modFolder.folderName, modFolder.folderID); // folderID last
 }
 
 

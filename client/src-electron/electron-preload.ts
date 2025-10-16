@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -73,6 +73,15 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   readMonthlyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
   readYearlyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
   readFoldersInFolder: (parentFolderID: number) => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
+
+  // update
+  updateNote: (modNote: Note) => ipcRenderer.invoke('updateNote', modNote),
+  updateReminder: (modRem: Reminder) => ipcRenderer.invoke('updateReminder', modRem),
+  updateDailyReminder: (modDailyRem: DailyReminder) => ipcRenderer.invoke('updateDailyReminder', modDailyRem),
+  updateWeeklyReminder: (modWeeklyRem: WeeklyReminder) => ipcRenderer.invoke('updateWeeklyReminder', modWeeklyRem),
+  updateMonthlyReminder: (modMonthlyRem: MonthlyReminder) => ipcRenderer.invoke('updateMonthlyReminder', modMonthlyRem),
+  updateYearlyReminder: (modYearlyRem: YearlyReminder) => ipcRenderer.invoke('updateYearlyReminder', modYearlyRem),
+  updateFolder: (modFolder: Folder) => ipcRenderer.invoke('updateFolder', modFolder),
 
   // delete
   deleteNote: (itemID: number) => ipcRenderer.invoke('deleteNote', itemID),
