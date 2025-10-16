@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
   setStoreName: (name: string) => ipcRenderer.invoke('setStoreName', name)
 });
 
-contextBridge.exposeInMainWorld('notificationAPI', {
-  showReminderNotification: (reminder: { title: string; date: string }) => ipcRenderer.invoke('showReminderNotification', reminder)
+contextBridge.exposeInMainWorld('reminderNotificationAPI', {
+  showReminderNotification: (reminder: { title: string; date: string }) => ipcRenderer.invoke('showReminderNotification', reminder),
+  scheduleReminderNotification: (reminder: { itemID: string; date: string; title: string; time?: string; unixMilliseconds?: number }) => ipcRenderer.invoke('scheduleReminderNotification', reminder)
 });

@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-15
+ * Updated: 2025-10-16
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -324,12 +324,12 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch } from 'vue';
 // To display the folder tree list on the frontend - not used right now
-import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
+// import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{itemID: 'reminder-1', title: 'New Reminder', temporaryTitle: '', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', timeMessageError: '',  folderMessageError: '', eventType: 1, extension: {} as Record<string, string | number | null>}]);
+const reminders = ref([{itemID: 'reminder-1', title: 'New Reminder', temporaryTitle: '', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', timeMessageError: '',  folderMessageError: '', eventType: 0, extension: {} as Record<string, string | number | null>}]);
 // Array of notes
 const notes = ref([{ itemID: 'note-1', title: 'New Note', temporaryTitle: '', text: 'note description', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', folderMessageError: ''}]);
 // Object of event types
@@ -618,7 +618,7 @@ function addReminder() {
     titleMessageError: '', // error message for title validation
     timeMessageError: '', // error message for time validation
     folderMessageError: '', // error message for folder validation
-    eventType: 1, // default event type is flight for now (id 1),
+    eventType: 0, // default event type is flight for now (id 1),
     extension: {} as Record<string, string | number | null>// Default no extensions
   });
   //Close other reminders when a new one is added
@@ -708,7 +708,7 @@ function saveNote(note: Note){
 }
 
 // Function to save reminder fields when save button is clicked
-function saveReminder(reminder: Reminder){
+async function saveReminder(reminder: Reminder){
   // If reminder title (with whitespace removed) is empty, show error message and disable save button
   if (!reminder.temporaryTitle.trim()) {
     reminder.titleMessageError = 'Reminder title cannot be empty.';
@@ -757,7 +757,30 @@ function saveReminder(reminder: Reminder){
   reminder.isSaved = true;
   // After saving reminder, reset error message
   reminder.titleMessageError = '';
-  window.notificationAPI.showReminderNotification({ title: reminder.title, date: reminder.date });
+
+  // Notification goes off for a saved reminder at specific date/time
+  // cast eventTime explicitly as string since extension fields can be different types and remove whitespace
+  const eventTime = String(reminder.extension?.eventTime ?? '').trim();
+  // If eventTime is empty, stay empty. If eventTime not already in HH:MM:SS format, keep eventTime as is, otherwise
+  // Pad seconds :00 onto time field ex. '22:50' to '22:50:00' (HH:MM:SS) for consistent time format to use in datetime
+  const formatEventTime = eventTime === '' ? '' : eventTime.length === 5 ? `${eventTime}:00` : eventTime;
+  console.log('eventTime:', eventTime);
+  console.log('Formatted eventTime:', formatEventTime);
+  // Combine event date and time into a datetime object of local timezone
+   // How to use ISO standard T separator between date and time - https://stackoverflow.com/questions/16597853/combine-date-and-time-string-into-single-date-with-javascript
+  const eventDateTime = new Date(`${reminder.date}T${formatEventTime}`);
+  console.log('Reminder datetime:', eventDateTime);
+  // Convert event datetime into milliseconds since epoch
+  // How to get epoch for a specific datetime - https://stackoverflow.com/questions/3367415/get-epoch-for-a-specific-date-using-javascript
+  const unixMilliseconds = eventDateTime.getTime();
+  console.log('Unix milliseconds:', unixMilliseconds);
+  const result = await window.reminderNotificationAPI.scheduleReminderNotification({ itemID: reminder.itemID, date: reminder.date, title: reminder.title, time: eventTime, unixMilliseconds});
+  if (result) {
+    console.log('Successfully scheduled reminder notification');
+  }
+  else {
+    console.log('Failed to schedule reminder notification');
+  }
 }
 
 // Function to delete selected individual checkbox reminders
