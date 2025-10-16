@@ -254,6 +254,39 @@ export const createDeletedStmt = `
 
 
 // read entry SQL statements
+export const readNoteStmt = `
+SELECT * FROM notes
+WHERE itemID = ?`;
+
+export const readReminderStmt = `
+SELECT * FROM reminders
+WHERE itemID = ?`;
+
+export const readDailyReminderStmt = `
+SELECT * FROM daily_reminders
+WHERE itemID = ?`;
+
+export const readWeeklyReminderStmt = `
+SELECT * FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const readMonthlyReminderStmt = `
+SELECT * FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const readYearlyReminderStmt = `
+SELECT * FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const readExtensionsStmt = `
+SELECT * FROM extensions
+WHERE itemID = ?
+ORDER BY sequenceNum ASC`;
+
+export const readFolderStmt = `
+SELECT * FROM folders
+WHERE folderID = ?`;
+
 // get IDs based on folderID
 export const readNotesInFolderStmt = `
 SELECT itemID FROM notes

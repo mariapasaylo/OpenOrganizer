@@ -66,6 +66,15 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   createDeleted: (newDeleted: Deleted) => ipcRenderer.invoke('createDeleted', newDeleted),
 
   // read
+  readNote: (itemID: number) => ipcRenderer.invoke('readNote', itemID),
+  readReminder: (itemID: number) => ipcRenderer.invoke('readReminder', itemID),
+  readDailyReminder: (itemID: number) => ipcRenderer.invoke('readDailyReminder', itemID),
+  readWeeklyReminder: (itemID: number) => ipcRenderer.invoke('readWeeklyReminder', itemID),
+  readMonthlyReminder: (itemID: number) => ipcRenderer.invoke('readMonthlyReminder', itemID),
+  readYearlyReminder: (itemID: number) => ipcRenderer.invoke('readYearlyReminder', itemID),
+  readExtensions: (itemID: number) => ipcRenderer.invoke('readExtensions', itemID),
+  readFolder: (folderID: number) => ipcRenderer.invoke('readFolder', folderID),
+
   readNotesInFolder: (folderID: number) => ipcRenderer.invoke('readNotesInFolder', folderID),
   readRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readRemindersInFolder', folderID),
   readDailyRemindersInFolder: (folderID: number) => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),

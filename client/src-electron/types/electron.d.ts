@@ -39,6 +39,15 @@ declare global {
       createDeleted: (newDeleted: Deleted) => void;
 
       // read
+      readNote: (itemID: number) => Note;
+      readReminder: (itemID: number) => Reminder;
+      readDailyReminder: (itemID: number) => DailyReminder;
+      readWeeklyReminder: (itemID: number) => WeeklyReminder;
+      readMonthlyReminder: (itemID: number) => MonthlyReminder;
+      readYearlyReminder: (itemID: number) => YearlyReminder;
+      readExtensions: (itemID: number) => Extension[];
+      readFolder: (folderID: number) => Folder;
+
       readNotesInFolder: (folderID: number) => { itemID: number }[];
       readRemindersInFolder: (folderID: number) => { itemID: number }[];
       readDailyRemindersInFolder: (folderID: number) => { itemID: number }[];

@@ -67,6 +67,39 @@ export function registerHandlers()
 
 
   // read
+  ipcMain.handle('readNote', (event, itemID: number) => {
+    return db.readNote(itemID);
+  });
+
+  ipcMain.handle('readReminder', (event, itemID: number) => {
+    return db.readReminder(itemID);
+  });
+
+  ipcMain.handle('readDailyReminder', (event, itemID: number) => {
+    return db.readDailyReminder(itemID);
+  });
+
+  ipcMain.handle('readWeeklyReminder', (event, itemID: number) => {
+    return db.readWeeklyReminder(itemID);
+  });
+
+  ipcMain.handle('readMonthlyReminder', (event, itemID: number) => {
+    return db.readMonthlyReminder(itemID);
+  });
+
+  ipcMain.handle('readYearlyReminder', (event, itemID: number) => {
+    return db.readYearlyReminder(itemID);
+  });
+
+  ipcMain.handle('readExtensions', (event, itemID: number) => {
+    return db.readExtensions(itemID);
+  });
+
+  ipcMain.handle('readFolder', (event, folderID: number) => {
+    return db.readFolder(folderID);
+  });
+
+  // get IDs based on folderID
   ipcMain.handle('readNotesInFolder', (event, folderID: number) => {
     return db.readNotesInFolder(folderID);
   });

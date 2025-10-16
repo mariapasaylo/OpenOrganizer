@@ -56,6 +56,15 @@ const createFolderStmt = db.prepare(sql.createFolderStmt);
 const createDeletedStmt = db.prepare(sql.createDeletedStmt);
 
 // read
+const readNoteStmt = db.prepare(sql.readNoteStmt);
+const readReminderStmt = db.prepare(sql.readReminderStmt);
+const readDailyReminderStmt = db.prepare(sql.readDailyReminderStmt);
+const readWeeklyReminderStmt = db.prepare(sql.readWeeklyReminderStmt);
+const readMonthlyReminderStmt = db.prepare(sql.readMonthlyReminderStmt);
+const readYearlyReminderStmt = db.prepare(sql.readYearlyReminderStmt);
+const readExtensionsStmt = db.prepare(sql.readExtensionsStmt);
+const readFolderStmt = db.prepare(sql.readFolderStmt);
+
 const readNotesInFolderStmt = db.prepare(sql.readNotesInFolderStmt);
 const readRemindersInFolderStmt = db.prepare(sql.readRemindersInFolderStmt);
 const readDailyRemindersInFolderStmt = db.prepare(sql.readDailyRemindersInFolderStmt);
@@ -149,6 +158,39 @@ export function createDeleted(newDeleted: Deleted) {
 
 
 // read
+export function readNote(itemID: number) {
+  return readNoteStmt.get(itemID) as Note;
+}
+
+export function readReminder(itemID: number) {
+  return readReminderStmt.get(itemID) as Reminder;
+}
+
+export function readDailyReminder(itemID: number) {
+  return readDailyReminderStmt.get(itemID) as DailyReminder;
+}
+
+export function readWeeklyReminder(itemID: number) {
+  return readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
+}
+
+export function readMonthlyReminder(itemID: number) {
+  return readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
+}
+
+export function readYearlyReminder(itemID: number) {
+  return readYearlyReminderStmt.get(itemID) as YearlyReminder;
+}
+
+export function readExtensions(itemID: number) {
+  return readExtensionsStmt.all(itemID) as Extension[];
+}
+
+export function readFolder(folderID: number) {
+  return readFolderStmt.get(folderID) as Folder;
+}
+
+// get IDs based on folderID
 export function readNotesInFolder(folderID: number) {
   return readNotesInFolderStmt.all(folderID);
 }

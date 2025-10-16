@@ -248,6 +248,44 @@ export function createDeleted(itemID: number, itemTable: number) {
 }
 
 
+// read
+export function readNote(itemID: number) {
+  const note = window.sqliteAPI.readNote(itemID);
+  const extensions = window.sqliteAPI.readExtensions(itemID);
+
+  const fullText = [note.text];
+  for (const extension of extensions) fullText.push(extension.data);
+  note.text = fullText.join("");
+
+  return note;
+}
+
+export function readReminder(itemID: number) {
+  return window.sqliteAPI.readReminder(itemID);
+}
+
+export function readDailyReminder(itemID: number) {
+  return window.sqliteAPI.readDailyReminder(itemID);
+}
+
+export function readWeeklyReminder(itemID: number) {
+  return window.sqliteAPI.readWeeklyReminder(itemID);
+}
+
+export function readMonthlyReminder(itemID: number) {
+  return window.sqliteAPI.readMonthlyReminder(itemID);
+}
+
+export function readYearlyReminder(itemID: number) {
+  return window.sqliteAPI.readYearlyReminder(itemID);
+}
+
+export function readFolder(folderID: number) {
+  return window.sqliteAPI.readFolder(folderID);
+}
+
+// todo: write individual functions to extract meaningful data from reminder extensions based on eventType using window.sqliteAPI.readExtensions()
+
 // update
 export function updateNote(itemID: number, folderID: number, title: string, text: string) {
   const timeMs = Date.now();
