@@ -329,11 +329,24 @@ import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{itemID: 'reminder-1', title: 'New Reminder', temporaryTitle: '', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', timeMessageError: '', eventType: 1, extension: {} as Record<string, string | number | null>}]);
+const reminders = ref([{itemID: 'reminder-1', title: 'New Reminder', temporaryTitle: '', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', timeMessageError: '',  folderMessageError: '', eventType: 1, extension: {} as Record<string, string | number | null>}]);
 // Array of notes
-const notes = ref([{ itemID: 'note-1', title: 'New Note', temporaryTitle: '', text: 'note description', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
+const notes = ref([{ itemID: 'note-1', title: 'New Note', temporaryTitle: '', text: 'note description', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', folderMessageError: ''}]);
 // Object of event types
 const eventTypes = [
+   {
+       // Generic event type (no extra type fields)
+        id: 0,
+        name: 'General',
+        color: 'blue',
+        fields: [
+            {
+                id: 'eventTime',
+                name: "Event Time",
+                type: 'time'
+            }
+        ]
+    },
     {
        // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
         id: 1,
@@ -451,6 +464,7 @@ type Note = {
   temporaryTitle: string; // This is needed to retain the title state before the note is saved again - just like folder
   isSaved: boolean; // if note is saved or not
   titleMessageError?: string; // error message for title validation. Each note has this property so error message only shows up for the specific notes that have an error
+  folderMessageError?: string;
 };
 
 // This type represents the way that we store the reminder data
@@ -465,6 +479,7 @@ type Reminder = {
   temporaryTitle: string; 
   isSaved: boolean; 
   titleMessageError?: string; 
+  folderMessageError?: string;
   timeMessageError?: string;
   eventType: number; // id of the event type the reminder is categorized as
   extension: Record<string, string | number | null>; // Essentially extension is a json-like object with string ID/keys and any type values  
@@ -588,6 +603,7 @@ console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
 
 let newReminderId = reminders.value.length + 1;
 // Function to add a reminder to the list on the specified calendar date
+// Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   reminders.value.push({
     itemID: `reminder-${newReminderId++}`,
@@ -601,6 +617,7 @@ function addReminder() {
     isSaved: false,
     titleMessageError: '', // error message for title validation
     timeMessageError: '', // error message for time validation
+    folderMessageError: '', // error message for folder validation
     eventType: 1, // default event type is flight for now (id 1),
     extension: {} as Record<string, string | number | null>// Default no extensions
   });
@@ -626,8 +643,9 @@ function addNote() {
       expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
       folderID: null, // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet),
       temporaryFolderId: null,
-      isSaved: false, // Not saved by default until user clicks save button 
-      titleMessageError: '' // error message for title validation
+      isSaved: false, // Not saved by default until user clicks save button
+      titleMessageError: '', // error message for title validation
+      folderMessageError: '' // error message for folder validation
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -669,12 +687,24 @@ function saveNote(note: Note){
     note.titleMessageError = 'Note title cannot be empty.';
     return;
   }
+   // Title field can be no greater than 48 characters
+  if (note.temporaryTitle.length > 48) {
+    note.titleMessageError = 'Note title cannot exceed 48 characters.';
+    return;
+  }
+   // Folder must exist 
+   // Checks if folder id (temporary folder) matches any existing folder ids in folders array
+  if (note.temporaryFolderId == null || !folders.value.some(folder => folder.folderID === note.temporaryFolderId)) {
+    note.folderMessageError = 'Note must be in a existing folder';
+    return;
+  }
+
   note.title = note.temporaryTitle; // Update saved note title to whatever is in editable title field on save
   note.folderID = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
   // Set note to be saved after clicking save button so it can show on tree
   note.isSaved = true;
   // After saving note, reset error message
-    note.titleMessageError = '';
+  note.titleMessageError = '';
 }
 
 // Function to save reminder fields when save button is clicked
@@ -682,6 +712,23 @@ function saveReminder(reminder: Reminder){
   // If reminder title (with whitespace removed) is empty, show error message and disable save button
   if (!reminder.temporaryTitle.trim()) {
     reminder.titleMessageError = 'Reminder title cannot be empty.';
+    return;
+  }
+  // Title field can be no greater than 48 characters
+  if (reminder.temporaryTitle.length > 48) {
+    reminder.titleMessageError = 'Reminder title cannot exceed 48 characters.';
+    return;
+  }
+  // eventType must be integer value 
+  if (typeof reminder.eventType !== 'number' || !Number.isInteger(reminder.eventType)) {
+    reminder.titleMessageError = 'Invalid event type selected.';
+    return;
+  }
+
+   // Folder must exist
+    // Checks if folder id (temporary folder) matches any existing folder ids in folders array
+  if (reminder.temporaryFolderId == null || !folders.value.some(folder => folder.folderID === reminder.temporaryFolderId)) {
+    reminder.folderMessageError = 'Reminder must be in a existing folder';
     return;
   }
 
