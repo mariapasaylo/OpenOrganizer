@@ -1,7 +1,7 @@
 <!--
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-23
+ * Updated: 2025-10-17
  *
  * This file is the login form for users to log in to a preexisting account that includes a sidebar with the application name and logo
  *
@@ -37,7 +37,15 @@
                 @click="isPwd = !isPwd"/>
                 </template>
             </q-input>
-            <q-btn class="login-register-button" style="font-size: 15px" @click= login no-caps label="Login"/>
+            <q-btn 
+              class="login-register-button" 
+              style="font-size: 15px" 
+              @click="login" 
+              :loading="isLoading"
+              :disable="isLoading"
+              no-caps 
+              label="Login"
+            />
             <q-btn class="login-register-button" style="font-size: 15px" @click= "$router.push('/')" no-caps label="Index Screen" />
         </div>
     </qpage>
@@ -46,13 +54,51 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar, Notify } from 'quasar';
 
+const router = useRouter();
+const $q = useQuasar();
 const username = ref('');
 const password = ref('');
-const isPwd = ref(true)
+const isPwd = ref(true);
+const isLoading = ref(false);
 
-function login() {
-    console.log("username: ", username)
-    console.log("password: ", password)
+async function login() {
+  if (!username.value || !password.value) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please enter both username and password'
+    });
+    return;
+  }
+
+  isLoading.value = true;
+  
+  try {
+    const result = await window.electronAuthAPI.verifyUserCredentials(username.value, password.value);
+    
+    if (result.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Login successful!'
+      });
+      // Navigate to main calendar page
+      await router.push('/calendar');
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'An error occurred during login'
+    });
+  } finally {
+    isLoading.value = false;
+  }
 }
 </script>

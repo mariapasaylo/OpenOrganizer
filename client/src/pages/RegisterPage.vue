@@ -36,7 +36,15 @@
                 @click="isPwd = !isPwd"/>
                 </template>
             </q-input>
-            <q-btn class="login-register-button" style="font-size: 15px" @click= register no-caps label="Sign up"/>
+            <q-btn 
+              class="login-register-button" 
+              style="font-size: 15px" 
+              @click="register" 
+              :loading="isLoading"
+              :disable="isLoading"
+              no-caps 
+              label="Sign up"
+            />
             <q-btn class="login-register-button" style="font-size: 15px" @click= "$router.push('/')" no-caps label="Index Screen" />
         </div>
     </qpage>
@@ -45,34 +53,59 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
 
+const router = useRouter();
+const $q = useQuasar();
 const username = ref('');
 const password = ref('');
-const isPwd = ref(true)
+const isPwd = ref(true);
+const isLoading = ref(false);
 
 async function register() {
-    console.log("username: ", username.value)
-    console.log("password: ", password.value)
-    
     if (!username.value || !password.value) {
-        alert('Please fill in both username and password');
+        $q.notify({
+            type: 'negative',
+            message: 'Please fill in both username and password'
+        });
         return;
     }
     
+    if (password.value.length < 6) {
+        $q.notify({
+            type: 'negative',
+            message: 'Password must be at least 6 characters long'
+        });
+        return ;
+    }
+
+    isLoading.value = true;
+    
     try {
-        // Use IPC to communicate with the main process
         const result = await window.electronAuthAPI.storeUserCredentials(username.value, password.value);
 
         if (result.success) {
-            console.log('Account created successfully');
-            alert('Account created successfully!');
+            $q.notify({
+                type: 'positive',
+                message: 'Account created successfully!'
+            });
+            // Navigate to login page or main app
+            await router.push('/login');
         } else {
-            console.error('Failed to create account');
-            alert('Failed to create account');
+            $q.notify({
+                type: 'negative',
+                message: result.message || 'Failed to create account'
+            });
         }
     } catch (error) {
         console.error('Error creating account:', error);
-        alert('Error creating account');
+        $q.notify({
+            type: 'negative',
+            message: 'An error occurred while creating account'
+        });
+    } finally {
+        isLoading.value = false;
     }
 }
 </script>

@@ -1,7 +1,7 @@
 /*
- * Authors: Kevin Sirantoine
+ * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-09-25
+ * Updated: 2025-10-17
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -13,7 +13,7 @@
 import {ipcMain} from "electron";
 import {create, deleteEntry, read, update} from "app/src-electron/db/sqlite-db";
 import {store} from "app/src-electron/services/store";
-import {storeUserCredentials} from "app/src-electron/services/auth";
+import {storeUserCredentials, verifyUserCredentials, logoutUser, checkLoginStatus} from "app/src-electron/services/auth";
 
 export function registerHandlers()
 {
@@ -49,5 +49,18 @@ export function registerHandlers()
 
   ipcMain.handle('storeUserCredentials', async (event, username: string, password: string) => {
     return await storeUserCredentials(username, password);
+  });
+
+  ipcMain.handle('verifyUserCredentials', async (event, username: string, password: string) => {
+    return await verifyUserCredentials(username, password);
+  });
+
+  ipcMain.handle('logoutUser', () => {
+    logoutUser();
+    return { success: true, message: 'Logged out successfully' };
+  });
+
+  ipcMain.handle('checkLoginStatus', () => {
+    return checkLoginStatus();
   });
 }

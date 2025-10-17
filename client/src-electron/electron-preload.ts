@@ -1,4 +1,8 @@
 /**
+* Authors: Kevin Sirantoine, Maria Pasaylo
+ * Created: 2025-09-25
+ * Updated: 2025-10-17
+ * 
  * This file is used specifically for security reasons.
  * Here you can access Nodejs stuff and inject functionality into
  * the renderer thread (accessible there through the "window" object)
@@ -56,7 +60,13 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
 
 contextBridge.exposeInMainWorld('electronAuthAPI', {
     storeUserCredentials: (username: string, password: string) => 
-    ipcRenderer.invoke('storeUserCredentials', username, password),
+      ipcRenderer.invoke('storeUserCredentials', username, password),
+    verifyUserCredentials: (username: string, password: string) => 
+      ipcRenderer.invoke('verifyUserCredentials', username, password),
+    logoutUser: () => 
+      ipcRenderer.invoke('logoutUser'),
+    checkLoginStatus: () => 
+      ipcRenderer.invoke('checkLoginStatus'),
 });
 
 

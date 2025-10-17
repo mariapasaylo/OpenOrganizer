@@ -15,6 +15,7 @@ import {generatePrivateKey} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type { Schema } from 'electron-store';
 import { createHash } from 'crypto';
+import bcrypt from 'bcrypt';
 
 // import electron-store blueprint
 interface Account {
@@ -22,6 +23,7 @@ interface Account {
     hashedPassword : string;
     authToken : Buffer;
     privateKey : Buffer;
+    isLoggedIn : boolean;
 }
 
 // Define schema for the account store
@@ -41,6 +43,10 @@ const accountSchema: Schema<Account> = {
     privateKey: { 
         type: 'object', 
         default: generatePrivateKey()
+    },
+    isLoggedIn: {
+        type: 'boolean',
+        default: false
     }
 };
 
@@ -51,10 +57,13 @@ const accountStore = new Store<Account>({
 });
 
 
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
 
-// Helper function to hash passwords
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
+async function validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
 }
 
 export function getUsername() {
@@ -77,6 +86,14 @@ export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
+export function getIsLoggedIn(): boolean {
+  return accountStore.get('isLoggedIn', false);
+}
+
+export function setIsLoggedIn(loggedIn: boolean) {
+  accountStore.set('isLoggedIn', loggedIn);
+}
+
 export function setAuthToken(authToken : Buffer) {
   accountStore.set('authToken', authToken);
 }
@@ -95,7 +112,7 @@ export async function storeUserCredentials(username: string, password: string): 
       return { success: false, message: 'Username and password are required' };
     }
 
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
     setUsername(username);
     setHashedPassword(hashedPassword);
     
@@ -106,8 +123,43 @@ export async function storeUserCredentials(username: string, password: string): 
   }
 }
 
+export async function verifyUserCredentials(username: string, password: string): Promise<{ success: boolean; message: string }> {
+  try {
+    if (!username || !password) {
+      return { success: false, message: 'Username and password are required' };
+    }
 
-export function createAccount(username : string, password : string) {
-  // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
-  // send API request to /register
+    const storedUsername = getUsername();
+    const storedHashedPassword = getHashedPassword();
+
+    if (!storedUsername || !storedHashedPassword) {
+      return { success: false, message: 'No user account found. Please register first.' };
+    }
+
+    if (storedUsername !== username) {
+      return { success: false, message: 'Invalid username' };
+    }
+
+    const isPasswordValid = await validatePassword(password, storedHashedPassword);
+    
+    if (isPasswordValid) {
+      setIsLoggedIn(true);
+      return { success: true, message: 'Login successful' };
+    } else {
+      return { success: false, message: 'Invalid password' };
+    }
+  } catch (error) {
+    console.error('Error verifying credentials:', error);
+    return { success: false, message: 'Login verification failed' };
+  }
+}
+
+// Function to logout user
+export function logoutUser(): void {
+  setIsLoggedIn(false);
+}
+
+// Function to check if user is currently logged in
+export function checkLoginStatus(): boolean {
+  return getIsLoggedIn();
 }
