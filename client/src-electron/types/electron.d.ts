@@ -29,7 +29,7 @@ declare global {
     electronAuthAPI: {
       storeUserCredentials: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
       verifyUserCredentials: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
-      logoutUser: () => Promise<{ success: boolean; message: string }>;
+      logoutUser: () => Promise<{ success: boolean; message: string }>; // Still need to add to front end
       checkLoginStatus: () => Promise<boolean>;
     }
   }

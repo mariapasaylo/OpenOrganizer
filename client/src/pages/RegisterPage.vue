@@ -91,7 +91,7 @@ async function register() {
                 message: 'Account created successfully!'
             });
             // Navigate to login page or main app
-            await router.push('/login');
+            await router.push('/calendar');
         } else {
             $q.notify({
                 type: 'negative',

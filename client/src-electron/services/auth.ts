@@ -14,7 +14,6 @@
 import {generatePrivateKey} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type { Schema } from 'electron-store';
-import { createHash } from 'crypto';
 import bcrypt from 'bcrypt';
 
 // import electron-store blueprint
