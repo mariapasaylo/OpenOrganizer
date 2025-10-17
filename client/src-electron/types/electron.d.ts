@@ -28,53 +28,53 @@ declare global {
   interface Window {
     sqliteAPI: {
       // create
-      createNote: (newNote: Note) => void;
-      createReminder: (newRem: Reminder) => void;
-      createDailyReminder: (newDailyRem: DailyReminder) => void;
-      createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => void;
-      createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => void;
-      createYearlyReminder: (newYearlyRem: YearlyReminder) => void;
-      createExtension: (newExt: Extension) => void;
-      createFolder: (newFolder: Folder) => void;
-      createDeleted: (newDeleted: Deleted) => void;
+      createNote: (newNote: Note) => Promise<void>;
+      createReminder: (newRem: Reminder) => Promise<void>;
+      createDailyReminder: (newDailyRem: DailyReminder) => Promise<void>;
+      createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
+      createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
+      createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
+      createExtension: (newExt: Extension) => Promise<void>;
+      createFolder: (newFolder: Folder) => Promise<void>;
+      createDeleted: (newDeleted: Deleted) => Promise<void>;
 
       // read
-      readNote: (itemID: number) => Note;
-      readReminder: (itemID: number) => Reminder;
-      readDailyReminder: (itemID: number) => DailyReminder;
-      readWeeklyReminder: (itemID: number) => WeeklyReminder;
-      readMonthlyReminder: (itemID: number) => MonthlyReminder;
-      readYearlyReminder: (itemID: number) => YearlyReminder;
-      readExtensions: (itemID: number) => Extension[];
-      readFolder: (folderID: number) => Folder;
+      readNote: (itemID: number) => Promise<Note>;
+      readReminder: (itemID: number) => Promise<Reminder>;
+      readDailyReminder: (itemID: number) => Promise<DailyReminder>;
+      readWeeklyReminder: (itemID: number) => Promise<WeeklyReminder>;
+      readMonthlyReminder: (itemID: number) => Promise<MonthlyReminder>;
+      readYearlyReminder: (itemID: number) => Promise<YearlyReminder>;
+      readExtensions: (itemID: number) => Promise<Extension[]>;
+      readFolder: (folderID: number) => Promise<Folder>;
 
-      readNotesInFolder: (folderID: number) => { itemID: number }[];
-      readRemindersInFolder: (folderID: number) => { itemID: number }[];
-      readDailyRemindersInFolder: (folderID: number) => { itemID: number }[];
-      readWeeklyRemindersInFolder: (folderID: number) => { itemID: number }[];
-      readMonthlyRemindersInFolder: (folderID: number) => { itemID: number }[];
-      readYearlyRemindersInFolder: (folderID: number) => { itemID: number }[];
-      readFoldersInFolder: (parentFolderID: number) => { folderID: number }[];
+      readNotesInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readDailyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readWeeklyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readMonthlyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readYearlyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
+      readFoldersInFolder: (parentFolderID: number) => Promise<{ folderID: number }[]>;
 
       // update
-      updateNote: (modNote: Note) => void;
-      updateReminder: (modRem: Reminder) => void;
-      updateDailyReminder: (modDailyRem: DailyReminder) => void;
-      updateWeeklyReminder: (modWeeklyRem: WeeklyReminder) => void;
-      updateMonthlyReminder: (modMonthlyRem: MonthlyReminder) => void;
-      updateYearlyReminder: (modYearlyRem: YearlyReminder) => void;
-      updateFolder: (modFolder: Folder) => void;
+      updateNote: (modNote: Note) => Promise<void>;
+      updateReminder: (modRem: Reminder) => Promise<void>;
+      updateDailyReminder: (modDailyRem: DailyReminder) => Promise<void>;
+      updateWeeklyReminder: (modWeeklyRem: WeeklyReminder) => Promise<void>;
+      updateMonthlyReminder: (modMonthlyRem: MonthlyReminder) => Promise<void>;
+      updateYearlyReminder: (modYearlyRem: YearlyReminder) => Promise<void>;
+      updateFolder: (modFolder: Folder) => Promise<void>;
 
       // delete
-      deleteNote: (itemID: number) => boolean;
-      deleteReminder: (itemID: number) => boolean;
-      deleteDailyReminder: (itemID: number) => boolean;
-      deleteWeeklyReminder: (itemID: number) => boolean;
-      deleteMonthlyReminder: (itemID: number) => boolean;
-      deleteYearlyReminder: (itemID: number) => boolean;
-      deleteExtension: (itemID: number, sequenceNum: number) => void;
-      deleteAllExtensions: (itemID: number) => void;
-      deleteFolder: (folderID: number) => boolean;
+      deleteNote: (itemID: number) => Promise<boolean>;
+      deleteReminder: (itemID: number) => Promise<boolean>;
+      deleteDailyReminder: (itemID: number) => Promise<boolean>;
+      deleteWeeklyReminder: (itemID: number) => Promise<boolean>;
+      deleteMonthlyReminder: (itemID: number) => Promise<boolean>;
+      deleteYearlyReminder: (itemID: number) => Promise<boolean>;
+      deleteExtension: (itemID: number, sequenceNum: number) => Promise<void>;
+      deleteAllExtensions: (itemID: number) => Promise<void>;
+      deleteFolder: (folderID: number) => Promise<boolean>;
 
       // Example functions
       sqliteRead: (key: string) => Promise<string>;

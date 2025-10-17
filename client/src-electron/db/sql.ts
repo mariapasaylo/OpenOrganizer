@@ -324,7 +324,7 @@ SET lastModified = ?, folderID = ?, isExtended = ?, title = ?, text = ?
 WHERE itemID = ?`;
 
 export const updateReminderStmt = `
-UPDATE reminder
+UPDATE reminders
 SET lastModified = ?, folderID = ?, eventType = ?, eventStartYear = ?, eventStartDay = ?, eventStartMin = ?, eventEndYear = ?, eventEndDay = ?,
     eventEndMin = ?, notifYear = ?, notifDay = ?, notifMin = ?, isExtended = ?, hasNotif = ?, title = ?
 WHERE itemID = ?`;
