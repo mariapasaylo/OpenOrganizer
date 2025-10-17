@@ -3,7 +3,7 @@
  * Created: 2025-09-10
  * Updated: 2025-10-17
  *
- * This file Initializes the SQLite database, prepares queries, and exports functions for interacting with the
+ * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
  *
  * This file is a part of OpenOrganizer.

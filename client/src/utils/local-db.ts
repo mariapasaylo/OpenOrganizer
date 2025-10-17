@@ -3,8 +3,8 @@
  * Created: 2025-10-13
  * Updated: 2025-10-17
  *
- * todo: write description
- *
+ * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
+ * database access to the renderer process.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.

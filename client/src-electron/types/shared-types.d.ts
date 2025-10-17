@@ -3,8 +3,8 @@
  * Created: 2025-10-13
  * Updated: 2025-10-17
  *
- * todo: write description
- *
+ * This file contains interfaces that are shared between the main and renderer processes to easily pass database entries
+ * and other values.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
