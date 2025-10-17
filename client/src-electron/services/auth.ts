@@ -1,7 +1,7 @@
 /*
- * Authors: Kevin Sirantoine
+ * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-07
+ * Updated: 2025-10-17
  *
  * This file contains functions related to user authentication including getters and setters for privateKey, username, password, and authToken.
  * This file will eventually contain login and account creation functions.

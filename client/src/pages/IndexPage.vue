@@ -1,5 +1,16 @@
-<!-- Updated on 9/20/2025 by Maria Pasaylo - Included Data Persistence Test -->
-<!-- Updated on 9/22/2025 by Rachel Patella - Added buttons to navigate from index page to registration, login, and calendar pages -->
+<!--/*
+ * Authors: Kevin Sirantoine, Maria Pasaylo, Rachel Patella
+ * Created: 2025-09-16
+ * Updated: 2025-10-17
+ *
+ * This file is the index page for OpenOrganizer that includes various test
+ * buttons for database operations and data persistence.
+ *
+ * This file is a part of OpenOrganizer.
+ * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
+ * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
+ */
+ -->
 <template>
   <q-page class="row items-center justify-evenly">
     <example-component
