@@ -13,6 +13,7 @@
 import {ipcMain} from "electron";
 import {create, deleteEntry, read, update} from "app/src-electron/db/sqlite-db";
 import {store} from "app/src-electron/services/store";
+import {storeUserCredentials} from "app/src-electron/services/auth";
 
 export function registerHandlers()
 {
@@ -44,5 +45,9 @@ export function registerHandlers()
   ipcMain.handle('setStoreName', (event, name: string) => {
     store.set('name', name);
     return true;
+  });
+
+  ipcMain.handle('storeUserCredentials', async (event, username: string, password: string) => {
+    return await storeUserCredentials(username, password);
   });
 }

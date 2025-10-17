@@ -25,5 +25,9 @@ declare global {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
     }
+
+    electronAuthAPI: {
+      storeUserCredentials: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
+    }
   }
 }

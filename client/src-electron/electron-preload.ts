@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-09-25
+ * Updated: 2025-10-17
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -53,5 +53,11 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
   getStoreName: () => ipcRenderer.invoke('getStoreName'),
   setStoreName: (name: string) => ipcRenderer.invoke('setStoreName', name)
 });
+
+contextBridge.exposeInMainWorld('electronAuthAPI', {
+    storeUserCredentials: (username: string, password: string) => 
+    ipcRenderer.invoke('storeUserCredentials', username, password),
+});
+
 
 

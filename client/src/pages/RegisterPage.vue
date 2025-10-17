@@ -1,7 +1,7 @@
 <!--
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-23
+ * Updated: 2025-10-17
  *
  * This file is the registration form for a user to create a new account that includes a sidebar with the application name and logo
  *
@@ -50,8 +50,29 @@ const username = ref('');
 const password = ref('');
 const isPwd = ref(true)
 
-function register() {
-    console.log("username: ", username)
-    console.log("password: ", password)
+async function register() {
+    console.log("username: ", username.value)
+    console.log("password: ", password.value)
+    
+    if (!username.value || !password.value) {
+        alert('Please fill in both username and password');
+        return;
+    }
+    
+    try {
+        // Use IPC to communicate with the main process
+        const result = await window.electronAuthAPI.storeUserCredentials(username.value, password.value);
+
+        if (result.success) {
+            console.log('Account created successfully');
+            alert('Account created successfully!');
+        } else {
+            console.error('Failed to create account');
+            alert('Failed to create account');
+        }
+    } catch (error) {
+        console.error('Error creating account:', error);
+        alert('Error creating account');
+    }
 }
 </script>
