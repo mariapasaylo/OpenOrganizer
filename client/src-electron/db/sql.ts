@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -286,6 +286,60 @@ ORDER BY sequenceNum ASC`;
 export const readFolderStmt = `
 SELECT * FROM folders
 WHERE folderID = ?`;
+
+// read in range
+export const readNotesInRangeStmt = `
+SELECT * FROM notes
+WHERE (itemID <= $windowEndMs AND itemID >= $windowStartMs)`;
+
+export const readRemindersInRangeStmt = `
+SELECT * FROM reminders
+WHERE (
+  ((eventStartYear < $windowEndYear) OR (eventStartYear = $windowEndYear AND ((eventStartDay * 1440 + eventStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((eventEndYear > $windowStartYear) OR (eventEndYear = $windowStartYear AND ((eventEndDay * 1440 + eventEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readDailyRemindersInRangeStmt = `
+SELECT * FROM daily_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readWeeklyRemindersInRangeStmt = `
+SELECT * FROM weekly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readMonthlyRemindersInRangeStmt = `
+SELECT * FROM monthly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readYearlyRemindersInRangeStmt = `
+SELECT * FROM yearly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+// read all
+export const readAllFoldersStmt = `
+SELECT * FROM folders`;
 
 // get IDs based on folderID
 export const readNotesInFolderStmt = `

@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -50,7 +50,8 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted
+  Deleted,
+  RangeWindow
 } from "app/src-electron/types/shared-types";
 
 contextBridge.exposeInMainWorld('sqliteAPI', {
@@ -74,6 +75,15 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   readYearlyReminder: (itemID: number): Promise<YearlyReminder> => ipcRenderer.invoke('readYearlyReminder', itemID),
   readExtensions: (itemID: number): Promise<Extension[]> => ipcRenderer.invoke('readExtensions', itemID),
   readFolder: (folderID: number): Promise<Folder> => ipcRenderer.invoke('readFolder', folderID),
+
+  readNotesInRange: (windowStartMs: number, windowEndMs: number): Promise<Note[]> => ipcRenderer.invoke('readNotesInRange', windowStartMs, windowEndMs),
+  readRemindersInRange: (rangeWindow: RangeWindow): Promise<Reminder[]> => ipcRenderer.invoke('readRemindersInRange', rangeWindow),
+  readDailyRemindersInRange: (rangeWindow: RangeWindow): Promise<DailyReminder[]> => ipcRenderer.invoke('readDailyRemindersInRange', rangeWindow),
+  readWeeklyRemindersInRange: (rangeWindow: RangeWindow): Promise<WeeklyReminder[]> => ipcRenderer.invoke('readWeeklyRemindersInRange', rangeWindow),
+  readMonthlyRemindersInRange: (rangeWindow: RangeWindow): Promise<MonthlyReminder[]> => ipcRenderer.invoke('readMonthlyRemindersInRange', rangeWindow),
+  readYearlyRemindersInRange: (rangeWindow: RangeWindow): Promise<YearlyReminder[]> => ipcRenderer.invoke('readYearlyRemindersInRange', rangeWindow),
+
+  readAllFolders: (): Promise<Folder[]> => ipcRenderer.invoke('readAllFolders'),
 
   readNotesInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readNotesInFolder', folderID),
   readRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readRemindersInFolder', folderID),

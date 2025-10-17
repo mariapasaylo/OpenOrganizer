@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * todo: write description
  *
@@ -13,7 +13,9 @@
 import {
   type Timestamp,
   getDayOfYear,
-  isLeapYear
+  isLeapYear,
+  makeDateTime,
+  diffTimestamp
 } from '@quasar/quasar-ui-qcalendar';
 import type {
   Note,
@@ -24,7 +26,8 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted
+  Deleted,
+  RangeWindow
 } from "app/src-electron/types/shared-types";
 
 // create
@@ -285,6 +288,62 @@ export async function readFolder(folderID: number) {
 }
 
 // todo: write individual functions to extract meaningful data from reminder extensions based on eventType using window.sqliteAPI.readExtensions()
+
+export async function readNotesInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) { // Range is in UTC
+  const windowStartMs = makeDateTime(windowStartTime).getTime();
+  const windowEndMs = makeDateTime(windowEndTime).getTime();
+  if (windowStartMs > windowEndMs) return [];
+
+  const notes = await window.sqliteAPI.readNotesInRange(windowStartMs, windowEndMs);
+
+  for (const note of notes) {
+    const extensions = await window.sqliteAPI.readExtensions(note.itemID);
+
+    const fullText = [note.text];
+    for (const extension of extensions) fullText.push(extension.data);
+    note.text = fullText.join("");
+  }
+  return notes;
+}
+
+export async function readRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  return await window.sqliteAPI.readRemindersInRange(rangeWindow);
+}
+
+export async function readDailyRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  return await window.sqliteAPI.readDailyRemindersInRange(rangeWindow);
+}
+
+export async function readWeeklyRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  return await window.sqliteAPI.readWeeklyRemindersInRange(rangeWindow);
+}
+
+export async function readMonthlyRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  return await window.sqliteAPI.readMonthlyRemindersInRange(rangeWindow);
+}
+
+export async function readYearlyRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  return await window.sqliteAPI.readYearlyRemindersInRange(rangeWindow);
+}
+
+export async function readAllFolders() {
+  return await window.sqliteAPI.readAllFolders();
+}
 
 // update
 export async function updateNote(itemID: number, folderID: number, title: string, text: string) {
@@ -555,4 +614,19 @@ export async function deleteFolder(folderID: number) {
   for (const subFolder of subFolders) await deleteFolder(subFolder.folderID); // recursively delete subfolders
 
   if (await window.sqliteAPI.deleteFolder(folderID)) await createDeleted(folderID, 7); // finally, delete the folder and create deleted entry
+}
+
+// helpers
+export function calculateRangeWindow(windowStartTime: Timestamp, windowEndTime: Timestamp) { // used for readInRange
+  const startMinOfYear = getDayOfYear(windowStartTime) * 1440 + windowStartTime.hour * 60 + windowStartTime.minute;
+  const endMinOfYear = getDayOfYear(windowEndTime) * 1440 + windowEndTime.hour * 60 + windowEndTime.minute;
+
+  const rangeWindow: RangeWindow = {
+    startYear: windowStartTime.year,
+    startMinOfYear: startMinOfYear,
+    endYear: windowEndTime.year,
+    endMinOfYear: endMinOfYear
+  };
+
+  return rangeWindow
 }

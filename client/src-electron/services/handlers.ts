@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -22,8 +22,10 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted
+  Deleted,
+  RangeWindow
 } from "app/src-electron/types/shared-types";
+import {readNotesInRange} from "../../src-electron/db/sqlite-db";
 
 export function registerHandlers()
 {
@@ -99,7 +101,37 @@ export function registerHandlers()
     return db.readFolder(folderID);
   });
 
-  // get IDs based on folderID
+  // read in range
+  ipcMain.handle('readNotesInRange', (event, windowStartMs: number, windowEndMs: number) => {
+    return db.readNotesInRange(windowStartMs, windowEndMs);
+  });
+
+  ipcMain.handle('readRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readRemindersInRange(rangeWindow);
+  });
+
+  ipcMain.handle('readDailyRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readDailyRemindersInRange(rangeWindow);
+  });
+
+  ipcMain.handle('readWeeklyRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readWeeklyRemindersInRange(rangeWindow);
+  });
+
+  ipcMain.handle('readMonthlyRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readMonthlyRemindersInRange(rangeWindow);
+  });
+
+  ipcMain.handle('readYearlyRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readYearlyRemindersInRange(rangeWindow);
+  });
+
+  // read all
+  ipcMain.handle('readAllFolders', (event) => {
+    return db.readAllFolders();
+  });
+
+  // read IDs based on folderID
   ipcMain.handle('readNotesInFolder', (event, folderID: number) => {
     return db.readNotesInFolder(folderID);
   });

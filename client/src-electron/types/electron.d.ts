@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -19,7 +19,8 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted
+  Deleted,
+  RangeWindow
 } from "app/src-electron/types/shared-types";
 
 export {};
@@ -47,6 +48,15 @@ declare global {
       readYearlyReminder: (itemID: number) => Promise<YearlyReminder>;
       readExtensions: (itemID: number) => Promise<Extension[]>;
       readFolder: (folderID: number) => Promise<Folder>;
+
+      readNotesInRange: (windowStartMs: number, windowEndMs: number) => Promise<Note[]>;
+      readRemindersInRange: (rangeWindow: RangeWindow) => Promise<Reminder[]>;
+      readDailyRemindersInRange: (rangeWindow: RangeWindow) => Promise<DailyReminder[]>;
+      readWeeklyRemindersInRange: (rangeWindow: RangeWindow) => Promise<WeeklyReminder[]>;
+      readMonthlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<MonthlyReminder[]>;
+      readYearlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<YearlyReminder[]>;
+
+      readAllFolders: () => Promise<Folder[]>;
 
       readNotesInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
       readRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;

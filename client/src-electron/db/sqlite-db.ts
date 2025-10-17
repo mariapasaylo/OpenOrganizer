@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-16
+ * Updated: 2025-10-17
  *
  * This file Initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -23,7 +23,8 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted
+  Deleted,
+  RangeWindow
 } from "app/src-electron/types/shared-types";
 
 // local.db located in ..\AppData\Roaming\Electron
@@ -64,6 +65,14 @@ const readMonthlyReminderStmt = db.prepare(sql.readMonthlyReminderStmt);
 const readYearlyReminderStmt = db.prepare(sql.readYearlyReminderStmt);
 const readExtensionsStmt = db.prepare(sql.readExtensionsStmt);
 const readFolderStmt = db.prepare(sql.readFolderStmt);
+
+const readNotesInRangeStmt = db.prepare(sql.readNotesInRangeStmt);
+const readRemindersInRangeStmt = db.prepare(sql.readRemindersInRangeStmt);
+const readDailyRemindersInRangeStmt = db.prepare(sql.readDailyRemindersInRangeStmt);
+const readWeeklyRemindersInRangeStmt = db.prepare(sql.readWeeklyRemindersInRangeStmt);
+const readMonthlyRemindersInRangeStmt = db.prepare(sql.readMonthlyRemindersInRangeStmt);
+const readYearlyRemindersInRangeStmt = db.prepare(sql.readYearlyRemindersInRangeStmt);
+const readAllFoldersStmt = db.prepare(sql.readAllFoldersStmt);
 
 const readNotesInFolderStmt = db.prepare(sql.readNotesInFolderStmt);
 const readRemindersInFolderStmt = db.prepare(sql.readRemindersInFolderStmt);
@@ -188,6 +197,61 @@ export function readExtensions(itemID: number) {
 
 export function readFolder(folderID: number) {
   return readFolderStmt.get(folderID) as Folder;
+}
+
+// read in range
+export function readNotesInRange(windowStartMs: number, windowEndMs: number) {
+  return readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
+}
+
+export function readRemindersInRange(rangeWindow: RangeWindow) {
+  return readRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as Reminder[];
+}
+
+export function readDailyRemindersInRange(rangeWindow: RangeWindow) {
+  return readDailyRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as DailyReminder[];
+}
+
+export function readWeeklyRemindersInRange(rangeWindow: RangeWindow) {
+  return readWeeklyRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as WeeklyReminder[];
+}
+
+export function readMonthlyRemindersInRange(rangeWindow: RangeWindow) {
+  return readMonthlyRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as MonthlyReminder[];
+}
+
+export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
+  return readYearlyRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as YearlyReminder[];
+}
+
+// read all
+export function readAllFolders() {
+  return readAllFoldersStmt.all() as Folder[];
 }
 
 // get IDs based on folderID

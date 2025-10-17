@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-15
+ * Updated: 2025-10-17
  *
  * todo: write description
  *
@@ -10,6 +10,8 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
+
+// table interfaces
 export interface Note {
   itemID: number;
   lastModified: number;
@@ -139,4 +141,12 @@ export interface Deleted {
   itemID: number;
   lastModified: number;
   itemTable: number;
+}
+
+// other interfaces
+export interface RangeWindow {
+  startYear: number;
+  startMinOfYear: number;
+  endYear: number;
+  endMinOfYear: number;
 }
