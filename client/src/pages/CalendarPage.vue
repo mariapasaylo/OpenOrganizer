@@ -74,10 +74,18 @@
     </div>
      <!-- Left column - File Explorer middle row-->
       <div style="grid-area: file-explorer-folders; padding: 0px 10px; display: flex; flex-direction: column; height: 100%" data-area="file-explorer-folders">
+        <!-- Breadcrumb path component itself -->
         <q-breadcrumbs>
-          <q-breadcrumbs-el label="Hotels" />
-          <q-breadcrumbs-el label="Check-in" />
-          <q-breadcrumbs-el label="Check-out" />
+          <q-breadcrumbs-el label="" />
+        </q-breadcrumbs>
+        <q-breadcrumbs>
+          <!-- Each selectable item in breadcrumb path -->
+          <q-breadcrumbs-el
+            v-for="crumb in breadcrumbs"
+            :key="crumb.id"
+            :label="crumb.label"
+            @click="selectBreadcrumbItem(crumb.id)"
+          />
         </q-breadcrumbs>
         <q-tree 
           :nodes="qNestedTree"
@@ -422,7 +430,6 @@ const eventTypeOptions = computed(() => {
 // Function to get event type fields - will render different fields based on event type selected
 function getEventTypeFields(selectedEventTypeId: number) {
   // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
-  // In this way, we can extract the field property for the selected event type
   const type = eventTypes.find(eventType => eventType.id === selectedEventTypeId);
   // If the event type is found, return the fields. Otherwise, return an empty array
   return type ? type.fields : [];
@@ -456,13 +463,13 @@ type Note = {
   text: string; // text stored within the note
   date: string; // date it was created
   isSelected: boolean; // checkbox selection
-  expanded: boolean; // open or closed
-  folderID: number | null; // null if not saved in any folder yet. The parent folder id the note is saved in 
+  expanded: boolean; // open or closed carat
+  folderID: number | null; // null if not saved in any folder yet. 
   temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
    // This is needed to retain the folder state before the note is saved again 
   // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderId
-  temporaryTitle: string; // This is needed to retain the title state before the note is saved again - just like folder
-  isSaved: boolean; // if note is saved or not
+  temporaryTitle: string; 
+  isSaved: boolean; 
   titleMessageError?: string; // error message for title validation. Each note has this property so error message only shows up for the specific notes that have an error
   folderMessageError?: string;
 };
@@ -482,7 +489,7 @@ type Reminder = {
   folderMessageError?: string;
   timeMessageError?: string;
   eventType: number; // id of the event type the reminder is categorized as
-  extension: Record<string, string | number | null>; // Essentially extension is a json-like object with string ID/keys and any type values  
+  extension: Record<string, string | number | null>; // Essentially extension is a dictionary-like object with keys (ex. field names) and values  
   // useful for adding on custom event type fields/extensions that we may not know the types to yet
   // Need to parse and store this text data in the separate extensions table in the backend
 };
@@ -535,6 +542,79 @@ const folderDropdownOptions = computed(() => {
     value: folder.folderID
   }));
 });
+
+// Normalize selected node to be numeric format (folder ID) for breadcrumb trail navigation
+// This is needed because a QTree node can be a folder (numeric ID) or note/reminder (currently a string ID will be numeric later)
+function normalizeFolderID(selectedNode: number | string | null): number | null {
+  // Selected tree node is null, return null
+   if (selectedNode === null) {
+      return null;
+    }
+  // Selected tree node is a folder (number), just return the folder
+  if (typeof selectedNode === 'number') {
+    return selectedNode;
+  }
+   // Selected tree node is a reminder/note (string), find its folder ID
+  if (typeof selectedNode === 'string') {
+
+    if (selectedNode.startsWith('note-')) {
+      // Remove note- prefix to get numeric note ID
+      const noteID = selectedNode.slice('note-'.length);
+      // Find the first note from notes array that matches the noteID
+      const note = notes.value.find(note => note.itemID === `note-${noteID}`);
+      // Return the folderID of that note (or null if not found)
+      return (note?.folderID ?? null);
+    }
+
+    if (selectedNode.startsWith('reminder-')) {
+      const reminderID = selectedNode.slice('reminder-'.length);
+      const reminder = reminders.value.find(reminder => reminder.itemID === `reminder-${reminderID}`);
+      return reminder?.folderID ?? null;
+    }
+  }
+  
+  return null;
+}
+
+// Computed breadcrumbs array that walks from the selected folder up to the root to build the path
+const breadcrumbs = computed(() => {
+  // Normalize currently selected folder ID on QTree
+  const currentFolderID = normalizeFolderID(selectedFolderId.value);
+  // Empty path if there is no currently selected folder
+  if (currentFolderID == null) {
+    return [];
+  }
+  // May want to convert this later to some sort of lookup (map?) for better effiency if there's a lot of folders
+  const path: { label: string; id: number }[] = [];
+  // Start from current folder ID
+  let currentID: number | null = currentFolderID;
+  // While a folder is selected, walk up the tree to build the path
+  while (currentID != null) {
+    // Find folder in folders array that matches the current folder ID
+    const current = folders.value.find(folder => folder.folderID === currentID);
+    // If current folder is valid, add it to the path
+    if (current) {
+        path.push({ label: current.folderName, id: current.folderID });
+        // Update currentID to be the parent folder ID for the next iteration
+        // If its 0 return null as it is root
+        currentID = current.parentFolderID === 0 ? null : current.parentFolderID;
+    }
+    // Break if there is no current folder found (root or invalid)
+    else {
+      break;
+    }
+  }
+
+  // Reverse the path so visually it goes from root to selected folder
+  return path.reverse();
+
+});
+
+// Click a breadcrumb name to select that folder in the tree
+// Reactive so whenever selected folder ID changes, breadcrumb path will be ran and recomputed automatically
+function selectBreadcrumbItem(folderId: number) {
+  selectedFolderId.value = folderId;
+}
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
@@ -603,7 +683,6 @@ console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
 
 let newReminderId = reminders.value.length + 1;
 // Function to add a reminder to the list on the specified calendar date
-// Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   reminders.value.push({
     itemID: `reminder-${newReminderId++}`,
@@ -640,8 +719,8 @@ function addNote() {
       text: 'note description',
       date: selectedDate.value,
       isSelected: false,
-      expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
-      folderID: null, // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet),
+      expanded: true, // Have note carat expanded open by default when adding new note to fill out fields
+      folderID: null, // The folder ID of the folder the note is going to be saved into. Null by default 
       temporaryFolderId: null,
       isSaved: false, // Not saved by default until user clicks save button
       titleMessageError: '', // error message for title validation
@@ -762,18 +841,19 @@ async function saveReminder(reminder: Reminder){
   // cast eventTime explicitly as string since extension fields can be different types and remove whitespace
   const eventTime = String(reminder.extension?.eventTime ?? '').trim();
   // If eventTime is empty, stay empty. If eventTime not already in HH:MM:SS format, keep eventTime as is, otherwise
-  // Pad seconds :00 onto time field ex. '22:50' to '22:50:00' (HH:MM:SS) for consistent time format to use in datetime
+  // Pad seconds :00 onto time field ex. '22:50' to '22:50:00' (HH:MM:SS) for ISO time format and notification to go off as specific minute starts
   const formatEventTime = eventTime === '' ? '' : eventTime.length === 5 ? `${eventTime}:00` : eventTime;
   console.log('eventTime:', eventTime);
   console.log('Formatted eventTime:', formatEventTime);
-  // Combine event date and time into a datetime object of local timezone
-   // How to use ISO standard T separator between date and time - https://stackoverflow.com/questions/16597853/combine-date-and-time-string-into-single-date-with-javascript
+  // Combine event date and time into a ISO datetime object
+  // How to use ISO standard T separator between date and time - https://stackoverflow.com/questions/16597853/combine-date-and-time-string-into-single-date-with-javascript
   const eventDateTime = new Date(`${reminder.date}T${formatEventTime}`);
   console.log('Reminder datetime:', eventDateTime);
-  // Convert event datetime into milliseconds since epoch
+  // Convert event datetime into milliseconds since epoch for computation in handler
   // How to get epoch for a specific datetime - https://stackoverflow.com/questions/3367415/get-epoch-for-a-specific-date-using-javascript
   const unixMilliseconds = eventDateTime.getTime();
   console.log('Unix milliseconds:', unixMilliseconds);
+  // Schedule reminder notification using electron API exposed in preload script
   const result = await window.reminderNotificationAPI.scheduleReminderNotification({ itemID: reminder.itemID, date: reminder.date, title: reminder.title, time: eventTime, unixMilliseconds});
   if (result) {
     console.log('Successfully scheduled reminder notification');
@@ -871,7 +951,7 @@ const events = computed<CalendarEvent[]>(() =>
   }))
 );
 
-// Map dates to array of events
+// Map dates to array of events - key is date string, value is array of events on that date
 // script source code similar to slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
 const eventsMap = computed<Record<string, CalendarEvent[]>>(() => {
