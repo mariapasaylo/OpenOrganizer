@@ -105,7 +105,7 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 }
 
 func GetItemRows(tableName string, userID int64, startTime int64, endTime int64) (rows []models.RowItems, err error) {
-	sqlRows, err := db.Query(getItems(tableName), userID, startTime, endTime)
+	sqlRows, err := db.Query(getRows(tableName), userID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +113,90 @@ func GetItemRows(tableName string, userID int64, startTime int64, endTime int64)
 	for sqlRows.Next() {
 		var row models.RowItems
 		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetExtensionRows(userID int64, startTime int64, endTime int64) (rows []models.RowExtensions, err error) {
+	sqlRows, err := db.Query(getRows("extensions"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowExtensions
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.SequenceNum, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetOverrideRows(userID int64, startTime int64, endTime int64) (rows []models.RowOverrides, err error) {
+	sqlRows, err := db.Query(getRows("overrides"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowOverrides
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.LinkedItemID, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetFolderRows(userID int64, startTime int64, endTime int64) (rows []models.RowFolders, err error) {
+	sqlRows, err := db.Query(getRows("folders"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowFolders
+		err = sqlRows.Scan(&row.UserID, &row.FolderID, &row.LastModified, &row.LastUpdated, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetDeletedRows(userID int64, startTime int64, endTime int64) (rows []models.RowDeleted, err error) {
+	sqlRows, err := db.Query(getRows("deleted"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowDeleted
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.ItemTable)
 		if err != nil {
 			return nil, err
 		}

@@ -200,9 +200,8 @@ DELETE FROM last_updated WHERE userID = $1;
 
 // syncup
 
-// syncdown
-
-func getItems(tableName string) string {
+// syncdown of any table for a given user and within a time frame
+func getRows(tableName string) string {
 	return `
 SELECT * FROM ` + tableName + ` WHERE userID = $1 AND lastUpdated >= $2 AND lastUpdated <= $3;
 `

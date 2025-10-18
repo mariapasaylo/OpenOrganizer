@@ -184,7 +184,21 @@ func downExtensions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 64
+	rows, _ := db.GetExtensionRows(userAuth.UserID, startTime, endTime)
+	response, err := utils.PackExtensions(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downOverrides(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +207,21 @@ func downOverrides(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 64
+	rows, _ := db.GetOverrideRows(userAuth.UserID, startTime, endTime)
+	response, err := utils.PackOverrides(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downFolders(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +230,21 @@ func downFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 64
+	rows, _ := db.GetFolderRows(userAuth.UserID, startTime, endTime)
+	response, err := utils.PackFolders(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downDeleted(w http.ResponseWriter, r *http.Request) {
@@ -211,5 +253,14 @@ func downDeleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows, _ := db.GetDeletedRows(userAuth.UserID, startTime, endTime)
+	response := utils.PackDeleted(rows)
+
+	fmt.Fprintf(w, "%s", response)
 }

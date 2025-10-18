@@ -100,22 +100,81 @@ func PackLastUpdated(row models.RowLastUpdated) (responseBody []byte) {
 	return responseBody
 }
 
-func packRowBasicHeader(row models.RowItems) (responseSegment []byte) {
-	responseSegment = append(responseSegment, BigintToBytes(row.ItemID)...)
-	responseSegment = append(responseSegment, BigintToBytes(row.LastModified)...)
-	return responseSegment
-}
-
 func PackItems(rows []models.RowItems, encrDataLength int) (responseBody []byte, err error) {
 	var recordCount uint32 = 0
 	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
 	for _, row := range rows {
 		recordCount++
-		responseBody = append(responseBody, packRowBasicHeader(row)...)
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
 		if len(row.EncryptedData) != encrDataLength {
 			return nil, errors.New("data is not of expected length")
 		}
 		responseBody = append(responseBody, row.EncryptedData...)
 	}
+	copy(IntToBytes(int32(recordCount)), responseBody)
 	return responseBody, nil
+}
+
+func PackExtensions(rows []models.RowExtensions, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, IntToBytes(row.SequenceNum)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(IntToBytes(int32(recordCount)), responseBody)
+	return responseBody, nil
+}
+
+func PackOverrides(rows []models.RowOverrides, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, BigintToBytes(row.LinkedItemID)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(IntToBytes(int32(recordCount)), responseBody)
+	return responseBody, nil
+}
+
+func PackFolders(rows []models.RowFolders, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.FolderID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(IntToBytes(int32(recordCount)), responseBody)
+	return responseBody, nil
+}
+
+func PackDeleted(rows []models.RowDeleted) (responseBody []byte) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, SmallintToBytes(row.ItemTable)...)
+	}
+	copy(IntToBytes(int32(recordCount)), responseBody)
+	return responseBody
 }
