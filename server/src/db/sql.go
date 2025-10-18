@@ -198,4 +198,12 @@ const lastupDelete = `
 DELETE FROM last_updated WHERE userID = $1;
 `
 
-// item tables
+// syncup
+
+// syncdown
+
+func getItems(tableName string) string {
+	return `
+SELECT * FROM ` + tableName + ` WHERE userID = $1 AND lastUpdated >= $2 AND lastUpdated <= $3;
+`
+}

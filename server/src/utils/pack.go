@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-12
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file defines functions for turning byte arrays into structs and vice versa to handle receiving/transmitting HTTP response bodies.
  *
@@ -14,6 +14,7 @@ package utils
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"openorganizer/src/models"
 )
@@ -56,12 +57,25 @@ func UnpackChangeLogin(requestBody []byte) (userLogin models.UserLogin, userLogi
 	return userLogin, userLoginNew, userData
 }
 
-func UnpackUserAuth(request []byte) (userAuth models.UserAuth) {
+func UnpackUserAuth(requestBody []byte) (userAuth models.UserAuth) {
 	userAuth = models.UserAuth{
-		UserID:    int64(binary.LittleEndian.Uint64(request[0:8])),
-		AuthToken: request[8:40],
+		UserID:    int64(binary.LittleEndian.Uint64(requestBody[0:8])),
+		AuthToken: requestBody[8:40],
 	}
 	return userAuth
+}
+
+func UnpackSyncupHeader(requestBody []byte) (userAuth models.UserAuth, recordCount uint32) {
+	userAuth = UnpackUserAuth(requestBody)
+	recordCount = binary.LittleEndian.Uint32(requestBody[40:44])
+	return userAuth, recordCount
+}
+
+func UnpackSyncdownHeader(requestBody []byte) (userAuth models.UserAuth, startTime int64, endTime int64) {
+	userAuth = UnpackUserAuth(requestBody)
+	startTime = int64(binary.LittleEndian.Uint64(requestBody[40:48]))
+	endTime = int64(binary.LittleEndian.Uint64(requestBody[48:56]))
+	return userAuth, startTime, endTime
 }
 
 // pack turns memory struct(s) into buffer to send
@@ -84,4 +98,24 @@ func PackLastUpdated(row models.RowLastUpdated) (responseBody []byte) {
 	responseBody = append(responseBody, BigintToBytes(row.LastUpFolders)...)
 	responseBody = append(responseBody, BigintToBytes(row.LastUpDeleted)...)
 	return responseBody
+}
+
+func packRowBasicHeader(row models.RowItems) (responseSegment []byte) {
+	responseSegment = append(responseSegment, BigintToBytes(row.ItemID)...)
+	responseSegment = append(responseSegment, BigintToBytes(row.LastModified)...)
+	return responseSegment
+}
+
+func PackItems(rows []models.RowItems, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, packRowBasicHeader(row)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	return responseBody, nil
 }

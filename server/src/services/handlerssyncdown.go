@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-10-09
+ * Updated: 2025-10-18
  *
  * This file defines handlers for receiving syncdown requests.
  *
@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"openorganizer/src/db"
+	"openorganizer/src/utils"
 )
 
 func readRequestSyncdown(w http.ResponseWriter, r *http.Request) ([]byte, error) {
@@ -44,7 +46,21 @@ func downNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 128
+	rows, _ := db.GetItemRows("notes", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downReminders(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +69,21 @@ func downReminders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 96
+	rows, _ := db.GetItemRows("reminders", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downRemindersDaily(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +92,21 @@ func downRemindersDaily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 96
+	rows, _ := db.GetItemRows("daily_reminders", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downRemindersWeekly(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +115,21 @@ func downRemindersWeekly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 96
+	rows, _ := db.GetItemRows("weekly_reminders", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downRemindersMonthly(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +138,21 @@ func downRemindersMonthly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 96
+	rows, _ := db.GetItemRows("monthly_reminders", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downRemindersYearly(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +161,21 @@ func downRemindersYearly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, startTime, endTime := utils.UnpackSyncdownHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	const expectedEncrDataSize = 96
+	rows, _ := db.GetItemRows("yearly_reminders", userAuth.UserID, startTime, endTime)
+	response, err := utils.PackItems(rows, expectedEncrDataSize)
+	if err != nil {
+		http.Error(w, "one or more rows had the incorrect encrypted data size", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func downExtensions(w http.ResponseWriter, r *http.Request) {

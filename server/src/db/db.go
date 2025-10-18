@@ -89,8 +89,6 @@ func CloseDatabase() {
 	db.Close()
 }
 
-// general non-account / authentication or syncing functions
-
 func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 	rows, err := db.Query(lastupRead, userID)
 	if err != nil {
@@ -104,4 +102,25 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 		&row.LastUpDaily, &row.LastUpWeekly, &row.LastUpMonthly, &row.LastUpYearly,
 		&row.LastUpExtensions, &row.LastUpOverrides, &row.LastUpFolders, &row.LastUpDeleted)
 	return row, nil
+}
+
+func GetItemRows(tableName string, userID int64, startTime int64, endTime int64) (rows []models.RowItems, err error) {
+	sqlRows, err := db.Query(getItems(tableName), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowItems
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
 }
