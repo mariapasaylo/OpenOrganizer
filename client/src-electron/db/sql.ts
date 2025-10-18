@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-06
+ * Updated: 2025-10-17
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -10,6 +10,8 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
+
+// Table creation SQL
 export const createNotesTable = `
   CREATE TABLE IF NOT EXISTS notes (
     itemID BIGINT PRIMARY KEY,
@@ -191,7 +193,7 @@ export const createFoldersTable = `
     folderID BIGINT PRIMARY KEY,
     lastModified BIGINT NOT NULL,
     parentFolderID BIGINT NOT NULL,
-    colorCode INT,
+    colorCode INT NOT NULL,
     folderName CHAR(24) NOT NULL
   )`;
 
@@ -201,6 +203,253 @@ export const createDeletedTable = `
     lastModified BIGINT NOT NULL,
     itemTable SMALLINT NOT NULL
   )`;
+
+
+// create entry SQL statements
+export const createNoteStmt = `
+INSERT INTO notes (itemID, lastModified, folderID, isExtended, title, text)
+VALUES (?, ?, ?, ?, ?, ?)`;
+
+export const createReminderStmt = `
+INSERT INTO reminders (
+  itemID, lastModified, folderID, eventType, eventStartYear, eventStartDay, eventStartMin, eventEndYear, eventEndDay,
+  eventEndMin, notifYear, notifDay, notifMin, isExtended, hasNotif, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createDailyReminderStmt = `
+INSERT INTO daily_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, everyNDays, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createWeeklyReminderStmt = `
+INSERT INTO weekly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, everyNWeeks, daysOfWeek, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createMonthlyReminderStmt = `
+INSERT INTO monthly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, lastDayOfMonth, daysOfMonth, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createYearlyReminderStmt = `
+INSERT INTO yearly_reminders (
+  itemID, lastModified, folderID, eventType, seriesStartYear, seriesStartDay, seriesStartMin, seriesEndYear, seriesEndDay,
+  seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, dayOfYear, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+export const createExtensionStmt = `
+INSERT INTO extensions (itemID, sequenceNum, lastModified, data)
+VALUES (?, ?, ?, ?)`;
+
+export const createFolderStmt = `
+INSERT INTO folders (folderID, lastModified, parentFolderID, colorCode, folderName)
+VALUES (?, ?, ?, ?, ?)`;
+
+export const createDeletedStmt = `
+  INSERT INTO deleted (itemID, lastModified, itemTable)
+  VALUES (?, ?, ?)`;
+
+
+// read entry SQL statements
+export const readNoteStmt = `
+SELECT * FROM notes
+WHERE itemID = ?`;
+
+export const readReminderStmt = `
+SELECT * FROM reminders
+WHERE itemID = ?`;
+
+export const readDailyReminderStmt = `
+SELECT * FROM daily_reminders
+WHERE itemID = ?`;
+
+export const readWeeklyReminderStmt = `
+SELECT * FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const readMonthlyReminderStmt = `
+SELECT * FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const readYearlyReminderStmt = `
+SELECT * FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const readExtensionsStmt = `
+SELECT * FROM extensions
+WHERE itemID = ?
+ORDER BY sequenceNum ASC`;
+
+export const readFolderStmt = `
+SELECT * FROM folders
+WHERE folderID = ?`;
+
+// read in range
+export const readNotesInRangeStmt = `
+SELECT * FROM notes
+WHERE (itemID <= $windowEndMs AND itemID >= $windowStartMs)`;
+
+export const readRemindersInRangeStmt = `
+SELECT * FROM reminders
+WHERE (
+  ((eventStartYear < $windowEndYear) OR (eventStartYear = $windowEndYear AND ((eventStartDay * 1440 + eventStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((eventEndYear > $windowStartYear) OR (eventEndYear = $windowStartYear AND ((eventEndDay * 1440 + eventEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readDailyRemindersInRangeStmt = `
+SELECT * FROM daily_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readWeeklyRemindersInRangeStmt = `
+SELECT * FROM weekly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readMonthlyRemindersInRangeStmt = `
+SELECT * FROM monthly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readYearlyRemindersInRangeStmt = `
+SELECT * FROM yearly_reminders
+WHERE (
+  ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+// read all
+export const readAllFoldersStmt = `
+SELECT * FROM folders`;
+
+// get IDs based on folderID
+export const readNotesInFolderStmt = `
+SELECT itemID FROM notes
+WHERE folderID = ?`;
+
+export const readRemindersInFolderStmt = `
+SELECT itemID FROM reminders
+WHERE folderID = ?`;
+
+export const readDailyRemindersInFolderStmt = `
+SELECT itemID FROM daily_reminders
+WHERE folderID = ?`;
+
+export const readWeeklyRemindersInFolderStmt = `
+SELECT itemID FROM weekly_reminders
+WHERE folderID = ?`;
+
+export const readMonthlyRemindersInFolderStmt = `
+SELECT itemID FROM monthly_reminders
+WHERE folderID = ?`;
+
+export const readYearlyRemindersInFolderStmt = `
+SELECT itemID FROM yearly_reminders
+WHERE folderID = ?`;
+
+export const readFoldersInFolderStmt = `
+SELECT folderID FROM folders
+WHERE parentFolderID = ?`;
+
+
+// update entry SQL statements
+export const updateNoteStmt = `
+UPDATE notes
+SET lastModified = ?, folderID = ?, isExtended = ?, title = ?, text = ?
+WHERE itemID = ?`;
+
+export const updateReminderStmt = `
+UPDATE reminders
+SET lastModified = ?, folderID = ?, eventType = ?, eventStartYear = ?, eventStartDay = ?, eventStartMin = ?, eventEndYear = ?, eventEndDay = ?,
+    eventEndMin = ?, notifYear = ?, notifDay = ?, notifMin = ?, isExtended = ?, hasNotif = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateDailyReminderStmt = `
+UPDATE daily_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, everyNDays = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateWeeklyReminderStmt = `
+UPDATE weekly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, everyNWeeks = ?, daysOfWeek = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateMonthlyReminderStmt = `
+UPDATE monthly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, lastDayOfMonth = ?, daysOfMonth = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateYearlyReminderStmt = `
+UPDATE yearly_reminders
+SET lastModified = ?, folderID = ?, eventType = ?, seriesStartYear = ?, seriesStartDay = ?, seriesStartMin = ?, seriesEndYear = ?, seriesEndDay = ?,
+    seriesEndMin = ?, timeOfDayMin = ?, eventDurationMin = ?, notifOffsetTimeMin = ?, hasNotifs = ?, isExtended = ?, dayOfYear = ?, title = ?
+WHERE itemID = ?`;
+
+export const updateFolderStmt = `
+UPDATE folders
+SET lastModified = ?, parentFolderID = ?, colorCode = ?, folderName = ?
+WHERE folderID = ?`;
+
+
+// delete entry SQL statements
+export const deleteNoteStmt = `
+DELETE FROM notes
+WHERE itemID = ?`;
+
+export const deleteReminderStmt = `
+DELETE FROM reminders
+WHERE itemID = ?`;
+
+export const deleteDailyReminderStmt = `
+DELETE FROM daily_reminders
+WHERE itemID = ?`;
+
+export const deleteWeeklyReminderStmt = `
+DELETE FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const deleteMonthlyReminderStmt = `
+DELETE FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const deleteYearlyReminderStmt = `
+DELETE FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const deleteExtensionStmt = `
+DELETE FROM extensions
+WHERE itemID = ? AND sequenceNum = ?`;
+
+export const deleteAllExtensionsStmt = `
+DELETE FROM extensions
+WHERE itemID = ?`;
+
+export const deleteFolderStmt = `
+DELETE FROM folders
+WHERE folderID = ?`;
+
 
 // Example SQL
 export const createExTable = `
