@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -15,6 +15,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"openorganizer/src/models"
@@ -85,17 +86,17 @@ func CloseDatabase() {
 
 // general non-account / authentication or syncing functions
 
-func GetLastUpdated(userAuth models.UserAuth) (row models.RowLastUpdated) {
-	rows, err := db.Query(lastupRead, userAuth.UserID, userAuth.AuthToken)
+func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
+	rows, err := db.Query(lastupRead, userID)
 	if err != nil {
-		return models.RowLastUpdated{}
+		return models.RowLastUpdated{}, err
 	}
 	defer rows.Close()
 	if !rows.Next() {
-		return models.RowLastUpdated{}
+		return models.RowLastUpdated{}, errors.New("")
 	}
 	_ = rows.Scan(&row.UserID, &row.LastUpNotes, &row.LastUpReminders,
-		&row.LastUpDaily, &row.LastUpMonthly, &row.LastUpMonthly, &row.LastUpYearly,
+		&row.LastUpDaily, &row.LastUpWeekly, &row.LastUpMonthly, &row.LastUpYearly,
 		&row.LastUpExtensions, &row.LastUpOverrides, &row.LastUpFolders, &row.LastUpDeleted)
-	return row
+	return row, nil
 }

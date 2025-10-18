@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -148,5 +148,11 @@ func lastUpdated(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	row, err := db.GetLastUpdated(userAuth.UserID)
+	if err != nil {
+		http.Error(w, "No lastUpdated entry found???", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackLastUpdated(row))
 }
