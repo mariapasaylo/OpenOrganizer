@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-10
+ * Updated: 2025-10-16
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -13,6 +13,7 @@
  * https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme for qcalendar code
  * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
  * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
+ * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -73,10 +74,18 @@
     </div>
      <!-- Left column - File Explorer middle row-->
       <div style="grid-area: file-explorer-folders; padding: 0px 10px; display: flex; flex-direction: column; height: 100%" data-area="file-explorer-folders">
+        <!-- Breadcrumb path component itself -->
         <q-breadcrumbs>
-          <q-breadcrumbs-el label="Hotels" />
-          <q-breadcrumbs-el label="Check-in" />
-          <q-breadcrumbs-el label="Check-out" />
+          <q-breadcrumbs-el label="" />
+        </q-breadcrumbs>
+        <q-breadcrumbs>
+          <!-- Each selectable item in breadcrumb path -->
+          <q-breadcrumbs-el
+            v-for="crumb in breadcrumbs"
+            :key="crumb.id"
+            :label="crumb.label"
+            @click="selectBreadcrumbItem(crumb.id)"
+          />
         </q-breadcrumbs>
         <q-tree 
           :nodes="qNestedTree"
@@ -106,7 +115,7 @@
       <div class="row justify-between items-center">
         <div class="row items-center">
           <q-btn style="font-size: 15px" flat icon="add" @click="addArrayItem" class="q-mr-sm" />
-          <q-checkbox v-model="selectAll" label="Select All" />
+          <q-checkbox v-model="selectAll" color="primary" label="Select All" />
         </div>
         <q-btn style="font-size: 15px" flat icon="delete" @click="deleteArrayItem"></q-btn>
       </div>
@@ -117,7 +126,7 @@
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
                   <div class="reminder-header-container">
-                    <q-checkbox v-model="item.isSelected" class="q-mr-sm" />
+                    <q-checkbox :color="getEventTypeColor(item.eventType)" v-model="item.isSelected" class="q-mr-sm" />
                     <q-input
                       v-model="item.temporaryTitle"
                       :error="item.titleMessageError != ''"
@@ -132,8 +141,18 @@
                     </div>
               </template>
               <q-card-section>
-                <p>Description: {{ item.description }} <br>Date: {{ item.date }}</p>
+                <p>Created on: {{ item.date }}</p>
                  <q-select
+                v-model="item.eventType"
+                :options="eventTypeOptions"
+                label="Event Type"
+                emit-value
+                map-options
+                dense
+                outlined
+                style="background-color: #f2f2f2; margin-bottom: 10px"
+              />
+                <q-select
                 v-model="item.temporaryFolderId"
                 :options="folderDropdownOptions"
                 label="Save in folder"
@@ -141,8 +160,42 @@
                 map-options
                 dense
                 outlined
-                style="background-color: #cacaca; margin-bottom: 10px"
+                style="background-color: #f2f2f2; margin-bottom: 10px"
               />
+              <!-- Render fields for selected event type - each input corresponds to its type -->
+              <div v-for="field in getEventTypeFields(item.eventType)" :key="field.id" style="margin-bottom: 10px">
+                <q-input
+                 v-if="field.type === 'text'"
+                  v-model="item.extension[field.id]"
+                  :type="field.type"
+                  :label="field.name"
+                  outlined
+                  dense
+                  style="background-color: #f2f2f2"
+                />
+                <q-input
+                v-else-if="field.type === 'number'"
+                v-model.number="item.extension[field.id]"
+                :label="field.name"
+                type="number"
+                dense
+                outlined
+                style="background-color: #f2f2f2"
+              />
+              <q-input
+                v-else-if="field.type === 'time'"
+                v-model="item.extension[field.id]"
+                :label="field.name"
+                type="time"
+                dense
+                outlined
+                style="background-color: #f2f2f2"
+              />
+              </div>
+              <!-- Use seperate v-if for error instead of :error prop because it's validating two inputs (arrival & departure) instead of 1 -->
+              <div v-if="item.timeMessageError" style="color: #f44336; font-size: 13px; margin-bottom: 8px;">
+                {{ item.timeMessageError }}
+              </div>
                 <div class="row">
                   <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
                     @click="saveReminder(item)"></q-btn>
@@ -178,14 +231,13 @@
                 <p>Created on: {{ item.date }}</p>
                 <q-select
                 v-model="item.temporaryFolderId"
-
                 :options="folderDropdownOptions"
                 label="Save in folder"
                 emit-value 
                 map-options
                 dense
                 outlined
-                style="background-color: #cacaca; margin-bottom: 10px"
+                style="background-color: #f2f2f2; margin-bottom: 10px"
               />
                 <q-input class="note-box" outlined v-model="noteText" type="textarea"
                   placeholder="Write your note here..." />
@@ -229,11 +281,24 @@
             </div>
           </div>
           <div style="display: flex; justify-content: center; align-items: center;">
-            <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;">
+            <div style="display: flex; max-width: 500px; width: 100%; flex-direction: column;"> 
               <q-calendar-month ref="calendar" v-model="selectedDate" mini-mode hoverable focusable
                 :focus-type="['date', 'weekday']" :min-weeks="6" animated @change="onChange" @moved="onMoved"
                 @click-date="onClickDate" @click-day="onClickDay" @click-workweek="onClickWorkweek"
-                @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" />
+                @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" >
+              <template #day="{ scope: { timestamp } }">
+              <template v-for="event in eventsMap[timestamp.date]" :key="event.id">
+                <div
+                  :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
+                  style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
+                >
+                  <div class="event-title" style="width: 100%; max-width: 100%;">
+                  {{ event.title }}
+                  </div>
+                </div>
+              </template>
+            </template>
+              </q-calendar-month>
             </div>
           </div>
         </div>
@@ -267,14 +332,116 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 //import NavigationBar from 'components/NavigationBar.vue';
 import { ref, computed, watch } from 'vue';
 // To display the folder tree list on the frontend - not used right now
-import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
+// import RecursiveFolderTree from 'src/components/RecursiveFolderTree.vue';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. Default reminder adds to the current day's date
-const reminders = ref([{id: 'reminder-1', title: 'New Reminder', temporaryTitle: '', description: 'event type field description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
+const reminders = ref([{itemID: 'reminder-1', title: 'New Reminder', temporaryTitle: '', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', timeMessageError: '',  folderMessageError: '', eventType: 0, extension: {} as Record<string, string | number | null>}]);
 // Array of notes
-const notes = ref([{ id: 'note-1', title: 'New Note', temporaryTitle: '', description: 'note description', date: today(), isSelected: false, expanded: true, folderId: null, temporaryFolderId: null, isSaved: false, titleMessageError: ''}]);
+const notes = ref([{ itemID: 'note-1', title: 'New Note', temporaryTitle: '', text: 'note description', date: today(), isSelected: false, expanded: true, folderID: null, temporaryFolderId: null, isSaved: false, titleMessageError: '', folderMessageError: ''}]);
+// Object of event types
+const eventTypes = [
+   {
+       // Generic event type (no extra type fields)
+        id: 0,
+        name: 'General',
+        color: 'blue',
+        fields: [
+            {
+                id: 'eventTime',
+                name: "Event Time",
+                type: 'time'
+            }
+        ]
+    },
+    {
+       // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
+        id: 1,
+        // Event type name 
+        name: 'Flight',
+        // Color-coded for display in reminder list
+        color: 'red',
+        // Fields for each event type
+        fields: [
+            {
+               // Essentially the unique ID/key of the field
+                id: 'flightNumber',
+               // Name of the field displayed to the user
+                name: "Flight Number",
+                // Type is helpful for rendering the frontend field inputs to match and input validation. 
+                type: 'number'
+            },
+            {
+                id: 'arrivalTime',
+                name: "Arrival Time",
+                type: 'time'
+            },
+            {
+                id: 'departureTime',
+                name: "Departure Time",
+                type: 'time'
+            },
+            {
+                id: 'airportLocation',
+                name: "Airport Location",
+                type: 'text'
+            },
+        ]
+    },
+    {
+        id: 2,
+        name: 'Hotel',
+        color: 'green',
+        fields: [
+            {
+                id: 'roomNumber',
+                name: "Room Number",
+                type: 'number'
+            },
+            {
+                id: 'checkInTime',
+                name: "Check-in Time",
+                type: 'time'
+            },
+            {
+                id: 'checkOutTime',
+                name: "Check-out Time",
+                type: 'time'
+            },
+            {
+                id: 'hotelLocationn',
+                name: "Hotel Location",
+                type: 'text'
+            },
+        ]
+    }
+    // can add any more event types here
+  ];
+
+  // Map event types to format for q-select dropdown menu
+const eventTypeOptions = computed(() => {
+  return eventTypes.map(eventType => ({
+    label: eventType.name,
+    value: eventType.id
+  }));
+});
+
+// Function to get event type fields - will render different fields based on event type selected
+function getEventTypeFields(selectedEventTypeId: number) {
+  // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
+  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeId);
+  // If the event type is found, return the fields. Otherwise, return an empty array
+  return type ? type.fields : [];
+}
+
+// Function to get event type colors - will change checkbox to match event type color
+function getEventTypeColor(selectedEventTypeId: number) {
+  // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
+  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeId);
+  // If the event type is found, return the color. Otherwise, return a default color
+  return type ? type.color : 'blue';
+}
 
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
@@ -287,45 +454,60 @@ const searchQuery = ref('');
 // Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderId = ref<number | null>(null);
+const timeErrorMessage = ref('');
 
 // This type represents the way that we store the note data
 type Note = {
-  id: string; // unique item ID ex. "note-1" incremented for each new note
+  itemID: string; // unique item ID ex. "note-1" incremented for each new note
   title: string; 
-  description: string; // text stored within the note
+  text: string; // text stored within the note
   date: string; // date it was created
   isSelected: boolean; // checkbox selection
-  expanded: boolean; // open or closed
-  folderId: number | null; // null if not saved in any folder yet. The parent folder id the note is saved in 
+  expanded: boolean; // open or closed carat
+  folderID: number | null; // null if not saved in any folder yet. 
   temporaryFolderId: number | null; // The folder selected in the dropdown before the note is saved
    // This is needed to retain the folder state before the note is saved again 
   // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderId
-  temporaryTitle: string; // This is needed to retain the title state before the note is saved again - just like folder
-  isSaved: boolean; // if note is saved or not
+  temporaryTitle: string; 
+  isSaved: boolean; 
   titleMessageError?: string; // error message for title validation. Each note has this property so error message only shows up for the specific notes that have an error
+  folderMessageError?: string;
 };
 
 // This type represents the way that we store the reminder data
 type Reminder = {
-  id: string; // unique item ID ex. "reminder-1" incremented for each new reminder
+  itemID: string; // unique item ID ex. "reminder-1" incremented for each new reminder
   title: string; 
-  description: string; // text stored within the reminder. Later this will be split into event type fields.
   date: string; 
   isSelected: boolean; 
   expanded: boolean;
-  folderId: number | null; 
+  folderID: number | null; 
   temporaryFolderId: number | null; 
   temporaryTitle: string; 
   isSaved: boolean; 
   titleMessageError?: string; 
+  folderMessageError?: string;
+  timeMessageError?: string;
+  eventType: number; // id of the event type the reminder is categorized as
+  extension: Record<string, string | number | null>; // Essentially extension is a dictionary-like object with keys (ex. field names) and values  
+  // useful for adding on custom event type fields/extensions that we may not know the types to yet
+  // Need to parse and store this text data in the separate extensions table in the backend
+};
+
+// Reminder on calendar
+type CalendarEvent = {
+  id: string;
+  title: string;
+  date: string;
+  color: string;
 };
 
 // Each folder/node has a folder id, folder name, parent folder id, and list of child nodes (if there are any so its optional)
 // This type represents the way that we store the folder data
 type Folder = {
-  id: number;
-  name: string;
-  parent_id: number;
+  folderID: number;
+  folderName: string;
+  parentFolderID: number;
   children?: Folder[];
 };
 
@@ -343,12 +525,12 @@ type QTreeFolder = {
 export type { Folder };
 
 // Example flat array of folders
- const folders = ref<Folder[]>([{ id: 1, name: 'Hotels', parent_id: 0 }, 
- { id: 2, name: 'Check-in', parent_id: 1 }, 
- { id: 3, name: 'Check-out', parent_id: 2 }, 
- { id: 4, name: 'Flights', parent_id: 0 }, 
- { id: 5, name: 'Arrival', parent_id: 4 },
- { id: 6, name: 'Departure', parent_id: 5 }
+ const folders = ref<Folder[]>([{ folderID: 1, folderName: 'Hotels', parentFolderID: 0 }, 
+ { folderID: 2, folderName: 'Check-in', parentFolderID: 1 }, 
+ { folderID: 3, folderName: 'Check-out', parentFolderID: 2 }, 
+ { folderID: 4, folderName: 'Flights', parentFolderID: 0 }, 
+ { folderID: 5, folderName: 'Arrival', parentFolderID: 4 },
+ { folderID: 6, folderName: 'Departure', parentFolderID: 5 }
 ]);
 
 // Map folders to format for q-select dropdown menu
@@ -356,28 +538,101 @@ export type { Folder };
 // Computed so it automatically updates whenever folders array updates (if new folder is added it shows up in the options)
 const folderDropdownOptions = computed(() => {
   return folders.value.map(folder => ({
-    label: folder.name,
-    value: folder.id
+    label: folder.folderName,
+    value: folder.folderID
   }));
 });
+
+// Normalize selected node to be numeric format (folder ID) for breadcrumb trail navigation
+// This is needed because a QTree node can be a folder (numeric ID) or note/reminder (currently a string ID will be numeric later)
+function normalizeFolderID(selectedNode: number | string | null): number | null {
+  // Selected tree node is null, return null
+   if (selectedNode === null) {
+      return null;
+    }
+  // Selected tree node is a folder (number), just return the folder
+  if (typeof selectedNode === 'number') {
+    return selectedNode;
+  }
+   // Selected tree node is a reminder/note (string), find its folder ID
+  if (typeof selectedNode === 'string') {
+
+    if (selectedNode.startsWith('note-')) {
+      // Remove note- prefix to get numeric note ID
+      const noteID = selectedNode.slice('note-'.length);
+      // Find the first note from notes array that matches the noteID
+      const note = notes.value.find(note => note.itemID === `note-${noteID}`);
+      // Return the folderID of that note (or null if not found)
+      return (note?.folderID ?? null);
+    }
+
+    if (selectedNode.startsWith('reminder-')) {
+      const reminderID = selectedNode.slice('reminder-'.length);
+      const reminder = reminders.value.find(reminder => reminder.itemID === `reminder-${reminderID}`);
+      return reminder?.folderID ?? null;
+    }
+  }
+  
+  return null;
+}
+
+// Computed breadcrumbs array that walks from the selected folder up to the root to build the path
+const breadcrumbs = computed(() => {
+  // Normalize currently selected folder ID on QTree
+  const currentFolderID = normalizeFolderID(selectedFolderId.value);
+  // Empty path if there is no currently selected folder
+  if (currentFolderID == null) {
+    return [];
+  }
+  // May want to convert this later to some sort of lookup (map?) for better effiency if there's a lot of folders
+  const path: { label: string; id: number }[] = [];
+  // Start from current folder ID
+  let currentID: number | null = currentFolderID;
+  // While a folder is selected, walk up the tree to build the path
+  while (currentID != null) {
+    // Find folder in folders array that matches the current folder ID
+    const current = folders.value.find(folder => folder.folderID === currentID);
+    // If current folder is valid, add it to the path
+    if (current) {
+        path.push({ label: current.folderName, id: current.folderID });
+        // Update currentID to be the parent folder ID for the next iteration
+        // If its 0 return null as it is root
+        currentID = current.parentFolderID === 0 ? null : current.parentFolderID;
+    }
+    // Break if there is no current folder found (root or invalid)
+    else {
+      break;
+    }
+  }
+
+  // Reverse the path so visually it goes from root to selected folder
+  return path.reverse();
+
+});
+
+// Click a breadcrumb name to select that folder in the tree
+// Reactive so whenever selected folder ID changes, breadcrumb path will be ran and recomputed automatically
+function selectBreadcrumbItem(folderId: number) {
+  selectedFolderId.value = folderId;
+}
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: Folder[], id: number):
   Folder[] =>
   // Filter finds all folders where the parent id is equal to the current folder id 
-  items.filter(item => item.parent_id === id)
-    // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parent_id)
+  items.filter(item => item.parentFolderID === id)
+    // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parentFolderID)
     .map(item => ({
       ...item,
       // Add a children property to the item object and recursively call nest function to find children of the current folder
-      children: nest(items, item.id)
+      children: nest(items, item.folderID)
     }));
 
 // Function to convert nested folder tree to Q-Tree format
 function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
   return folders.map(folder => {
     // Find notes saved in the current folder
-    const notesInCurrFolder = notes.value.filter(note => note.folderId === folder.id && note.isSaved);
+    const notesInCurrFolder = notes.value.filter(note => note.folderID === folder.folderID && note.isSaved);
 
     // For each note, create a QTree node with label and id properties and return it
     const noteTreeNodes = notesInCurrFolder.map((note) => {
@@ -385,27 +640,27 @@ function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
       // for debugging: console.log(`Placing note "${note.title}" (id: ${note.id}) under folder "${folder.name}" (id: ${folder.id})`);
       return {
         label: note.title,
-        id: `note-${note.id}`, 
+        id: `note-${note.itemID}`, 
         // No icon, color, or children properties for notes
       };
     });
 
     // Find reminders saved in the current folder
-    const remindersInCurrFolder = reminders.value.filter(reminder => reminder.folderId === folder.id && reminder.isSaved);
+    const remindersInCurrFolder = reminders.value.filter(reminder => reminder.folderID === folder.folderID && reminder.isSaved);
 
     // For each reminder, create a QTree node with label and id properties and return it
     const reminderTreeNodes = remindersInCurrFolder.map((reminder) => {
       return {
         label: reminder.title,
-        id: `reminder-${reminder.id}`, 
+        id: `reminder-${reminder.itemID}`, 
         // No icon, color, or children properties for reminders
       };
     });
 
     // For each folder, create a QTree node with label, id, and children properties and return it
     return {
-      label: folder.name,
-      id: folder.id,
+      label: folder.folderName,
+      id: folder.folderID,
       icon: 'folder',
       iconColor: 'blue',
       children: [
@@ -417,7 +672,7 @@ function convertFolderTreetoQTree(folders: Folder[]): QTreeFolder[] {
   });
 }
 
-// Convert folders array to nested n-ary tree (first call will start at root/parent_id 0)
+// Convert folders array to nested n-ary tree (first call will start at root/parentFolderID 0)
 const nestedFolderTree = computed(() => nest(folders.value, 0));
 console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
 
@@ -430,17 +685,20 @@ let newReminderId = reminders.value.length + 1;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   reminders.value.push({
-    id: `reminder-${newReminderId++}`,
+    itemID: `reminder-${newReminderId++}`,
     title: 'New Reminder', // saved title
-    temporaryTitle: '', // editable title
-    description: 'event type field',
+    temporaryTitle: '', // editable title,
     date: selectedDate.value,
     isSelected: false,
     expanded: true, 
-    folderId: null, 
+    folderID: null, 
     temporaryFolderId: null,
     isSaved: false,
-    titleMessageError: '' // error message for title validation
+    titleMessageError: '', // error message for title validation
+    timeMessageError: '', // error message for time validation
+    folderMessageError: '', // error message for folder validation
+    eventType: 0, // default event type is flight for now (id 1),
+    extension: {} as Record<string, string | number | null>// Default no extensions
   });
   //Close other reminders when a new one is added
   reminders.value.forEach((reminder, index) => {
@@ -455,17 +713,18 @@ let newNoteId = notes.value.length + 1;
 function addNote() {
   // Increment noteID for each new note added so each one has a unique ID
     notes.value.push({
-      id: `note-${newNoteId++}`,
+      itemID: `note-${newNoteId++}`,
       title: 'New Note',
       temporaryTitle: '', // editable title
-      description: 'note description',
+      text: 'note description',
       date: selectedDate.value,
       isSelected: false,
-      expanded: true, // Have note carat expanded open by default when addding new note to fill out fields
-      folderId: null, // The folder ID of the folder the note is going to be saved into. Null by default (no folder selected yet),
+      expanded: true, // Have note carat expanded open by default when adding new note to fill out fields
+      folderID: null, // The folder ID of the folder the note is going to be saved into. Null by default 
       temporaryFolderId: null,
-      isSaved: false, // Not saved by default until user clicks save button 
-      titleMessageError: '' // error message for title validation
+      isSaved: false, // Not saved by default until user clicks save button
+      titleMessageError: '', // error message for title validation
+      folderMessageError: '' // error message for folder validation
   });
   //Close other notes when a new one is added
   notes.value.forEach((note, index) => {
@@ -485,14 +744,14 @@ function addFolder() {
     return;
   }
   // Otherwise, folder name is good and add folder to tree
-  // Sets parentID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parent_id = 0)
+  // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = 0)
   const newFolderParentId = selectedFolderId.value ?? 0;
   const newFolderId = folders.value.length + 1;
   folders.value.push({ 
     // Folder IDs are not incremented like notes because folders can't be deleted yet so no risk of duplicate ids
-    id: newFolderId, 
-    name: newFolderName.value, 
-    parent_id: newFolderParentId
+    folderID: newFolderId, 
+    folderName: newFolderName.value, 
+    parentFolderID: newFolderParentId
   });
   // After adding new folder, reset new folder name input, error message, and close popup
   newFolderName.value = '';
@@ -507,27 +766,101 @@ function saveNote(note: Note){
     note.titleMessageError = 'Note title cannot be empty.';
     return;
   }
+   // Title field can be no greater than 48 characters
+  if (note.temporaryTitle.length > 48) {
+    note.titleMessageError = 'Note title cannot exceed 48 characters.';
+    return;
+  }
+   // Folder must exist 
+   // Checks if folder id (temporary folder) matches any existing folder ids in folders array
+  if (note.temporaryFolderId == null || !folders.value.some(folder => folder.folderID === note.temporaryFolderId)) {
+    note.folderMessageError = 'Note must be in a existing folder';
+    return;
+  }
+
   note.title = note.temporaryTitle; // Update saved note title to whatever is in editable title field on save
-  note.folderId = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
+  note.folderID = note.temporaryFolderId; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
   // Set note to be saved after clicking save button so it can show on tree
   note.isSaved = true;
   // After saving note, reset error message
-    note.titleMessageError = '';
+  note.titleMessageError = '';
 }
 
 // Function to save reminder fields when save button is clicked
-function saveReminder(reminder: Reminder){
+async function saveReminder(reminder: Reminder){
   // If reminder title (with whitespace removed) is empty, show error message and disable save button
   if (!reminder.temporaryTitle.trim()) {
     reminder.titleMessageError = 'Reminder title cannot be empty.';
     return;
   }
+  // Title field can be no greater than 48 characters
+  if (reminder.temporaryTitle.length > 48) {
+    reminder.titleMessageError = 'Reminder title cannot exceed 48 characters.';
+    return;
+  }
+  // eventType must be integer value 
+  if (typeof reminder.eventType !== 'number' || !Number.isInteger(reminder.eventType)) {
+    reminder.titleMessageError = 'Invalid event type selected.';
+    return;
+  }
+
+   // Folder must exist
+    // Checks if folder id (temporary folder) matches any existing folder ids in folders array
+  if (reminder.temporaryFolderId == null || !folders.value.some(folder => folder.folderID === reminder.temporaryFolderId)) {
+    reminder.folderMessageError = 'Reminder must be in a existing folder';
+    return;
+  }
+
+  // Check that arrival time is before departure time for flight event type
+  if (reminder.eventType === 1) { 
+    const arrivalTime = reminder.extension.arrivalTime;
+    const departureTime = reminder.extension.departureTime;
+    // If arrival & departure time are valid and arrival time is after departure time, show error message and disable save button
+    if (arrivalTime && departureTime && arrivalTime >= departureTime) {
+      reminder.timeMessageError = 'Arrival time must be before departure time.';
+      return;
+    }
+    // Check that check-in time is before check-out time for hotel event type
+  } else if (reminder.eventType === 2) { 
+    const checkInTime = reminder.extension.checkInTime;
+    const checkOutTime = reminder.extension.checkOutTime;
+    // If check-in & check-out time are valid and check-in time is after check-out time, show error message and disable save button
+    if (checkInTime && checkOutTime && checkInTime >= checkOutTime) {
+      reminder.timeMessageError = 'Check-in time must be before check-out time.';
+      return;
+    }
+  }
   reminder.title = reminder.temporaryTitle;
-  reminder.folderId = reminder.temporaryFolderId;
+  reminder.folderID = reminder.temporaryFolderId;
   // Set reminder to be saved after clicking save button so it can show on tree
   reminder.isSaved = true;
   // After saving reminder, reset error message
   reminder.titleMessageError = '';
+
+  // Notification goes off for a saved reminder at specific date/time
+  // cast eventTime explicitly as string since extension fields can be different types and remove whitespace
+  const eventTime = String(reminder.extension?.eventTime ?? '').trim();
+  // If eventTime is empty, stay empty. If eventTime not already in HH:MM:SS format, keep eventTime as is, otherwise
+  // Pad seconds :00 onto time field ex. '22:50' to '22:50:00' (HH:MM:SS) for ISO time format and notification to go off as specific minute starts
+  const formatEventTime = eventTime === '' ? '' : eventTime.length === 5 ? `${eventTime}:00` : eventTime;
+  console.log('eventTime:', eventTime);
+  console.log('Formatted eventTime:', formatEventTime);
+  // Combine event date and time into a ISO datetime object
+  // How to use ISO standard T separator between date and time - https://stackoverflow.com/questions/16597853/combine-date-and-time-string-into-single-date-with-javascript
+  const eventDateTime = new Date(`${reminder.date}T${formatEventTime}`);
+  console.log('Reminder datetime:', eventDateTime);
+  // Convert event datetime into milliseconds since epoch for computation in handler
+  // How to get epoch for a specific datetime - https://stackoverflow.com/questions/3367415/get-epoch-for-a-specific-date-using-javascript
+  const unixMilliseconds = eventDateTime.getTime();
+  console.log('Unix milliseconds:', unixMilliseconds);
+  // Schedule reminder notification using electron API exposed in preload script
+  const result = await window.reminderNotificationAPI.scheduleReminderNotification({ itemID: reminder.itemID, date: reminder.date, title: reminder.title, time: eventTime, unixMilliseconds});
+  if (result) {
+    console.log('Successfully scheduled reminder notification');
+  }
+  else {
+    console.log('Failed to schedule reminder notification');
+  }
 }
 
 // Function to delete selected individual checkbox reminders
@@ -575,8 +908,17 @@ watch(selectAll, (selectionVal) => {
   }
 });
 
-// template and script source code from mini-mode navigation example
-// https://qcalendar.netlify.app/developing/qcalendar-month-mini-mode#mini-mode-theme
+// Watch event type of each reminder
+reminders.value.forEach(reminder => {
+  // Clear error message when switching event types to not confuse users with old fields
+  watch(() => reminder.eventType, () => {
+    reminder.timeMessageError = '';
+  });
+});
+
+
+// template and script source code from slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
 const calendar = ref<QCalendarMonth>(),
   selectedDate = ref(today()),
   selectedYear = ref(new Date().getFullYear()),
@@ -591,6 +933,33 @@ const formattedMonth = computed(() => {
 // Filtered reminder array for specific date
 const filteredReminders = computed(() => {
   return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+});
+
+
+// Create events on calendar from reminders
+// script source code similar to slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
+const events = computed<CalendarEvent[]>(() =>
+// Only show saved reminders on calendar
+  reminders.value.filter(reminder => reminder.isSaved).
+  map(reminder => ({
+    id: reminder.itemID,
+    title: reminder.title,
+    date: reminder.date,
+    // Have background color be same as event type color
+    color: getEventTypeColor(reminder.eventType)
+  }))
+);
+
+// Map dates to array of events - key is date string, value is array of events on that date
+// script source code similar to slot - day month example
+// https://qcalendar.netlify.app/developing/qcalendar-month
+const eventsMap = computed<Record<string, CalendarEvent[]>>(() => {
+  const map: Record<string, CalendarEvent[]> = {};
+  events.value.forEach(event => {
+    (map[event.date] = map[event.date] || []).push(event);
+  });
+  return map;
 });
 
 // Filtered note array for specific date
@@ -636,6 +1005,7 @@ function onToday() {
     calendar.value.moveToToday()
   }
 }
+
 function onPrev() {
   if (calendar.value) {
     calendar.value.prev()

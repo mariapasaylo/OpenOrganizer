@@ -125,4 +125,7 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
   setStoreName: (name: string) => ipcRenderer.invoke('setStoreName', name)
 });
 
-
+contextBridge.exposeInMainWorld('reminderNotificationAPI', {
+  showReminderNotification: (reminder: { title: string; date: string }) => ipcRenderer.invoke('showReminderNotification', reminder),
+  scheduleReminderNotification: (reminder: { itemID: string; date: string; title: string; time?: string; unixMilliseconds?: number }) => ipcRenderer.invoke('scheduleReminderNotification', reminder)
+});

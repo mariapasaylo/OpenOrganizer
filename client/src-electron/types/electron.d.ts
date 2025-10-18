@@ -97,5 +97,10 @@ declare global {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
     };
+
+    reminderNotificationAPI: {
+      showReminderNotification: (reminder: { title: string; date: string }) => Promise<boolean>;
+      scheduleReminderNotification: (reminder: { itemID: string; date: string; title: string; time?: string; unixMilliseconds?: number }) => Promise<boolean>;
+    };
   }
 }
