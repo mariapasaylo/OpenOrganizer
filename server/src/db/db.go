@@ -41,11 +41,16 @@ func ConnectToDB(env models.ENVVars) error {
 }
 
 // creates all required db tables that do not already exist
-func EnsureDBTables(dropAll bool) chan error {
+func EnsureDBTables(env models.ENVVars) chan error {
 	var errs = make(chan error)
 
-	if dropAll {
-		_, err := db.Exec(dropAllTables)
+	if env.CLEAR_DB_AUTH {
+		_, err := db.Exec(dropAllAuth)
+		utils.AddError(err, errs)
+	}
+
+	if env.CLEAR_DB_DATA {
+		_, err := db.Exec(dropAllData)
 		utils.AddError(err, errs)
 	}
 

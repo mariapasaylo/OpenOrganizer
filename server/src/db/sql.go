@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-12
+ * Updated: 2025-10-18
  *
  * This file declares const values and defines functions for SQL statements to store and retrieve from the database.
  *
@@ -105,10 +105,13 @@ CREATE TABLE IF NOT EXISTS deleted (
 	PRIMARY KEY(userID, itemID)
 );`
 
-const dropAllTables = `
+const dropAllAuth = `
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS tokens;
 DROP TABLE IF EXISTS last_updated;
+`
+
+const dropAllData = `
 DROP TABLE IF EXISTS notes;
 DROP TABLE IF EXISTS reminders;
 DROP TABLE IF EXISTS daily_reminders;

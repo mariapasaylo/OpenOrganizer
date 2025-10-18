@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -35,11 +35,14 @@ type ENVVars struct {
 	DB_USER string
 	DB_PWD  string
 
-	// clear database (drop tables) upon server launch
+	// clear database tables for authentication upon server launch
 	// defaults to false
-	CLEAR_DB bool
+	CLEAR_DB_AUTH bool
+	// clear database tables for user data upon server launch
+	// defaults to false
+	CLEAR_DB_DATA bool
 	// time in seconds for an authentication token to expire
-	// defaults to 3600 seconds / 1 hour
+	// defaults to 43200 seconds / 12 hours
 	TOKEN_EXPIRE_TIME uint32
 	// max transmitted records in either direction during syncing
 	// defaults to 1000 records
