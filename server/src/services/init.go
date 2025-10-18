@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-09
+ * Updated: 2025-10-14
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -36,38 +36,37 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 		return env, err
 	}
 
+	env.LOCAL_ONLY = false
 	var LOCAL_ONLY = strings.ToUpper(os.Getenv("LOCAL_ONLY"))
 	if LOCAL_ONLY == "TRUE" {
 		env.LOCAL_ONLY = true
-	} else {
-		env.LOCAL_ONLY = false
 	}
 
 	var HTTPS = strings.ToUpper(os.Getenv("HTTPS"))
+	var SERVER_CRT = os.Getenv("SERVER_CRT")
+	var SERVER_KEY = os.Getenv("SERVER_KEY")
 	var SERVER_PORT_HTTPS = strings.ToUpper(os.Getenv("SERVER_PORT_HTTPS"))
 	if HTTPS == "TRUE" {
 		env.HTTPS = true
 		if SERVER_PORT_HTTPS == "" {
 			return env, errors.New("SERVER_PORT_HTTPS is null")
 		}
+		if SERVER_CRT == "" {
+			return env, errors.New("SERVER_CRT is null")
+		}
+		if SERVER_KEY == "" {
+			return env, errors.New("SERVER_KEY is null")
+		}
 		env.SERVER_PORT_HTTPS = SERVER_PORT_HTTPS
 	} else if HTTPS == "FALSE" {
 		env.HTTPS = false
 	} else {
-		return env, errors.New("HTTPS is invalid, try TRUE or FALSE")
+		return env, errors.New("HTTPS is invalid, use TRUE or FALSE")
 	}
 
 	var SERVER_PORT_HTTP = os.Getenv("SERVER_PORT_HTTP")
 	if SERVER_PORT_HTTP == "" {
 		return env, errors.New("SERVER_PORT_HTTP is null")
-	}
-	var SERVER_CRT = os.Getenv("SERVER_CRT")
-	if env.HTTPS && SERVER_CRT == "" {
-		return env, errors.New("SERVER_CRT is null")
-	}
-	var SERVER_KEY = os.Getenv("SERVER_KEY")
-	if env.HTTPS && SERVER_KEY == "" {
-		return env, errors.New("SERVER_KEY is null")
 	}
 
 	var DB_HOST = os.Getenv("DB_HOST")
@@ -86,9 +85,19 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	if DB_PWD == "" {
 		return env, errors.New("DB_PWD is null")
 	}
+
+	env.CLEAR_DB = false
+	var CLEAR_DB = os.Getenv("CLEAR_DB")
+	if CLEAR_DB == "TRUE" {
+		env.CLEAR_DB = true
+	}
+	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
+	if TOKEN_EXPIRE_TIME == "" {
+		TOKEN_EXPIRE_TIME = "3600"
+	}
 	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
 	if MAX_RECORD_COUNT == "" {
-		return env, errors.New("MAX_RECORD_COUNT is null")
+		MAX_RECORD_COUNT = "1000"
 	}
 
 	env.SERVER_PORT_HTTP = SERVER_PORT_HTTP
@@ -99,10 +108,15 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.DB_USER = DB_USER
 	env.DB_PWD = DB_PWD
 
+	tokenExpireTime, err := strconv.Atoi(TOKEN_EXPIRE_TIME)
+	if err != nil {
+		return env, errors.New("invalid value in TOKEN_EXPIRE_TIME, must be convertible to int32")
+	}
 	recordCount, err := strconv.Atoi(MAX_RECORD_COUNT)
 	if err != nil {
 		return env, errors.New("invalid value in MAX_RECORD_COUNT, must be convertible to int32")
 	}
+	env.TOKEN_EXPIRE_TIME = uint32(tokenExpireTime)
 	maxRecordCount = uint32(recordCount)
 	env.MAX_RECORD_COUNT = maxRecordCount
 

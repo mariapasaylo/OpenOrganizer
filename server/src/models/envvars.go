@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-09
+ * Updated: 2025-10-14
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -13,15 +13,35 @@
 package models
 
 type ENVVars struct {
-	LOCAL_ONLY        bool
-	HTTPS             bool
-	SERVER_PORT_HTTP  string
+	// if this server is accessible outside the local machine
+	// defaults to false
+	LOCAL_ONLY bool
+	// if HTTPS will be launched alongside HTTP and redirected to
+	// no default, fails upon error
+	HTTPS bool
+	// required port for HTTP
+	SERVER_PORT_HTTP string
+	// required port for HTTPS if HTTPS is being used
 	SERVER_PORT_HTTPS string
-	SERVER_CRT        string
-	SERVER_KEY        string
-	DB_HOST           string
-	DB_PORT           string
-	DB_USER           string
-	DB_PWD            string
-	MAX_RECORD_COUNT  uint32
+	// certificate file name, required if using HTTPS
+	SERVER_CRT string
+	// private key file name, required if using HTTPS
+	SERVER_KEY string
+
+	// required database login fields, fails upon any errors
+
+	DB_HOST string
+	DB_PORT string
+	DB_USER string
+	DB_PWD  string
+
+	// clear database (drop tables) upon server launch
+	// defaults to false
+	CLEAR_DB bool
+	// time in seconds for an authentication token to expire
+	// defaults to 3600 seconds / 1 hour
+	TOKEN_EXPIRE_TIME uint32
+	// max transmitted records in either direction during syncing
+	// defaults to 1000 records
+	MAX_RECORD_COUNT uint32
 }
