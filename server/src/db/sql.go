@@ -257,6 +257,16 @@ WHERE deleted.lastModified < $3
 RETURNING *;
 `
 
+func deleteItem(tableName string) string {
+	return `
+DELETE FROM ` + tableName + ` WHERE userID = $1 AND itemID = $2;
+`
+}
+
+const deleteFolder = `
+DELETE FROM folders WHERE userID = $1 AND folderID = $2;
+`
+
 // syncdown of any table for a given user and within a time frame
 func getRows(tableName string) string {
 	return `

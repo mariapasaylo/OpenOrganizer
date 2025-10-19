@@ -306,7 +306,5 @@ func upDeleted(w http.ResponseWriter, r *http.Request) {
 		db.UpdateLastup("LastUpDeleted", rows[0].UserID, rows[0].LastUpdated)
 	}
 
-	// delete items/extensions/overrides using rows
-
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }

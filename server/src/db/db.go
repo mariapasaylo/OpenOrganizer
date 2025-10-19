@@ -172,6 +172,7 @@ func InsertFolders(rows []models.RowFolders) (fails []bool, err error) {
 	return fails, nil
 }
 
+// inserts received deleted rows and removes the row from its home table
 func InsertDeleted(rows []models.RowDeleted) (fails []bool, err error) {
 	fails = make([]bool, len(rows))
 	for i, row := range rows {
@@ -183,8 +184,39 @@ func InsertDeleted(rows []models.RowDeleted) (fails []bool, err error) {
 			fails[i] = true
 		}
 		found.Close()
+		deleteRow(row)
 	}
 	return fails, nil
+}
+
+func deleteRow(row models.RowDeleted) {
+	const notesTable int16 = 11
+	const remindersTable int16 = 12
+	const dailyTable int16 = 21
+	const weeklyTable int16 = 22
+	const monthlyTable int16 = 23
+	const yearlyTable int16 = 24
+	const overridesTable int16 = 31
+	const foldersTable int16 = 32
+	switch row.ItemTable {
+	case notesTable:
+		_, _ = db.Query(deleteItem("notes"), row.UserID, row.ItemID)
+	case remindersTable:
+		_, _ = db.Query(deleteItem("reminders"), row.UserID, row.ItemID)
+	case dailyTable:
+		_, _ = db.Query(deleteItem("daily_reminders"), row.UserID, row.ItemID)
+	case weeklyTable:
+		_, _ = db.Query(deleteItem("weekly_reminders"), row.UserID, row.ItemID)
+	case monthlyTable:
+		_, _ = db.Query(deleteItem("monthly_reminders"), row.UserID, row.ItemID)
+	case yearlyTable:
+		_, _ = db.Query(deleteItem("yearly_reminders"), row.UserID, row.ItemID)
+	case overridesTable:
+		_, _ = db.Query(deleteItem("overrides"), row.UserID, row.ItemID)
+	case foldersTable:
+		_, _ = db.Query(deleteFolder, row.UserID, row.ItemID)
+	}
+	_, _ = db.Query(deleteItem("extentions"), row.UserID, row.ItemID)
 }
 
 // syncdown
