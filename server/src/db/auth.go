@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-14
+ * Updated: 2025-10-19
  *
  * This file provides authentication functionality that interfaces with the database.
  * This includes CRUD operations on user accounts and tokens.
@@ -146,4 +146,20 @@ func ClearTokensFromUser(userID int64) {
 
 func ClearExpiredTokens(expirationTime int64) {
 	_, _ = db.Query(tokensDeleteExpiredByTime, expirationTime)
+}
+
+func DeleteUser(username string) {
+	row, err := db.Query(usersDelete, username)
+	if err != nil {
+		return
+	}
+	defer row.Close()
+	if !row.Next() {
+		return
+	}
+	var userID int64
+	_ = row.Scan(&userID)
+	_, _ = db.Query(tokensDeleteAllFromUser, userID)
+	_, _ = db.Query(lastupDelete, userID)
+	_, _ = db.Query(userDeleteAllDataTables, userID)
 }

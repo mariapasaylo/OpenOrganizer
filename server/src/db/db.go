@@ -104,6 +104,10 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 	return row, nil
 }
 
+func UpdateLastup(fieldName string, userID int64, time int64) {
+	_, _ = db.Query(lastupUpdate(fieldName), userID, time)
+}
+
 // syncup
 
 func InsertItems(tableName string, rows []models.RowItems) (fails []bool, err error) {

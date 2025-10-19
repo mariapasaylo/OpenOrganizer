@@ -68,6 +68,9 @@ func upNotes(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpNotes", rows[0].UserID, rows[0].LastUpdated)
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -90,6 +93,9 @@ func upReminders(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
+	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpReminders", rows[0].UserID, rows[0].LastUpdated)
 	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
@@ -114,6 +120,9 @@ func upRemindersDaily(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpDaily", rows[0].UserID, rows[0].LastUpdated)
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -136,6 +145,9 @@ func upRemindersWeekly(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
+	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpWeekly", rows[0].UserID, rows[0].LastUpdated)
 	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
@@ -160,6 +172,9 @@ func upRemindersMonthly(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpMonthly", rows[0].UserID, rows[0].LastUpdated)
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -182,6 +197,9 @@ func upRemindersYearly(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
+	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpYearly", rows[0].UserID, rows[0].LastUpdated)
 	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
@@ -206,6 +224,9 @@ func upExtensions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpExtensions", rows[0].UserID, rows[0].LastUpdated)
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -228,6 +249,9 @@ func upOverrides(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
+	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpOverrides", rows[0].UserID, rows[0].LastUpdated)
 	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
@@ -252,6 +276,9 @@ func upFolders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpFolders", rows[0].UserID, rows[0].LastUpdated)
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -274,6 +301,9 @@ func upDeleted(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
+	}
+	if len(rows) > 0 {
+		db.UpdateLastup("LastUpDeleted", rows[0].UserID, rows[0].LastUpdated)
 	}
 
 	// delete items/extensions/overrides using rows

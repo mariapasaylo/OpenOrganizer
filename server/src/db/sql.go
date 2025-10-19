@@ -132,9 +132,9 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING userID;
 `
 
-const usersCreateManualID = `
+/*const usersCreateManualID = `
 INSERT INTO users VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
-`
+`*/
 
 const usersRead = `
 SELECT * FROM users WHERE username = $1;
@@ -152,7 +152,20 @@ UPDATE users SET lastLogin = $2 WHERE username = $1;
 `
 
 const usersDelete = `
-DELETE FROM users WHERE username = $1;
+DELETE FROM users WHERE username = $1 RETURNING *;
+`
+
+const userDeleteAllDataTables = `
+DELETE FROM notes WHERE userID = $1;
+DELETE FROM reminders WHERE userID = $1;
+DELETE FROM daily_reminders WHERE userID = $1;
+DELETE FROM weekly_reminders WHERE userID = $1;
+DELETE FROM monthly_reminders WHERE userID = $1;
+DELETE FROM yearly_reminders WHERE userID = $1;
+DELETE FROM extensions WHERE userID = $1;
+DELETE FROM overrides WHERE userID = $1;
+DELETE FROM folders WHERE userID = $1;
+DELETE FROM deleted WHERE userID = $1;
 `
 
 // tokens
@@ -187,12 +200,9 @@ const lastupRead = `
 SELECT * FROM last_updated WHERE userID = $1;
 `
 
-const lastupUpdate = `
-UPDATE last_updated 
-SET lastUpNotes = $2, lastUpReminder = $3, lastUpDaily = $4, lastUpWeekly = $5, lastUpMonthly = $6, 
-lastUpYearly = $7, lastUpExtensions = $8, lastUpOverrides = $9, lastUpFolders = $10, lastUpDeleted = $11
-WHERE userID = $1;
-`
+func lastupUpdate(fieldName string) string {
+	return `UPDATE last_updated SET ` + fieldName + ` = $2 WHERE userID = $1;`
+}
 
 const lastupDelete = `
 DELETE FROM last_updated WHERE userID = $1;
