@@ -1,9 +1,10 @@
 /*
- * Authors: Kevin Sirantoine
+ * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-07
+ * Updated: 2025-10-17
  *
- * This file contains functions related to user authentication including getters and setters for privateKey, username, password, and authToken.
+ * This file contains functions related to user authentication including getters 
+ * and setters for privateKey, username, password, and authToken.
  * This file will eventually contain login and account creation functions.
  *
  * This file is a part of OpenOrganizer.
@@ -12,9 +13,44 @@
  */
 
 import {generatePrivateKey} from "app/src-electron/services/crypto";
-// import electron-store blueprint
+import Store from 'electron-store';
+import type {Schema} from 'electron-store';
 
-// todo: finish implementing this file
+interface Account{ 
+  username: string;
+  hashedKeyPassword: string;
+  hashedServerPassword: string;
+  privateKey: Buffer;
+  authToken: Buffer;
+}
+
+const accountSchema: Schema<Account> ={
+  username: {
+    type: 'string',
+    default: 'AlGator'
+  },
+  hashedKeyPassword:{
+    type: 'string',
+    default: ''
+  },
+  hashedServerPassword:{
+    type: 'string',
+    default: ''
+  },
+  privateKey: {
+    type: 'object',
+    default: generatePrivateKey()
+  },
+  authToken:{
+    type: 'object',
+    default: Buffer.alloc(0)
+  }
+}
+
+const accountStore = new Store<Account>({
+  schema: accountSchema,
+  name: 'account'
+});
 
 function getUsername() {
   // return account.get('username');
