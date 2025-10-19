@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-18
+ * Updated: 2025-10-19
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -106,16 +106,79 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 
 // syncup
 
-func InsertItems(tableName string, rows []models.RowItems) (fails []bool) {
+func InsertItems(tableName string, rows []models.RowItems) (fails []bool, err error) {
 	fails = make([]bool, len(rows))
 	for i, row := range rows {
-		found, _ := db.Query(insertItem(tableName), row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		found, err := db.Query(insertItem(tableName), row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
 		if !found.Next() {
 			fails[i] = true
 		}
 		found.Close()
 	}
-	return fails
+	return fails, nil
+}
+
+func InsertExtensions(rows []models.RowExtensions) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertExtension, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.SequenceNum, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertOverrides(rows []models.RowOverrides) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertOverride, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.LinkedItemID, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertFolders(rows []models.RowFolders) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertFolder, row.UserID, row.FolderID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertDeleted(rows []models.RowDeleted) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertDeleted, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.ItemTable)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
 }
 
 // syncdown

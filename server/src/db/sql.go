@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-18
+ * Updated: 2025-10-19
  *
  * This file declares const values and defines functions for SQL statements to store and retrieve from the database.
  *
@@ -210,6 +210,42 @@ WHERE ` + tableName + `.lastModified < $3
 RETURNING *;
 `
 }
+
+const insertExtension = `
+INSERT INTO extensions (userID, itemID, lastModified, lastUpdated, sequenceNum, encryptedData)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (userID, itemID, sequenceNum) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $6
+WHERE extensions.lastModified < $3
+RETURNING *;
+`
+
+const insertOverride = `
+INSERT INTO overrides (userID, itemID, lastModified, lastUpdated, linkedItemID, encryptedData)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, linkedItemID = $5, encryptedData = $6
+WHERE overrides.lastModified < $3
+RETURNING *;
+`
+
+const insertFolder = `
+INSERT INTO folders (userID, folderID, lastModified, lastUpdated, encryptedData)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, folderID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $5
+WHERE folders.lastModified < $3
+RETURNING *;
+`
+
+const insertDeleted = `
+INSERT INTO deleted (userID, itemID, lastModified, lastUpdated, itemTable)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, itemTable = $5
+WHERE deleted.lastModified < $3
+RETURNING *;
+`
 
 // syncdown of any table for a given user and within a time frame
 func getRows(tableName string) string {

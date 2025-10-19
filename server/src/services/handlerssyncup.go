@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-10-18
+ * Updated: 2025-10-19
  *
  * This file defines handlers for receiving syncup requests.
  *
@@ -63,7 +63,11 @@ func upNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows := utils.UnpackItems(body, upNotesRecordSize)
-	fails := db.InsertItems("notes", rows)
+	fails, err := db.InsertItems("notes", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
@@ -75,7 +79,20 @@ func upReminders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upRemindersRecordSize)
+	fails, err := db.InsertItems("reminders", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upRemindersDaily(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +102,20 @@ func upRemindersDaily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upDailyRecordSize)
+	fails, err := db.InsertItems("daily_reminders", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upRemindersWeekly(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +125,20 @@ func upRemindersWeekly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upWeeklyRecordSize)
+	fails, err := db.InsertItems("weekly_reminders", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upRemindersMonthly(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +148,20 @@ func upRemindersMonthly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upMonthlyRecordSize)
+	fails, err := db.InsertItems("monthly_reminders", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upRemindersYearly(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +171,20 @@ func upRemindersYearly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upYearlyRecordSize)
+	fails, err := db.InsertItems("yearly_reminders", rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upExtensions(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +194,20 @@ func upExtensions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackExtensions(body, upExtensionsRecordSize)
+	fails, err := db.InsertExtensions(rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upOverrides(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +217,20 @@ func upOverrides(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackOverrides(body, upOverridesRecordSize)
+	fails, err := db.InsertOverrides(rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upFolders(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +240,20 @@ func upFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackFolders(body, upFoldersRecordSize)
+	fails, err := db.InsertFolders(rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upDeleted(w http.ResponseWriter, r *http.Request) {
@@ -155,5 +263,20 @@ func upDeleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackDeleted(body, upDeletedRecordSize)
+	fails, err := db.InsertDeleted(rows)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	// delete items/extensions/overrides using rows
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
