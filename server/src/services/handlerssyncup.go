@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-10-09
+ * Updated: 2025-10-18
  *
  * This file defines handlers for receiving syncup requests.
  *
@@ -18,8 +18,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"openorganizer/src/db"
+	"openorganizer/src/utils"
 )
 
+// reads in data and validates that the header + records is the correct size
 func readRequestSyncup(w http.ResponseWriter, r *http.Request, recordSize uint32) ([]byte, error) {
 	enableCors(&w)
 	const syncupHeaderSize = 44
@@ -53,7 +56,16 @@ func upNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth, _ := utils.UnpackSyncupHeader(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	rows := utils.UnpackItems(body, upNotesRecordSize)
+	fails := db.InsertItems("notes", rows)
+
+	fmt.Fprintf(w, "%s", utils.PackFails(fails))
 }
 
 func upReminders(w http.ResponseWriter, r *http.Request) {

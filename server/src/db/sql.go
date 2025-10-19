@@ -200,6 +200,17 @@ DELETE FROM last_updated WHERE userID = $1;
 
 // syncup
 
+func insertItem(tableName string) string {
+	return `
+INSERT INTO ` + tableName + ` (userID, itemID, lastModified, lastUpdated, encryptedData)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $5
+WHERE ` + tableName + `.lastModified < $3
+RETURNING *;
+`
+}
+
 // syncdown of any table for a given user and within a time frame
 func getRows(tableName string) string {
 	return `

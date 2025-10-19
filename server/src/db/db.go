@@ -104,6 +104,22 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 	return row, nil
 }
 
+// syncup
+
+func InsertItems(tableName string, rows []models.RowItems) (fails []bool) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, _ := db.Query(insertItem(tableName), row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails
+}
+
+// syncdown
+
 func GetItemRows(tableName string, userID int64, startTime int64, endTime int64) (rows []models.RowItems, err error) {
 	sqlRows, err := db.Query(getRows(tableName), userID, startTime, endTime)
 	if err != nil {

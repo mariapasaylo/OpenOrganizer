@@ -59,7 +59,7 @@ func UnpackChangeLogin(requestBody []byte) (userLogin models.UserLogin, userLogi
 
 func UnpackUserAuth(requestBody []byte) (userAuth models.UserAuth) {
 	userAuth = models.UserAuth{
-		UserID:    int64(binary.LittleEndian.Uint64(requestBody[0:8])),
+		UserID:    BytesToBigint(requestBody[0:8]),
 		AuthToken: requestBody[8:40],
 	}
 	return userAuth
@@ -69,6 +69,25 @@ func UnpackSyncupHeader(requestBody []byte) (userAuth models.UserAuth, recordCou
 	userAuth = UnpackUserAuth(requestBody)
 	recordCount = binary.LittleEndian.Uint32(requestBody[40:44])
 	return userAuth, recordCount
+}
+
+func UnpackItems(requestBody []byte, recordSize uint32) (rows []models.RowItems) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowItems
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.ItemID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.EncryptedData = requestBody[recordStart+16 : recordStart+(recordSize-16)]
+
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 func UnpackSyncdownHeader(requestBody []byte) (userAuth models.UserAuth, startTime int64, endTime int64) {
@@ -98,6 +117,36 @@ func PackLastUpdated(row models.RowLastUpdated) (responseBody []byte) {
 	responseBody = append(responseBody, BigintToBytes(row.LastUpFolders)...)
 	responseBody = append(responseBody, BigintToBytes(row.LastUpDeleted)...)
 	return responseBody
+}
+
+func boolsToByte(eightBools []bool) (comp byte) {
+	for _, b := range eightBools {
+		comp = comp << 1
+		if b {
+			comp = comp | 1
+		}
+	}
+	return comp
+}
+
+// compress a slice of bools into a compressed slice of bytes of size ceil(len(fails) / 8)
+func PackFails(fails []bool) (failsCompressed []byte) {
+	var failsLen = len(fails)
+	var lenCompressed = failsLen / 8
+	failsCompressed = make([]byte, lenCompressed)
+	for i := range failsLen / 8 {
+		failsCompressed[i] = boolsToByte(fails[i*8 : (i+1)*8])
+	}
+
+	if failsLen%8 != 0 {
+		mod := failsLen % 8
+		lastChunkIndex := failsLen - mod
+		lastByte := boolsToByte(fails[lastChunkIndex:failsLen])
+		lastByte = lastByte << (8 - mod)
+		failsCompressed = append(failsCompressed, lastByte)
+	}
+
+	return failsCompressed
 }
 
 func PackItems(rows []models.RowItems, encrDataLength int) (responseBody []byte, err error) {
