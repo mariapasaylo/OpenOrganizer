@@ -39,7 +39,7 @@ func RegisterUser(userLogin models.UserLogin, userData models.UserData) (respons
 	salt := rand.Int31()
 	passwordHashHash := hashPassword(userLogin.PasswordHash, salt)
 	now := utils.Now()
-	row, err := db.Query(usersCreate, userLogin.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
+	row, err := db.Query(userCreate, userLogin.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +47,11 @@ func RegisterUser(userLogin models.UserLogin, userData models.UserData) (respons
 	var userID int64
 	row.Next()
 	err = row.Scan(&userID)
+
+	token, err := addToken(userID)
 	userAuth := models.UserAuth{
 		UserID:    userID,
-		AuthToken: AddToken(userID),
+		AuthToken: token,
 	}
 	response = utils.PackAuth(userAuth)
 	_, _ = db.Query(lastupCreate, userID, now)
@@ -58,7 +60,7 @@ func RegisterUser(userLogin models.UserLogin, userData models.UserData) (respons
 
 // try to verify username + password combo
 func Login(userLogin models.UserLogin) (response []byte, err error) {
-	row, err := db.Query(usersRead, userLogin.Username)
+	row, err := db.Query(userRead, userLogin.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -78,11 +80,12 @@ func Login(userLogin models.UserLogin) (response []byte, err error) {
 	if !reflect.DeepEqual(passwordHashHash, rowUser.PasswordHashHash) {
 		return nil, errors.New("incorrect password")
 	}
-	_, _ = db.Query(usersUpdateLastLogin, userLogin.Username, utils.Now())
+	_, _ = db.Query(userUpdateLastLogin, userLogin.Username, utils.Now())
 
+	token, err := addToken(rowUser.UserID)
 	userAuth := models.UserAuth{
 		UserID:    rowUser.UserID,
-		AuthToken: AddToken(rowUser.UserID),
+		AuthToken: token,
 	}
 	response = utils.PackAuth(userAuth)
 	response = append(response, rowUser.EncrPrivateKey...)
@@ -95,7 +98,7 @@ func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userD
 	salt := rand.Int31()
 	passwordHashHash := hashPassword(userLogin.PasswordHash, salt)
 	now := utils.Now()
-	row, err := db.Query(usersUpdate, userLogin.Username, userLoginNew.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
+	row, err := db.Query(userUpdate, userLogin.Username, userLoginNew.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
 	if err != nil {
 		return nil, err
 	}
@@ -110,24 +113,24 @@ func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userD
 		return nil, err
 	}
 	ClearTokensFromUser(userAuth.UserID)
-	userAuth.AuthToken = AddToken(userAuth.UserID)
+	userAuth.AuthToken, err = addToken(userAuth.UserID)
 	return utils.PackAuth(userAuth), err
 }
 
 // tokens
 
 // create auth token and store
-func AddToken(userID int64) (token []byte) {
+func addToken(userID int64) (token []byte, err error) {
 	token = utils.RandArray(32)
 	now := utils.Now()
 	expirationTime := now + (int64(tokenExpireTime) * 1000)
-	_, _ = db.Query(tokensCreate, userID, now, expirationTime, token)
-	return token
+	_, err = db.Query(tokensCreate, userID, now, expirationTime, token)
+	return token, err
 }
 
-// check if token is valid
+// check if token is valid, and update the expiration time if setting is active
 func CheckTokenAuth(userAuth models.UserAuth) bool {
-	row, err := db.Query(tokensReadExpiration, userAuth.UserID, userAuth.AuthToken)
+	row, err := db.Query(tokenReadTimes, userAuth.UserID, userAuth.AuthToken)
 	if err != nil {
 		return false
 	}
@@ -135,9 +138,19 @@ func CheckTokenAuth(userAuth models.UserAuth) bool {
 	if !row.Next() {
 		return false
 	}
-	var expirationTime int64
-	_ = row.Scan(&expirationTime)
-	return expirationTime > utils.Now()
+	var creationTime, expirationTime int64
+	_ = row.Scan(&creationTime, &expirationTime)
+	expired := expirationTime < utils.Now()
+	if tokenExpireRefresh && !expired {
+		refreshTokenExpiration(userAuth.UserID, creationTime)
+		return true
+	}
+	return expired
+}
+
+func refreshTokenExpiration(userID int64, creationTime int64) {
+	newExpirationTime := utils.Now() + (int64(tokenExpireTime) * 1000)
+	_, _ = db.Query(tokenUpdateExpiration, userID, creationTime, newExpirationTime)
 }
 
 func ClearTokensFromUser(userID int64) {
@@ -149,7 +162,7 @@ func ClearExpiredTokens(expirationTime int64) {
 }
 
 func DeleteUser(username string) {
-	row, err := db.Query(usersDelete, username)
+	row, err := db.Query(userDelete, username)
 	if err != nil {
 		return
 	}

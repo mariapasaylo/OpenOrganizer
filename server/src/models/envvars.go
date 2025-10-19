@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-18
+ * Updated: 2025-10-19
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -44,6 +44,9 @@ type ENVVars struct {
 	// time in seconds for an authentication token to expire
 	// defaults to 43200 seconds / 12 hours
 	TOKEN_EXPIRE_TIME uint32
+	// whether or not tokens should have their expiration time reset upon use
+	// defaults to false
+	TOKEN_EXPIRE_REFRESH bool
 	// max transmitted records in either direction during syncing
 	// defaults to 1000 records
 	MAX_RECORD_COUNT uint32

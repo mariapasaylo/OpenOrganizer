@@ -108,6 +108,11 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	if TOKEN_EXPIRE_TIME == "" {
 		TOKEN_EXPIRE_TIME = "42300"
 	}
+	env.TOKEN_EXPIRE_REFRESH = false
+	var TOKEN_EXPIRE_REFRESH = os.Getenv("TOKEN_EXPIRE_REFRESH")
+	if TOKEN_EXPIRE_REFRESH == "TRUE" {
+		env.TOKEN_EXPIRE_REFRESH = true
+	}
 	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
 	if MAX_RECORD_COUNT == "" {
 		MAX_RECORD_COUNT = "1000"

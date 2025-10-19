@@ -24,6 +24,7 @@ import (
 
 var db *sql.DB
 var tokenExpireTime uint32
+var tokenExpireRefresh bool
 
 // connects to the postgresql server using provided env variables
 func ConnectToDB(env models.ENVVars) error {
@@ -36,6 +37,7 @@ func ConnectToDB(env models.ENVVars) error {
 	err = db.Ping()
 
 	tokenExpireTime = env.TOKEN_EXPIRE_TIME
+	tokenExpireRefresh = env.TOKEN_EXPIRE_REFRESH
 
 	return err
 }

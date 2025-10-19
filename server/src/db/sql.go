@@ -126,7 +126,7 @@ DROP TABLE IF EXISTS deleted;
 
 // users
 
-const usersCreate = `
+const userCreate = `
 INSERT INTO users (username, lastUpdated, lastLogin, passwordHashHash, salt, encrPrivateKey, encrPrivateKey2) 
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING userID;
@@ -136,22 +136,22 @@ RETURNING userID;
 INSERT INTO users VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 `*/
 
-const usersRead = `
+const userRead = `
 SELECT * FROM users WHERE username = $1;
 `
 
-const usersUpdate = `
+const userUpdate = `
 UPDATE users 
 SET username = $2, lastUpdated = $3, lastLogin = $4, passwordHashHash = $5, salt = $6, encrPrivateKey = $7, encrPrivateKey2 = $8 
 WHERE username = $1
 RETURNING userID;
 `
 
-const usersUpdateLastLogin = `
+const userUpdateLastLogin = `
 UPDATE users SET lastLogin = $2 WHERE username = $1;
 `
 
-const usersDelete = `
+const userDelete = `
 DELETE FROM users WHERE username = $1 RETURNING *;
 `
 
@@ -174,12 +174,12 @@ const tokensCreate = `
 INSERT INTO tokens VALUES ($1, $2, $3, $4);
 `
 
-const tokensReadExpiration = `
-SELECT expirationTime FROM tokens WHERE userID = $1 AND authToken = $2;
+const tokenReadTimes = `
+SELECT creationTime, expirationTime FROM tokens WHERE userID = $1 AND authToken = $2;
 `
 
-const tokensUpdateExpiration = `
-UPDATE tokens SET expirationTime = $2 WHERE userID = $1;
+const tokenUpdateExpiration = `
+UPDATE tokens SET expirationTime = $3 WHERE userID = $1 AND creationTime = $2;
 `
 
 const tokensDeleteAllFromUser = `
