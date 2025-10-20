@@ -12,14 +12,13 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
 
-import {generatePrivateKey} from "app/src-electron/services/crypto";
+import {hash256, hash512_256, generatePrivateKey, encrypt} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
 
 interface Account{ 
   username: string;
-  hashedKeyPassword: string;
-  hashedServerPassword: string;
+  password: string;
   privateKey: Buffer;
   authToken: Buffer;
 }
@@ -29,21 +28,17 @@ const accountSchema: Schema<Account> ={
     type: 'string',
     default: 'AlGator'
   },
-  hashedKeyPassword:{
-    type: 'string',
-    default: ''
-  },
-  hashedServerPassword:{
+  password:{
     type: 'string',
     default: ''
   },
   privateKey: {
     type: 'object',
-    default: generatePrivateKey()
+    default: Buffer.alloc(32)
   },
   authToken:{
     type: 'object',
-    default: Buffer.alloc(0)
+    default: Buffer.alloc(32)
   }
 }
 
@@ -53,38 +48,42 @@ const accountStore = new Store<Account>({
 });
 
 function getUsername() {
-  // return account.get('username');
+  return accountStore.get('username');
 }
 
 function setUsername(username : string) {
-  // account.set('username', username);
+  accountStore.set('username', username);
 }
 
 function getPassword() {
-  // return account.get('password');
+  return accountStore.get('password');
 }
 
 function setPassword(password : string) {
-  // account.set('password', password);
+  accountStore.set('password', password);
 }
 
 function getAuthToken() {
-  // return account.get('authToken');
+  return accountStore.get('authToken');
 }
 
 function setAuthToken(authToken : Buffer) {
-  // account.set('authToken', authToken);
+  accountStore.set('authToken', authToken);
 }
 
 function getPrivateKey() {
-  // return account.get('privateKey');
+  return accountStore.get('privateKey');
 }
 
 function setPrivateKey(privateKey : Buffer) {
-  // account.set('privateKey', privateKey);
+  accountStore.set('privateKey', privateKey);
 }
 
 export function createAccount(username : string, password : string) {
   // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
+  setPrivateKey(generatePrivateKey());
+  const hashKeyPassword: Buffer = hash256(password);
+  const hashServerPassword: Buffer = hash512_256(password);
+  const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, Buffer.alloc(16, 0));
   // send API request to /register
 }
