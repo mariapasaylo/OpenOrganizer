@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-12
- * Updated: 2025-10-14
+ * Updated: 2025-10-19
  *
  * This file defines functions for turning byte arrays into structs and vice versa to handle receiving/transmitting HTTP response bodies.
  *
@@ -14,6 +14,7 @@ package utils
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"openorganizer/src/models"
 )
@@ -56,12 +57,122 @@ func UnpackChangeLogin(requestBody []byte) (userLogin models.UserLogin, userLogi
 	return userLogin, userLoginNew, userData
 }
 
-func UnpackUserAuth(request []byte) (userAuth models.UserAuth) {
+func UnpackUserAuth(requestBody []byte) (userAuth models.UserAuth) {
 	userAuth = models.UserAuth{
-		UserID:    int64(binary.LittleEndian.Uint64(request[0:8])),
-		AuthToken: request[8:40],
+		UserID:    BytesToBigint(requestBody[0:8]),
+		AuthToken: requestBody[8:40],
 	}
 	return userAuth
+}
+
+func UnpackSyncupHeader(requestBody []byte) (userAuth models.UserAuth, recordCount uint32) {
+	userAuth = UnpackUserAuth(requestBody)
+	recordCount = binary.LittleEndian.Uint32(requestBody[40:44])
+	return userAuth, recordCount
+}
+
+func UnpackItems(requestBody []byte, recordSize uint32) (rows []models.RowItems) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowItems
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.ItemID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.EncryptedData = requestBody[recordStart+16 : recordStart+recordSize]
+
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func UnpackExtensions(requestBody []byte, recordSize uint32) (rows []models.RowExtensions) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowExtensions
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.ItemID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.SequenceNum = BytesToInt(requestBody[recordStart+16 : recordStart+20])
+		row.EncryptedData = requestBody[recordStart+20 : recordStart+recordSize]
+
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func UnpackOverrides(requestBody []byte, recordSize uint32) (rows []models.RowOverrides) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowOverrides
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.ItemID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.LinkedItemID = BytesToBigint(requestBody[recordStart+16 : recordStart+24])
+		row.EncryptedData = requestBody[recordStart+24 : recordStart+recordSize]
+
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func UnpackFolders(requestBody []byte, recordSize uint32) (rows []models.RowFolders) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowFolders
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.FolderID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.EncryptedData = requestBody[recordStart+16 : recordStart+recordSize]
+
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func UnpackDeleted(requestBody []byte, recordSize uint32) (rows []models.RowDeleted) {
+	userAuth, recordCount := UnpackSyncupHeader(requestBody)
+	const syncupHeaderSize = 44
+	now := Now()
+	for i := range recordCount {
+		var row models.RowDeleted
+		var recordStart = (recordSize * i) + syncupHeaderSize
+
+		row.UserID = userAuth.UserID
+		row.ItemID = BytesToBigint(requestBody[recordStart : recordStart+8])
+		row.LastModified = BytesToBigint(requestBody[recordStart+8 : recordStart+16])
+		row.LastUpdated = now
+		row.ItemTable = BytesToSmallint(requestBody[recordStart+16 : recordStart+recordSize])
+
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func UnpackSyncdownHeader(requestBody []byte) (userAuth models.UserAuth, startTime int64, endTime int64) {
+	userAuth = UnpackUserAuth(requestBody)
+	startTime = int64(binary.LittleEndian.Uint64(requestBody[40:48]))
+	endTime = int64(binary.LittleEndian.Uint64(requestBody[48:56]))
+	return userAuth, startTime, endTime
 }
 
 // pack turns memory struct(s) into buffer to send
@@ -83,5 +194,114 @@ func PackLastUpdated(row models.RowLastUpdated) (responseBody []byte) {
 	responseBody = append(responseBody, BigintToBytes(row.LastUpOverrides)...)
 	responseBody = append(responseBody, BigintToBytes(row.LastUpFolders)...)
 	responseBody = append(responseBody, BigintToBytes(row.LastUpDeleted)...)
+	return responseBody
+}
+
+func boolsToByte(eightBools []bool) (comp byte) {
+	for _, b := range eightBools {
+		comp = comp << 1
+		if b {
+			comp = comp | 1
+		}
+	}
+	return comp
+}
+
+// compress a slice of bools into a compressed slice of bytes of size ceil(len(fails) / 8)
+func PackFails(fails []bool) (failsCompressed []byte) {
+	var failsLen = len(fails)
+	var lenCompressed = failsLen / 8
+	failsCompressed = make([]byte, lenCompressed)
+	for i := range failsLen / 8 {
+		failsCompressed[i] = boolsToByte(fails[i*8 : (i+1)*8])
+	}
+
+	if failsLen%8 != 0 {
+		mod := failsLen % 8
+		lastChunkIndex := failsLen - mod
+		lastByte := boolsToByte(fails[lastChunkIndex:failsLen])
+		lastByte = lastByte << (8 - mod)
+		failsCompressed = append(failsCompressed, lastByte)
+	}
+
+	return failsCompressed
+}
+
+func PackItems(rows []models.RowItems, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(responseBody[0:4], IntToBytes(int32(recordCount)))
+	return responseBody, nil
+}
+
+func PackExtensions(rows []models.RowExtensions, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, IntToBytes(row.SequenceNum)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(responseBody[0:4], IntToBytes(int32(recordCount)))
+	return responseBody, nil
+}
+
+func PackOverrides(rows []models.RowOverrides, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, BigintToBytes(row.LinkedItemID)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(responseBody[0:4], IntToBytes(int32(recordCount)))
+	return responseBody, nil
+}
+
+func PackFolders(rows []models.RowFolders, encrDataLength int) (responseBody []byte, err error) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.FolderID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		if len(row.EncryptedData) != encrDataLength {
+			return nil, errors.New("data is not of expected length")
+		}
+		responseBody = append(responseBody, row.EncryptedData...)
+	}
+	copy(responseBody[0:4], IntToBytes(int32(recordCount)))
+	return responseBody, nil
+}
+
+func PackDeleted(rows []models.RowDeleted) (responseBody []byte) {
+	var recordCount uint32 = 0
+	responseBody = append(responseBody, []byte("\x00\x00\x00\x00")...)
+	for _, row := range rows {
+		recordCount++
+		responseBody = append(responseBody, BigintToBytes(row.ItemID)...)
+		responseBody = append(responseBody, BigintToBytes(row.LastModified)...)
+		responseBody = append(responseBody, SmallintToBytes(row.ItemTable)...)
+	}
+	copy(responseBody[0:4], IntToBytes(int32(recordCount)))
 	return responseBody
 }

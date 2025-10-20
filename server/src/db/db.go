@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-14
+ * Updated: 2025-10-19
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -15,6 +15,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"openorganizer/src/models"
@@ -23,6 +24,7 @@ import (
 
 var db *sql.DB
 var tokenExpireTime uint32
+var tokenExpireRefresh bool
 
 // connects to the postgresql server using provided env variables
 func ConnectToDB(env models.ENVVars) error {
@@ -35,16 +37,22 @@ func ConnectToDB(env models.ENVVars) error {
 	err = db.Ping()
 
 	tokenExpireTime = env.TOKEN_EXPIRE_TIME
+	tokenExpireRefresh = env.TOKEN_EXPIRE_REFRESH
 
 	return err
 }
 
 // creates all required db tables that do not already exist
-func EnsureDBTables(dropAll bool) chan error {
+func EnsureDBTables(env models.ENVVars) chan error {
 	var errs = make(chan error)
 
-	if dropAll {
-		_, err := db.Exec(dropAllTables)
+	if env.CLEAR_DB_AUTH {
+		_, err := db.Exec(dropAllAuth)
+		utils.AddError(err, errs)
+	}
+
+	if env.CLEAR_DB_DATA {
+		_, err := db.Exec(dropAllData)
 		utils.AddError(err, errs)
 	}
 
@@ -83,19 +91,237 @@ func CloseDatabase() {
 	db.Close()
 }
 
-// general non-account / authentication or syncing functions
-
-func GetLastUpdated(userAuth models.UserAuth) (row models.RowLastUpdated) {
-	rows, err := db.Query(lastupRead, userAuth.UserID, userAuth.AuthToken)
+func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
+	rows, err := db.Query(lastupRead, userID)
 	if err != nil {
-		return models.RowLastUpdated{}
+		return models.RowLastUpdated{}, err
 	}
 	defer rows.Close()
 	if !rows.Next() {
-		return models.RowLastUpdated{}
+		return models.RowLastUpdated{}, errors.New("")
 	}
 	_ = rows.Scan(&row.UserID, &row.LastUpNotes, &row.LastUpReminders,
-		&row.LastUpDaily, &row.LastUpMonthly, &row.LastUpMonthly, &row.LastUpYearly,
+		&row.LastUpDaily, &row.LastUpWeekly, &row.LastUpMonthly, &row.LastUpYearly,
 		&row.LastUpExtensions, &row.LastUpOverrides, &row.LastUpFolders, &row.LastUpDeleted)
-	return row
+	return row, nil
+}
+
+func UpdateLastup(fieldName string, userID int64, time int64) {
+	_, _ = db.Query(lastupUpdate(fieldName), userID, time)
+}
+
+// syncup
+
+func InsertItems(tableName string, rows []models.RowItems) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertItem(tableName), row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertExtensions(rows []models.RowExtensions) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertExtension, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.SequenceNum, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertOverrides(rows []models.RowOverrides) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertOverride, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.LinkedItemID, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+func InsertFolders(rows []models.RowFolders) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertFolder, row.UserID, row.FolderID, row.LastModified, row.LastUpdated, row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+	}
+	return fails, nil
+}
+
+// inserts received deleted rows and removes the row from its home table
+func InsertDeleted(rows []models.RowDeleted) (fails []bool, err error) {
+	fails = make([]bool, len(rows))
+	for i, row := range rows {
+		found, err := db.Query(insertDeleted, row.UserID, row.ItemID, row.LastModified, row.LastUpdated, row.ItemTable)
+		if err != nil {
+			return nil, err
+		}
+		if !found.Next() {
+			fails[i] = true
+		}
+		found.Close()
+		deleteRow(row)
+	}
+	return fails, nil
+}
+
+func deleteRow(row models.RowDeleted) {
+	const notesTable int16 = 11
+	const remindersTable int16 = 12
+	const dailyTable int16 = 21
+	const weeklyTable int16 = 22
+	const monthlyTable int16 = 23
+	const yearlyTable int16 = 24
+	const overridesTable int16 = 31
+	const foldersTable int16 = 32
+	switch row.ItemTable {
+	case notesTable:
+		_, _ = db.Query(deleteItem("notes"), row.UserID, row.ItemID)
+	case remindersTable:
+		_, _ = db.Query(deleteItem("reminders"), row.UserID, row.ItemID)
+	case dailyTable:
+		_, _ = db.Query(deleteItem("daily_reminders"), row.UserID, row.ItemID)
+	case weeklyTable:
+		_, _ = db.Query(deleteItem("weekly_reminders"), row.UserID, row.ItemID)
+	case monthlyTable:
+		_, _ = db.Query(deleteItem("monthly_reminders"), row.UserID, row.ItemID)
+	case yearlyTable:
+		_, _ = db.Query(deleteItem("yearly_reminders"), row.UserID, row.ItemID)
+	case overridesTable:
+		_, _ = db.Query(deleteItem("overrides"), row.UserID, row.ItemID)
+	case foldersTable:
+		_, _ = db.Query(deleteFolder, row.UserID, row.ItemID)
+	}
+	_, _ = db.Query(deleteItem("extentions"), row.UserID, row.ItemID)
+}
+
+// syncdown
+
+func GetItemRows(tableName string, userID int64, startTime int64, endTime int64) (rows []models.RowItems, err error) {
+	sqlRows, err := db.Query(getRows(tableName), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowItems
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetExtensionRows(userID int64, startTime int64, endTime int64) (rows []models.RowExtensions, err error) {
+	sqlRows, err := db.Query(getRows("extensions"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowExtensions
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.SequenceNum, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetOverrideRows(userID int64, startTime int64, endTime int64) (rows []models.RowOverrides, err error) {
+	sqlRows, err := db.Query(getRows("overrides"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowOverrides
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.LinkedItemID, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetFolderRows(userID int64, startTime int64, endTime int64) (rows []models.RowFolders, err error) {
+	sqlRows, err := db.Query(getRows("folders"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowFolders
+		err = sqlRows.Scan(&row.UserID, &row.FolderID, &row.LastModified, &row.LastUpdated, &row.EncryptedData)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
+}
+
+func GetDeletedRows(userID int64, startTime int64, endTime int64) (rows []models.RowDeleted, err error) {
+	sqlRows, err := db.Query(getRows("deleted"), userID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	for sqlRows.Next() {
+		var row models.RowDeleted
+		err = sqlRows.Scan(&row.UserID, &row.ItemID, &row.LastModified, &row.LastUpdated, &row.ItemTable)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	err = sqlRows.Err()
+	if err != nil {
+		return rows, err
+	}
+	return rows, nil
 }

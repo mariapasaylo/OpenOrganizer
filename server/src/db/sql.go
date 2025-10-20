@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-12
+ * Updated: 2025-10-19
  *
  * This file declares const values and defines functions for SQL statements to store and retrieve from the database.
  *
@@ -105,10 +105,13 @@ CREATE TABLE IF NOT EXISTS deleted (
 	PRIMARY KEY(userID, itemID)
 );`
 
-const dropAllTables = `
+const dropAllAuth = `
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS tokens;
 DROP TABLE IF EXISTS last_updated;
+`
+
+const dropAllData = `
 DROP TABLE IF EXISTS notes;
 DROP TABLE IF EXISTS reminders;
 DROP TABLE IF EXISTS daily_reminders;
@@ -123,33 +126,46 @@ DROP TABLE IF EXISTS deleted;
 
 // users
 
-const usersCreate = `
+const userCreate = `
 INSERT INTO users (username, lastUpdated, lastLogin, passwordHashHash, salt, encrPrivateKey, encrPrivateKey2) 
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING userID;
 `
 
-const usersCreateManualID = `
+/*const usersCreateManualID = `
 INSERT INTO users VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
-`
+`*/
 
-const usersRead = `
+const userRead = `
 SELECT * FROM users WHERE username = $1;
 `
 
-const usersUpdate = `
+const userUpdate = `
 UPDATE users 
 SET username = $2, lastUpdated = $3, lastLogin = $4, passwordHashHash = $5, salt = $6, encrPrivateKey = $7, encrPrivateKey2 = $8 
 WHERE username = $1
 RETURNING userID;
 `
 
-const usersUpdateLastLogin = `
+const userUpdateLastLogin = `
 UPDATE users SET lastLogin = $2 WHERE username = $1;
 `
 
-const usersDelete = `
-DELETE FROM users WHERE username = $1;
+const userDelete = `
+DELETE FROM users WHERE username = $1 RETURNING *;
+`
+
+const userDeleteAllDataTables = `
+DELETE FROM notes WHERE userID = $1;
+DELETE FROM reminders WHERE userID = $1;
+DELETE FROM daily_reminders WHERE userID = $1;
+DELETE FROM weekly_reminders WHERE userID = $1;
+DELETE FROM monthly_reminders WHERE userID = $1;
+DELETE FROM yearly_reminders WHERE userID = $1;
+DELETE FROM extensions WHERE userID = $1;
+DELETE FROM overrides WHERE userID = $1;
+DELETE FROM folders WHERE userID = $1;
+DELETE FROM deleted WHERE userID = $1;
 `
 
 // tokens
@@ -158,12 +174,12 @@ const tokensCreate = `
 INSERT INTO tokens VALUES ($1, $2, $3, $4);
 `
 
-const tokensReadExpiration = `
-SELECT expirationTime FROM tokens WHERE userID = $1 AND authToken = $2;
+const tokenReadTimes = `
+SELECT creationTime, expirationTime FROM tokens WHERE userID = $1 AND authToken = $2;
 `
 
-const tokensUpdateExpiration = `
-UPDATE tokens SET expirationTime = $2 WHERE userID = $1;
+const tokenUpdateExpiration = `
+UPDATE tokens SET expirationTime = $3 WHERE userID = $1 AND creationTime = $2;
 `
 
 const tokensDeleteAllFromUser = `
@@ -184,15 +200,76 @@ const lastupRead = `
 SELECT * FROM last_updated WHERE userID = $1;
 `
 
-const lastupUpdate = `
-UPDATE last_updated 
-SET lastUpNotes = $2, lastUpReminder = $3, lastUpDaily = $4, lastUpWeekly = $5, lastUpMonthly = $6, 
-lastUpYearly = $7, lastUpExtensions = $8, lastUpOverrides = $9, lastUpFolders = $10, lastUpDeleted = $11
-WHERE userID = $1;
-`
+func lastupUpdate(fieldName string) string {
+	return `UPDATE last_updated SET ` + fieldName + ` = $2 WHERE userID = $1;`
+}
 
 const lastupDelete = `
 DELETE FROM last_updated WHERE userID = $1;
 `
 
-// item tables
+// syncup
+
+func insertItem(tableName string) string {
+	return `
+INSERT INTO ` + tableName + ` (userID, itemID, lastModified, lastUpdated, encryptedData)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $5
+WHERE ` + tableName + `.lastModified < $3
+RETURNING *;
+`
+}
+
+const insertExtension = `
+INSERT INTO extensions (userID, itemID, lastModified, lastUpdated, sequenceNum, encryptedData)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (userID, itemID, sequenceNum) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $6
+WHERE extensions.lastModified < $3
+RETURNING *;
+`
+
+const insertOverride = `
+INSERT INTO overrides (userID, itemID, lastModified, lastUpdated, linkedItemID, encryptedData)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, linkedItemID = $5, encryptedData = $6
+WHERE overrides.lastModified < $3
+RETURNING *;
+`
+
+const insertFolder = `
+INSERT INTO folders (userID, folderID, lastModified, lastUpdated, encryptedData)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, folderID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, encryptedData = $5
+WHERE folders.lastModified < $3
+RETURNING *;
+`
+
+const insertDeleted = `
+INSERT INTO deleted (userID, itemID, lastModified, lastUpdated, itemTable)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (userID, itemID) DO UPDATE
+SET lastModified = $3, lastUpdated = $4, itemTable = $5
+WHERE deleted.lastModified < $3
+RETURNING *;
+`
+
+func deleteItem(tableName string) string {
+	return `
+DELETE FROM ` + tableName + ` WHERE userID = $1 AND itemID = $2;
+`
+}
+
+const deleteFolder = `
+DELETE FROM folders WHERE userID = $1 AND folderID = $2;
+`
+
+// syncdown of any table for a given user and within a time frame
+func getRows(tableName string) string {
+	return `
+SELECT * FROM ` + tableName + ` WHERE userID = $1 AND lastUpdated >= $2 AND lastUpdated <= $3;
+`
+}

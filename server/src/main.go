@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-04-13
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file is the entry point to the server.
  * It handles the large scope of the order of operations for initialization and serving requests.
@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("Connected to SQL database")
 	defer db.CloseDatabase()
 
-	_ = db.EnsureDBTables(env.CLEAR_DB)
+	_ = db.EnsureDBTables(env)
 
 	services.AssignHandlers()
 

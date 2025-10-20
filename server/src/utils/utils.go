@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-12
+ * Updated: 2025-10-18
  *
  * This file declares general utilities that are useful helper functions across many areas.
  *
@@ -34,6 +34,22 @@ func RandArray(length int32) []byte {
 	rand.Read(array)
 	return array
 }
+
+// byte array to integer
+
+func BytesToBigint(eight []byte) int64 {
+	return int64(binary.LittleEndian.Uint64(eight))
+}
+
+func BytesToInt(four []byte) int32 {
+	return int32(binary.LittleEndian.Uint32(four))
+}
+
+func BytesToSmallint(two []byte) int16 {
+	return int16(binary.LittleEndian.Uint16(two))
+}
+
+// integer to byte array
 
 func BigintToBytes(value int64) (eight []byte) {
 	eight = make([]byte, 8)
