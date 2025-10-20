@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-17
+ * Updated: 2025-10-20
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -97,6 +97,10 @@ declare global {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
     };
+
+    electronAuthAPI: {
+      createAccount: (username: string, password: string) => Promise<{ success: boolean; message: string}>;
+    }
 
     reminderNotificationAPI: {
       showReminderNotification: (reminder: { title: string; date: string }) => Promise<boolean>;

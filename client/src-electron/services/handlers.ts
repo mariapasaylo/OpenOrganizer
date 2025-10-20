@@ -25,6 +25,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
+import { createAccount } from "./auth";
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -306,3 +307,7 @@ export function registerHandlers()
     return true;
   });
 }
+
+ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
+  return await createAccount(username, password);
+});

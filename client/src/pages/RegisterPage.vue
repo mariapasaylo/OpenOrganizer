@@ -1,7 +1,7 @@
 <!--
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-23
+ * Updated: 2025-10-20
  *
  * This file is the registration form for a user to create a new account that includes a sidebar with the application name and logo
  *
@@ -36,7 +36,13 @@
                 @click="isPwd = !isPwd"/>
                 </template>
             </q-input>
-            <q-btn class="login-register-button" style="font-size: 15px" @click= register no-caps label="Sign up"/>
+            <q-btn class="login-register-button" 
+            style="font-size: 15px" 
+            @click= register
+            :loading="isLoading"
+            :disable="isLoading"
+            no-caps 
+            label="Sign up"/>
             <q-btn class="login-register-button" style="font-size: 15px" @click= "$router.push('/')" no-caps label="Index Screen" />
         </div>
     </qpage>
@@ -45,13 +51,46 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
+const $q = useQuasar();
 const username = ref('');
 const password = ref('');
-const isPwd = ref(true)
+const isPwd = ref(true);
+const isLoading = ref(false)
 
-function register() {
-    console.log("username: ", username)
-    console.log("password: ", password)
+async function register() {
+    if (!username.value || !password.value){
+        $q.notify({
+            type: 'negative',
+            message: 'Please fill in both username and password fields.'
+        });
+        return
+    }
+
+    //TO DO: add other input validation requirements
+
+    isLoading.value = true;
+
+    try {
+        const result = await window.electronAuthAPI.createAccount(username.value, password.value)
+        
+        if(result.success){
+            //navigate to main calendar page
+            await router.push('/calendar')
+        } 
+    } catch (error) {
+        console.error('Error creating account', error);
+        $q.notify({
+            type: 'negative',
+            message: 'An error occured while creating account'
+        });
+    } finally {
+        isLoading.value = false;
+    }
+
 }
+
 </script>
