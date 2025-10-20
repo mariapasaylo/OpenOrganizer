@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-14
+ * Updated: 2025-10-18
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -86,20 +86,6 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 		return env, errors.New("DB_PWD is null")
 	}
 
-	env.CLEAR_DB = false
-	var CLEAR_DB = os.Getenv("CLEAR_DB")
-	if CLEAR_DB == "TRUE" {
-		env.CLEAR_DB = true
-	}
-	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
-	if TOKEN_EXPIRE_TIME == "" {
-		TOKEN_EXPIRE_TIME = "3600"
-	}
-	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
-	if MAX_RECORD_COUNT == "" {
-		MAX_RECORD_COUNT = "1000"
-	}
-
 	env.SERVER_PORT_HTTP = SERVER_PORT_HTTP
 	env.SERVER_CRT = SERVER_CRT
 	env.SERVER_KEY = SERVER_KEY
@@ -107,6 +93,30 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.DB_PORT = DB_PORT
 	env.DB_USER = DB_USER
 	env.DB_PWD = DB_PWD
+
+	env.CLEAR_DB_AUTH = false
+	var CLEAR_DB_AUTH = os.Getenv("CLEAR_DB_AUTH")
+	if CLEAR_DB_AUTH == "TRUE" {
+		env.CLEAR_DB_AUTH = true
+	}
+	env.CLEAR_DB_DATA = false
+	var CLEAR_DB_DATA = os.Getenv("CLEAR_DB_DATA")
+	if CLEAR_DB_DATA == "TRUE" {
+		env.CLEAR_DB_DATA = true
+	}
+	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
+	if TOKEN_EXPIRE_TIME == "" {
+		TOKEN_EXPIRE_TIME = "42300"
+	}
+	env.TOKEN_EXPIRE_REFRESH = false
+	var TOKEN_EXPIRE_REFRESH = os.Getenv("TOKEN_EXPIRE_REFRESH")
+	if TOKEN_EXPIRE_REFRESH == "TRUE" {
+		env.TOKEN_EXPIRE_REFRESH = true
+	}
+	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
+	if MAX_RECORD_COUNT == "" {
+		MAX_RECORD_COUNT = "1000"
+	}
 
 	tokenExpireTime, err := strconv.Atoi(TOKEN_EXPIRE_TIME)
 	if err != nil {
