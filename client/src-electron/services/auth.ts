@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-17
+ * Updated: 2025-10-20
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -44,7 +44,7 @@ const accountSchema: Schema<Account> ={
 
 const accountStore = new Store<Account>({
   schema: accountSchema,
-  name: 'account'
+  name: 'userAccount'
 });
 
 function getUsername() {
@@ -79,11 +79,15 @@ function setPrivateKey(privateKey : Buffer) {
   accountStore.set('privateKey', privateKey);
 }
 
-export function createAccount(username : string, password : string) {
+export async function createAccount(username : string, password : string): Promise<boolean> {
   // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
+  setUsername(username);
+  setPassword(password);
   setPrivateKey(generatePrivateKey());
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, Buffer.alloc(16, 0));
   // send API request to /register
+  
+  return true;
 }
