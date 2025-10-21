@@ -44,7 +44,7 @@ func main() {
 	services.AssignHandlers()
 
 	errs := services.Run(env)
-	if true {
+	if env.TEST_SUITE {
 		go func() {
 			test.TestSuite(env)
 		}()

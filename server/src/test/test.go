@@ -14,18 +14,30 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"openorganizer/src/db"
 	"openorganizer/src/models"
-	"openorganizer/src/utils"
 )
 
+var envClearAll = models.ENVVars{
+	CLEAR_DB_AUTH: true,
+	CLEAR_DB_DATA: true,
+}
+var envClearAuth = models.ENVVars{
+	CLEAR_DB_AUTH: true,
+	CLEAR_DB_DATA: false,
+}
+var envClearData = models.ENVVars{
+	CLEAR_DB_AUTH: false,
+	CLEAR_DB_DATA: true,
+}
+
 var env models.ENVVars
+var url string
+
+var successes []bool
 
 func TestSuite(envData models.ENVVars) {
 	env = envData
@@ -34,37 +46,42 @@ func TestSuite(envData models.ENVVars) {
 		`
 Test Suite is enabled, running.
 WARNING: TEST SUITE WILL DROP ALL TABLES IN THE ATTACHED DATABASE.
-PROCESS WILL NOT START FOR %v SECONDS.
+TESTING WILL NOT START FOR %v SECONDS.
 PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESERVE STORED DATA.
 
 `, env.TEST_SUITE_DELAY)
 	time.Sleep(time.Duration(env.TEST_SUITE_DELAY) * time.Second)
 	fmt.Printf("Test Suite initiated.\n\n")
 
-	envDropTables := models.ENVVars{
-		CLEAR_DB_AUTH: true,
-		CLEAR_DB_DATA: true,
-	}
-	db.EnsureDBTables(envDropTables)
+	db.EnsureDBTables(envClearAll)
+	url = "http://localhost:" + env.SERVER_PORT_HTTP + "/"
 
-	url := "http://localhost:" + env.SERVER_PORT_HTTP + "/"
-	payload := []byte{}
-	request, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Printf("%v\n", err)
-	}
-	client := &http.Client{}
-	response, err := client.Do(request)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-	}
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("recordCountBuf: %s\n", body)
-	fmt.Printf("recordCountVal: %v\n", uint32(utils.BytesToInt(body)))
+	test1()
 
 	fmt.Printf("\nTest Suite complete.\n")
+	var failures []uint16
+	for i, b := range successes {
+		if !b {
+			failures = append(failures, uint16(i+1))
+		}
+	}
+	fmt.Printf("Passed %v of %v tests.\n", len(successes)-len(failures), len(successes))
+	if len(failures) > 0 {
+		fmt.Printf("Failed tests: ")
+		for _, v := range failures {
+			fmt.Printf("%v ", v)
+		}
+		fmt.Printf("\n")
+	}
+	fmt.Printf("\n")
+}
+
+func success() bool {
+	successes = append(successes, true)
+	return true
+}
+
+func fail() bool {
+	successes = append(successes, false)
+	return false
 }

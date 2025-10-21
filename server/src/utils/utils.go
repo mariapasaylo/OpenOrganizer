@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-18
+ * Updated: 2025-10-20
  *
  * This file declares general utilities that are useful helper functions across many areas.
  *
@@ -15,6 +15,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"time"
 )
 
@@ -23,6 +24,14 @@ func AddError(err error, errs chan error) {
 	if err != nil {
 		errs <- err
 	}
+}
+
+func PrintErrorLine(err error) (nonnil bool) {
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return true
+	}
+	return false
 }
 
 func Now() int64 {
