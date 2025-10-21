@@ -80,6 +80,8 @@ export async function createReminder(
     title: title
   };
   await window.sqliteAPI.createReminder(newRem);
+  // Return the timestamp ID of the reminder to use in frontend
+  return timeMs;
 
   /* Todo: add specific extension implementation depending on eventType value
      const newExt: Extension = {
