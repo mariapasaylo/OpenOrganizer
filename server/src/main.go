@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-04-13
- * Updated: 2025-10-18
+ * Updated: 2025-10-20
  *
  * This file is the entry point to the server.
  * It handles the large scope of the order of operations for initialization and serving requests.
@@ -21,6 +21,7 @@ import (
 
 	"openorganizer/src/db"
 	"openorganizer/src/services"
+	"openorganizer/src/test"
 )
 
 func main() {
@@ -43,5 +44,10 @@ func main() {
 	services.AssignHandlers()
 
 	errs := services.Run(env)
+	if true {
+		go func() {
+			test.TestSuite(env)
+		}()
+	}
 	log.Fatal(<-errs)
 }
