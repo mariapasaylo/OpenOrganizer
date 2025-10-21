@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-19
+ * Updated: 2025-10-20
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -59,7 +59,7 @@ type ENVVars struct {
 	// defaults to false
 	CLEAR_DB_DATA bool
 	// determines if the test suite will run alongside main
-	// WARNING: WILL CLEAR THE DATABASE IN ORDER TO RUN IT
+	// WARNING: WILL CLEAR THE ENTIRE RELEVANT DATABASE AFTER TEST_SUITE_DELAY SECONDS
 	// defaults to false
 	TEST_SUITE bool
 	// determines length of time in seconds before the test suite initializes
