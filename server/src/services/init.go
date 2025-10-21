@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-18
+ * Updated: 2025-10-20
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -94,16 +94,6 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.DB_USER = DB_USER
 	env.DB_PWD = DB_PWD
 
-	env.CLEAR_DB_AUTH = false
-	var CLEAR_DB_AUTH = os.Getenv("CLEAR_DB_AUTH")
-	if CLEAR_DB_AUTH == "TRUE" {
-		env.CLEAR_DB_AUTH = true
-	}
-	env.CLEAR_DB_DATA = false
-	var CLEAR_DB_DATA = os.Getenv("CLEAR_DB_DATA")
-	if CLEAR_DB_DATA == "TRUE" {
-		env.CLEAR_DB_DATA = true
-	}
 	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
 	if TOKEN_EXPIRE_TIME == "" {
 		TOKEN_EXPIRE_TIME = "42300"
@@ -129,6 +119,31 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.TOKEN_EXPIRE_TIME = uint32(tokenExpireTime)
 	maxRecordCount = uint32(recordCount)
 	env.MAX_RECORD_COUNT = maxRecordCount
+
+	env.CLEAR_DB_AUTH = false
+	var CLEAR_DB_AUTH = os.Getenv("CLEAR_DB_AUTH")
+	if CLEAR_DB_AUTH == "TRUE" {
+		env.CLEAR_DB_AUTH = true
+	}
+	env.CLEAR_DB_DATA = false
+	var CLEAR_DB_DATA = os.Getenv("CLEAR_DB_DATA")
+	if CLEAR_DB_DATA == "TRUE" {
+		env.CLEAR_DB_DATA = true
+	}
+	env.TEST_SUITE = false
+	var TEST_SUITE = os.Getenv("TEST_SUITE")
+	if TEST_SUITE == "TRUE" {
+		env.TEST_SUITE = true
+	}
+	var TEST_SUITE_DELAY = os.Getenv("TEST_SUITE_DELAY")
+	if TEST_SUITE_DELAY == "" {
+		TEST_SUITE_DELAY = "20"
+	}
+	testSuiteDelay, err := strconv.Atoi(TEST_SUITE_DELAY)
+	if err != nil {
+		return env, errors.New("invalid value in TOKEN_EXPIRE_TIME, must be convertible to int32")
+	}
+	env.TEST_SUITE_DELAY = uint16(testSuiteDelay)
 
 	return env, err
 }

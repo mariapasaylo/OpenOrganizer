@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-19
+ * Updated: 2025-10-20
  *
  * This file declares the struct for storing all .env variables that are fetched at server initialization.
  *
@@ -13,6 +13,9 @@
 package models
 
 type ENVVars struct {
+
+	// server information fields
+
 	// if this server is accessible outside the local machine
 	// defaults to false
 	LOCAL_ONLY bool
@@ -35,12 +38,8 @@ type ENVVars struct {
 	DB_USER string
 	DB_PWD  string
 
-	// clear database tables for authentication upon server launch
-	// defaults to false
-	CLEAR_DB_AUTH bool
-	// clear database tables for user data upon server launch
-	// defaults to false
-	CLEAR_DB_DATA bool
+	// misc behavior configs
+
 	// time in seconds for an authentication token to expire
 	// defaults to 43200 seconds / 12 hours
 	TOKEN_EXPIRE_TIME uint32
@@ -50,4 +49,20 @@ type ENVVars struct {
 	// max transmitted records in either direction during syncing
 	// defaults to 1000 records
 	MAX_RECORD_COUNT uint32
+
+	// testing configs
+
+	// clear database tables for authentication upon server launch
+	// defaults to false
+	CLEAR_DB_AUTH bool
+	// clear database tables for user data upon server launch
+	// defaults to false
+	CLEAR_DB_DATA bool
+	// determines if the test suite will run alongside main
+	// WARNING: WILL CLEAR THE ENTIRE RELEVANT DATABASE AFTER TEST_SUITE_DELAY SECONDS
+	// defaults to false
+	TEST_SUITE bool
+	// determines length of time in seconds before the test suite initializes
+	// defaults to 20 seconds
+	TEST_SUITE_DELAY uint16
 }

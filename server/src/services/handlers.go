@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-18
+ * Updated: 2025-10-20
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -76,7 +76,7 @@ func readRequestGeneral(w http.ResponseWriter, r *http.Request, headerSize uint3
 func root(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
-	fmt.Fprintf(w, "%v", maxRecordCount)
+	fmt.Fprintf(w, "%s", utils.IntToBytes(int32(maxRecordCount)))
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
