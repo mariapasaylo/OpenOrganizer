@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-20
+ * Updated: 2025-10-21
  *
  * This file is the registration form for a user to create a new account that includes a sidebar with the application name and logo
  *
@@ -76,7 +76,7 @@ async function register() {
 
     try {
         const result = await window.electronAuthAPI.createAccount(username.value, password.value)
-        
+        console.log('Account creation result:', result);
         if(result.success){
             //navigate to main calendar page
             await router.push('/calendar')

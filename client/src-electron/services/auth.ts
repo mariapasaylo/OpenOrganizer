@@ -21,6 +21,7 @@ interface Account{
   password: string;
   privateKey: Buffer;
   authToken: Buffer;
+  userId: number;
 }
 
 const accountSchema: Schema<Account> ={
@@ -39,6 +40,10 @@ const accountSchema: Schema<Account> ={
   authToken:{
     type: 'object',
     default: Buffer.alloc(32)
+  },
+  userId:{
+    type: 'number',
+    default: 0
   }
 }
 
@@ -77,6 +82,14 @@ function getPrivateKey() {
 
 function setPrivateKey(privateKey : Buffer) {
   accountStore.set('privateKey', privateKey);
+}
+
+function getUserId() {
+  return accountStore.get('userId');
+} 
+
+function setUserId(userId : bigint) {
+  accountStore.set('userId', userId);
 }
 
 export async function createAccount(username : string, password : string): Promise<boolean> {
