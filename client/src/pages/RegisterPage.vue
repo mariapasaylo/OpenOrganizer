@@ -56,8 +56,8 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const $q = useQuasar();
-const username = ref('');
-const password = ref('');
+const username = ref<string>('');
+const password = ref<string>('');
 const isPwd = ref(true);
 const isLoading = ref(false)
 
@@ -75,9 +75,10 @@ async function register() {
     isLoading.value = true;
 
     try {
-        const result = await window.electronAuthAPI.createAccount(username.value, password.value)
-        console.log('Account creation result:', result);
-        if(result.success){
+        const result = await window.electronAuthAPI.createAccount(username.value, password.value);
+       
+        if(result){
+            console.log('Account creation result:', result);
             //navigate to main calendar page
             await router.push('/calendar')
         } 

@@ -99,7 +99,7 @@ declare global {
     };
 
     electronAuthAPI: {
-      createAccount: (username: string, password: string) => Promise<{ success: boolean; message: string}>;
+      createAccount: (username: string, password: string) => Promise<{ success: boolean}>;
     }
 
     reminderNotificationAPI: {
