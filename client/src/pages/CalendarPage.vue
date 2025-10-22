@@ -80,6 +80,12 @@
         </q-breadcrumbs>
         <q-breadcrumbs>
           <!-- Each selectable item in breadcrumb path -->
+            <q-breadcrumbs-el
+            v-for="crumb in breadcrumbs"
+            :key="crumb.id"
+            :label="crumb.label"
+            @click="selectBreadcrumbItem(crumb.id)"
+          /> 
         </q-breadcrumbs>
         <q-tree 
           :nodes="qNestedTree"
@@ -478,35 +484,34 @@ const folderDropdownOptions = computed(() => {
   }));
 });
 
-// Normalize selected node to be numeric format (folder ID) for breadcrumb trail navigation
-/* function normalizeFolderID(selectedNode: number | string | null): number | null {
+// Normalize selected node to be folderID for breadcrumb trail navigation 
+// Needed because notes/reminders are selectable children with negative IDs in the tree
+function normalizeFolderID(selectedNode: number | null): number | null {
   // Selected tree node is null, return null
    if (selectedNode === null) {
       return null;
     }
-  // Selected tree node is a folder (number), just return the folder
-  if (typeof selectedNode === 'number') {
+  // Selected tree node is positive ID, must be a folder, just return the folder
+  if (selectedNode > 0) {
     return selectedNode;
   }
-   // Selected tree node is a reminder/note (string), find its folder ID
-  if (typeof selectedNode === 'string') {
-
-    if (selectedNode.startsWith('note-')) {
-      // Remove note- prefix to get numeric note ID
-      const noteID = selectedNode.slice('note-'.length);
-      // Find the first note from notes array that matches the noteID
-      const note = notes.value.find(note => note.itemID === `note-${noteID}`);
-      // Return the folderID of that note (or null if not found)
-      return (note?.folderID ?? null);
+  // Selected tree node is a reminder/note (negative of itemID), find its folder ID
+  else {
+    // Recover original item ID from tree ID by taking absolute value
+    const itemID = Math.abs(selectedNode);
+    // Try to find note thats itemID matches the selected node item ID to get UI data (folderID, title, color, etc.)
+    const note = notes.value.find(note => note.itemID === itemID);
+    // If note is found, return its folderID
+    if (note) {
+      return note.folderID ?? null;
     }
-
-    if (selectedNode.startsWith('reminder-')) {
-      const reminderID = selectedNode.slice('reminder-'.length);
-      const reminder = reminders.value.find(reminder => reminder.itemID === `reminder-${reminderID}`);
-      return reminder?.folderID ?? null;
+    // Try to find reminder thats itemID matches the selected node item ID
+    const reminder = reminders.value.find(reminder => reminder.itemID === itemID);
+    // If reminder is found, return its folderID
+    if (reminder) {
+      return reminder.folderID ?? null;
     }
   }
-  
   return null;
 }
 
@@ -549,7 +554,7 @@ const breadcrumbs = computed(() => {
 function selectBreadcrumbItem(folderID : number) {
   selectedFolderID.value = folderID;
 }
-  */
+  
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
 const nest = (items: UIFolder[], id: number):
@@ -573,7 +578,7 @@ function convertFolderTreetoQTree(folders: UIFolder[]): QTreeFolder[] {
     const noteTreeNodes = notesInCurrFolder.map((note) => {
       return {
         label: note.title,
-        id: `note-${note.itemID}`, 
+        id: -Math.abs(note.itemID), // Use negative ID to distinguish notes and reminders from folders
         // No icon, color, or children properties for notes
       };
     });
@@ -585,7 +590,7 @@ function convertFolderTreetoQTree(folders: UIFolder[]): QTreeFolder[] {
     const reminderTreeNodes = remindersInCurrFolder.map((reminder) => {
       return {
         label: reminder.title,
-        id: `reminder-${reminder.itemID}`, 
+        id: -Math.abs(reminder.itemID), 
         // No icon, color, or children properties for reminders
       };
     });
