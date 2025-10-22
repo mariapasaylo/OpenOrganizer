@@ -262,6 +262,7 @@
           ">
           <div style="width: 100%; display: flex; justify-content: space-evenly">
             <div style="width: 50%; display: flex; justify-content: space-between">
+              <span class="q-button" style="cursor: pointer; user-select: none;" @click="onToday">Today</span>
               <span class="q-button" style="cursor: pointer; user-select: none" @click="onPrev">&lt;</span>
               {{ formattedMonth }}
               <span class="q-button" style="cursor: pointer; user-select: none" @click="onNext">&gt;</span>
@@ -278,7 +279,18 @@
                 :focus-type="['date', 'weekday']" :min-weeks="6" animated @change="onChange" @moved="onMoved"
                 @click-date="onClickDate" @click-day="onClickDay" @click-workweek="onClickWorkweek"
                 @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" >
-             
+                <template #day="{ scope: { timestamp } }">
+              <template v-for="event in eventsMap[timestamp.date]" :key="event.id">
+                <div
+                  :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
+                  style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
+                >
+                  <div class="event-title" style="width: 100%; max-width: 100%;">
+                  {{ event.title }}
+                  </div>
+                </div>
+              </template>
+            </template>
               </q-calendar-month>
             </div>
           </div>
@@ -438,7 +450,7 @@ const selectedFolderID = ref<number | null>(null);
 
 // Reminder on calendar
 type CalendarEvent = {
-  id: string;
+  id: number;
   title: string;
   date: string;
   color: string;
@@ -1205,7 +1217,7 @@ watch(selectedDate, async (newDate) => {
 });
 
 
-/*
+
 // Create events on calendar from reminders
 // script source code similar to slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
@@ -1232,7 +1244,7 @@ const eventsMap = computed<Record<string, CalendarEvent[]>>(() => {
   });
   return map;
 });
-*/
+
 
 // Filtered note array for specific date
 const filteredNotes = computed(() => {
