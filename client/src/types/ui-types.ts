@@ -2,7 +2,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-21
- * Updated: 2025-10-21
+ * Updated: 2025-10-22
  *
  * This file contains interfaces that extend the shared-types with UI-specific fields.
  *
@@ -21,6 +21,7 @@ import type { Note, Reminder, Folder} from '../../src-electron/types/shared-type
 // Shared-types note has itemID, lastModified, folderID, isExtended, title, text
 export type UINote = Note & {
   temporaryTitle: string;
+  temporaryText: string;
   temporaryFolderID: number | null; // The folder selected in the dropdown before the note is saved
    // This is needed to retain the folder state before the note is saved again
   // Ex. if user has a saved note and selects a folder but then cancels, it reverts back to the previous folderID
@@ -29,7 +30,7 @@ export type UINote = Note & {
   isSaved: boolean;
   expanded: boolean; // open or closed carat
   isSelected: boolean; // checkbox selection
-  date: string;
+  date: string; 
 };
 
 // Shared-types reminder has itemID, lastModified, folderID, EventType, isExtended, title, hasNotif, etc.

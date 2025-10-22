@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-17
+ * Updated: 2025-10-22
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -54,6 +54,9 @@ export async function createNote(folderID: number, title: string, text: string) 
     };
     await window.sqliteAPI.createExtension(newExt);
   }
+
+  // Return the timestamp ID of the note to use in frontend
+  return timeMs;
 }
 
 export async function createReminder(
