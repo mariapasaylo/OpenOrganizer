@@ -1,7 +1,7 @@
 /*
- * Authors: Kevin Sirantoine, Rachel Patella
+ * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-10-17
+ * Updated: 2025-10-22
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.

@@ -41,7 +41,7 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'object', // TO DO : fix does not like storing it as a big int
+    type: 'object', // TO DO : fix - does not like storing it as a big int
     default: Buffer.alloc(8)
   }
 }
@@ -114,7 +114,7 @@ export async function createAccount(username : string, password : string): Promi
 
 
   try{
-    //TO DO: update to get env server port number variable
+    //TO DO: use serverAdress text file 
     const response = await fetch("http://localhost:3001/register", {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
