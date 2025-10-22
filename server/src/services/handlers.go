@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-09
+ * Updated: 2025-10-20
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -21,7 +21,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"openorganizer/src/db"
 	"openorganizer/src/models"
+	"openorganizer/src/utils"
 )
 
 const messageSizeLimit = 0x100
@@ -44,7 +46,7 @@ func verifyRequestSize(w http.ResponseWriter, r *http.Request, headerSize uint32
 		http.Error(w, "recordCount higher than server limit of "+strconv.Itoa(int(maxRecordCount)), http.StatusBadRequest)
 		return false
 	}
-	var expectedSize = headerSize + (recordSize * recordCount)
+	expectedSize := headerSize + (recordSize * recordCount)
 	if r.ContentLength == int64(expectedSize) {
 		return true
 	}
@@ -74,7 +76,7 @@ func readRequestGeneral(w http.ResponseWriter, r *http.Request, headerSize uint3
 func root(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
-	fmt.Fprintf(w, "%v", maxRecordCount)
+	fmt.Fprintf(w, "%s", utils.IntToBytes(int32(maxRecordCount)))
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +86,14 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userLogin, userData := utils.UnpackRegister(body)
+	response, err := db.RegisterUser(userLogin, userData)
+	if err != nil {
+		http.Error(w, "Account with that username already exists.", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +103,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userLogin := utils.UnpackLogin(body)
+	response, err := db.Login(userLogin)
+	if err != nil {
+		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func changeLogin(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +120,19 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userLogin, userLoginNew, userData := utils.UnpackChangeLogin(body)
+	_, err = db.Login(userLogin)
+	if err != nil {
+		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
+		return
+	}
+	response, err := db.ModifyUser(userLogin, userLoginNew, userData)
+	if err != nil {
+		http.Error(w, "An account with that username already exists.", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", response)
 }
 
 func lastUpdated(w http.ResponseWriter, r *http.Request) {
@@ -114,5 +142,17 @@ func lastUpdated(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "read:\n%s", body)
+	userAuth := utils.UnpackUserAuth(body)
+	if !db.CheckTokenAuth(userAuth) {
+		http.Error(w, "Invalid userID+token combination.", http.StatusUnauthorized)
+		return
+	}
+
+	row, err := db.GetLastUpdated(userAuth.UserID)
+	if err != nil {
+		http.Error(w, "No lastUpdated entry found???", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", utils.PackLastUpdated(row))
 }

@@ -15,7 +15,7 @@
  * specified in the LICENSE file.
  */
 
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, Tray, Notification } from 'electron';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url'

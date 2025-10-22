@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-04-13
- * Updated: 2025-10-05
+ * Updated: 2025-10-20
  *
  * This file is the entry point to the server.
  * It handles the large scope of the order of operations for initialization and serving requests.
@@ -21,6 +21,7 @@ import (
 
 	"openorganizer/src/db"
 	"openorganizer/src/services"
+	"openorganizer/src/test"
 )
 
 func main() {
@@ -38,13 +39,15 @@ func main() {
 	fmt.Println("Connected to SQL database")
 	defer db.CloseDatabase()
 
-	err = db.EnsureDBTables()
-	if err != nil {
-		fmt.Printf("Error ensuring tables are created: %s\n", err)
-	}
+	_ = db.EnsureDBTables(env)
 
 	services.AssignHandlers()
 
 	errs := services.Run(env)
+	if env.TEST_SUITE {
+		go func() {
+			test.TestSuite(env)
+		}()
+	}
 	log.Fatal(<-errs)
 }
