@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-20
+ * Updated: 2025-10-21
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -21,7 +21,7 @@ interface Account{
   password: string;
   privateKey: Buffer;
   authToken: Buffer;
-  userId: number;
+  userId: bigint;
 }
 
 const accountSchema: Schema<Account> ={
@@ -34,7 +34,6 @@ const accountSchema: Schema<Account> ={
     default: ''
   },
   privateKey: {
-    type: 'object',
     default: Buffer.alloc(32)
   },
   authToken:{
@@ -42,7 +41,7 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'number',
+    //TO DO check casting to bigint 
     default: 0
   }
 }
@@ -77,7 +76,7 @@ function setAuthToken(authToken : Buffer) {
 }
 
 function getPrivateKey() {
-  return accountStore.get('privateKey');
+  return Buffer.from(accountStore.get('privateKey'));
 }
 
 function setPrivateKey(privateKey : Buffer) {
@@ -99,8 +98,39 @@ export async function createAccount(username : string, password : string): Promi
   setPrivateKey(generatePrivateKey());
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
-  const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, Buffer.alloc(16, 0));
-  // send API request to /register
+  const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, hashKeyPassword);
   
+  // Sending in raw data via API request to /register
+  const userData = Buffer.alloc(128,0);
+
+  //Ensure username is max 32 bytes
+  const usernameBuffer = Buffer.from(username).slice(0,32);
+  
+  //(username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128])
+  usernameBuffer.copy(userData, 0);
+  hashServerPassword.copy(userData, 32);
+  encryptedPrivateKey.copy(userData, 64);
+  encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
+
+  try{
+    //TO DO: update to get env server port number variable
+    const response = await fetch("http://localhost:3001/register", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: userData
+    });
+
+    // Check if we get a response
+
+    const responseData = Buffer.from(await response.arrayBuffer());
+    
+    console.log('Response data length:', responseData.length);
+
+    
+  } catch (error) {
+    console.error("Error registering account:", error);
+    return false;
+  }
+
   return true;
-}
+  }
