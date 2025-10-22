@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-21
+ * Updated: 2025-10-22
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -21,7 +21,7 @@ interface Account{
   password: string;
   privateKey: Buffer;
   authToken: Buffer;
-  userId: bigint;
+  userId: Buffer;
 }
 
 const accountSchema: Schema<Account> ={
@@ -41,14 +41,14 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    //TO DO check casting to bigint 
-    default: 0
+    type: 'object', // TO DO : fix does not like storing it as a big int
+    default: Buffer.alloc(8)
   }
 }
 
 const accountStore = new Store<Account>({
   schema: accountSchema,
-  name: 'userAccount'
+  name: 'accountInfo'
 });
 
 function getUsername() {
@@ -84,10 +84,10 @@ function setPrivateKey(privateKey : Buffer) {
 }
 
 function getUserId() {
-  return accountStore.get('userId');
+  return accountStore.get('userId').readBigInt64LE(0);
 } 
 
-function setUserId(userId : bigint) {
+function setUserId(userId : Buffer) {
   accountStore.set('userId', userId);
 }
 
@@ -106,11 +106,12 @@ export async function createAccount(username : string, password : string): Promi
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
   
-  //(username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128])
+  //username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128]
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
+
 
   try{
     //TO DO: update to get env server port number variable
@@ -120,12 +121,17 @@ export async function createAccount(username : string, password : string): Promi
       body: userData
     });
 
-    // Check if we get a response
-
+    // Parse the reponse
     const responseData = Buffer.from(await response.arrayBuffer());
     
-    console.log('Response data length:', responseData.length);
+    //console.log('Response data', responseData); //why is it length 43 instead of 40?
 
+    //userID [0:8], authToken[8:40]
+    const userIdBytes = responseData.slice(0, 8);
+    const authTokenBytes = responseData.slice(8, 40);
+    setAuthToken(authTokenBytes);
+    setUserId(userIdBytes);
+    
     
   } catch (error) {
     console.error("Error registering account:", error);
