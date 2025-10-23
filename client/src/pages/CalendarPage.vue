@@ -328,37 +328,18 @@
 </template>
 
 <script setup lang="ts">
-import {
-  QCalendarMonth,
-  addToDate,
-  parseTime,
-  parseDate,
-  parseTimestamp,
-  today,
-  type Timestamp,
-} from '@quasar/quasar-ui-qcalendar';
+
+import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
-
-import {
-  buildCalendarEvents,
-  groupEventsByDate, 
-  getEventTypeColor,
-  getEventTypeFields
-} from '../frontend-utils/events';
-import type { EventType } from '../frontend-utils/events'
-
-import { 
-  nest,
-  buildBreadcrumbs,
-  convertFolderTreetoQTree,
-} from '../frontend-utils/tree';
-
-import { ConvertTimeAndDateToTimestamp } from '../frontend-utils/time';
+import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, type EventType} from '../frontend-utils/events';
+import {nest, buildBreadcrumbs, convertFolderTreetoQTree,} from '../frontend-utils/tree';
+import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString } from '../frontend-utils/time';
 import { ref, computed, watch } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
 import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, readRemindersInRange, readNotesInRange} from '../utils/local-db'
 import { onMounted } from 'vue';
+
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 // Array of reminders. 
@@ -542,8 +523,8 @@ function addReminder() {
 // Function to display reminders for selected calendar date
 async function loadRemindersForCalendarDate(dateString: string) {
   // Compute timestamp for start and end of selected date/day, '' is treated as 00:00 in helper
-  const startOfDay = ConvertTimeAndDateToTimestamp(dateString, '');
-  const endOfDay = ConvertTimeAndDateToTimestamp(dateString, '23:59');
+  const startOfDay = convertTimeAndDateToTimestamp(dateString, '');
+  const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
 
   try {
     // Read reminders for currently selected date from local DB
@@ -594,8 +575,8 @@ function addNote() {
 // Function to display notes for selected calendar date
 async function loadNotesForCalendarDate(dateString: string) {
   // Compute timestamp for start and end of selected date/day, '' is treated as 00:00 in helper
-  const startOfDay = ConvertTimeAndDateToTimestamp(dateString, '');
-  const endOfDay = ConvertTimeAndDateToTimestamp(dateString, '23:59');
+  const startOfDay = convertTimeAndDateToTimestamp(dateString, '');
+  const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
 
   try {
     // Read notes for currently selected date from local DB
@@ -649,7 +630,12 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
   // Add extension onto reminder row type at compile time
   const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
 
-  // Need to add fields to the DB reminder row specific to the UI card
+  const eventStartMin = typeof row.eventStartMin === 'number' ? row.eventStartMin : null;
+  const notifMin = typeof row.notifMin === 'number' ? row.notifMin : null;
+  // Compute dropdown remind me option (ex. 5 mins before event time)
+  const minutesBeforeStartTime = (row.hasNotif === 1 && eventStartMin != null && notifMin != null) ? eventStartMin - notifMin : null;
+
+ // Need to add fields to the DB reminder row specific to the UI card
  // Sets temporary fields to saved values from DB
   const UIReminder = {
     // Copy all fields from DB shared type 
@@ -660,7 +646,7 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
     // Replace this with actual extension fields later when support is added 
     extension: typedRow.extension ?? {},
     // If theres a notification, temporary notification time is reminder notification minute of day 
-    temporaryNotificationTime: (row.hasNotif === 1) ? row.notifMin : null,
+    temporaryNotificationTime: minutesBeforeStartTime,
     date,
     titleMessageError: '',
     folderMessageError: '',
@@ -804,15 +790,6 @@ async function saveNote(note: UINote){
       await updateNote(note.itemID, note.temporaryFolderID, note.temporaryTitle, note.temporaryText);
       console.log('Note successfully updated:', note.itemID);
 
-      /*
-      note.title = note.temporaryTitle; // Update saved note title to whatever is in editable title field on save
-      note.folderID = note.temporaryFolderID; // Update the actual folder ID to one selected on dropdown on save (this is the saved folderID state)
-      // Set note to be saved after clicking save button so it can show on tree
-      note.isSaved = true;
-      // After saving note, reset error message
-      note.titleMessageError = '';
-      */
-
       // Map DB row into UI and update notes.value array
       await mapDBToUINote(note.itemID);
       // Reload folders to see updated note in file tree
@@ -869,7 +846,7 @@ async function saveReminder(reminder: UIReminder){
       reminder.timeMessageError = 'Arrival time must be before departure time.';
       return;
     }
-    //Check that check-in time is becfore check-out time for hotel event type
+    // Check that check-in time is before check-out time for hotel event type
   } else if (reminder.eventType === 2) { 
     const checkInTime = reminder.extension.checkInTime;
     const checkOutTime = reminder.extension.checkOutTime;
@@ -879,22 +856,27 @@ async function saveReminder(reminder: UIReminder){
       return;
     }
   }
-
+  // Cast times into strings (since extension fields can be multiple types)
   const startTimeStr = String(reminder.extension?.eventStartTime ?? '');
   const endTimeStr = String(reminder.extension?.eventEndTime ?? '');
   const notifTimeStr = String(reminder.extension?.eventNotificationTime ?? reminder.extension?.notifTime ?? '');
 
-  const eventStartTime = ConvertTimeAndDateToTimestamp(reminder.date, startTimeStr);
-  const eventEndTime = ConvertTimeAndDateToTimestamp(reminder.date, endTimeStr);
-  const notifTime = ConvertTimeAndDateToTimestamp(reminder.date, notifTimeStr);
+  const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTimeStr);
+  const eventEndTime = convertTimeAndDateToTimestamp(reminder.date, endTimeStr);
+  // If no notification time selected (never), return null. Otherwise, convert time into timestamp
+  const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTimeStr, reminder.temporaryNotificationTime);
+  // Toggle hasNotif based on whether notification time is selected or not. If notifTime is null, hasNotif is false since theres no notification
+  const hasNotification = notifTime != null;
+  // Send placeholder timestamp (event start time) to backend if never notification/null for safety since backend expects a timestamp
+  // Backend should ignore notifTime if hasNotif is false (theres no notification)
+  const notificationTimestampToSend = notifTime ?? eventStartTime;
+  const notifToDisplay = timestampToTimeString(notificationTimestampToSend);
 
 try {
   // Reminder is not yet saved (first time saving after clicking add), create reminder in DB
   if (!reminder.isSaved) {
-  // By default the reminder has no notification set on creation
-  const hasNotification = false;
   // Create base reminder in local DB and retrieve the itemID assigned to it
-  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notifTime, hasNotification, reminder.temporaryTitle);
+  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notificationTimestampToSend, hasNotification, reminder.temporaryTitle);
   console.log('Reminder successfully created:', itemID);
 
   // Give this new reminder the actual itemID assigned by the DB and mark it saved so future saves go to update
@@ -907,32 +889,18 @@ try {
   folders.value = await readAllFolders();
   await loadRemindersForCalendarDate(selectedDate.value);
 
-  // Show reminder notification on save for demo purposes
-  await window.reminderNotificationAPI.showReminderNotification({
-    date: reminder.date,
-    title: reminder.temporaryTitle,
-  });
+  if (hasNotification) {
+    // Convert notification to epoch for scheduling
+    const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
+    // Schedule notification
+    await window.reminderNotificationAPI.scheduleReminderNotification({itemID: itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
+    });
+  }
 }
   // Reminder is saved, just updating a preexisting reminder
   else {
-      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notifTime, false, reminder.temporaryTitle);
+      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notificationTimestampToSend, hasNotification, reminder.temporaryTitle);
       console.log('Reminder updated successfully in DB.');
-
-    /*
-        // Update reminder fields to match saved DB values on UI
-        reminder.title = reminder.temporaryTitle;
-        reminder.folderID = reminder.temporaryFolderID;
-        // Set reminder to be saved after clicking save button so it can show on tree
-        reminder.isSaved = true;
-        reminder.extension = reminder.extension ?? {};
-        reminder.extension.eventStartTime = startTimeStr;
-        reminder.extension.eventEndTime = endTimeStr;
-        reminder.extension.eventNotificationTime = notifTimeStr;
-        // After saving reminder, reset error messages
-        reminder.titleMessageError = '';
-        reminder.timeMessageError = '';
-        reminder.folderMessageError = '';
-        */
 
       // Map DB row into UI and update reminders.value array
       await mapDBToUIReminder(reminder.itemID);
@@ -941,43 +909,17 @@ try {
       // Reload reminders for selected calendar date to include newly added reminder
       await loadRemindersForCalendarDate(selectedDate.value);
 
-      // Show reminder notification on save for demo purposes
-      await window.reminderNotificationAPI.showReminderNotification({
-      date: reminder.date,
-      title: reminder.temporaryTitle,
-      });
+      if (hasNotification) {
+        // Convert notification to epoch for scheduling
+        const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
+        // Schedule notification
+        await window.reminderNotificationAPI.scheduleReminderNotification({itemID: reminder.itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
+        });
+      }
   }
   } catch (error) {
     console.error('Error adding reminder:', error);
   }
-  
-
-  /*
-  // Notification goes off for a saved reminder at specific date/time
-  // cast eventTime explicitly as string since extension fields can be different types and remove whitespace
-  const eventTime = String(reminder.extension?.eventStartTime ?? '').trim();
-  // If eventTime is empty, stay empty. If eventTime not already in HH:MM:SS format, keep eventTime as is, otherwise
-  // Pad seconds :00 onto time field ex. '22:50' to '22:50:00' (HH:MM:SS) for ISO time format and notification to go off as specific minute starts
-  const formatEventTime = eventTime === '' ? '' : eventTime.length === 5 ? `${eventTime}:00` : eventTime;
-  console.log('eventTime:', eventTime);
-  console.log('Formatted eventTime:', formatEventTime);
-  // Combine event date and time into a ISO datetime object
-  // How to use ISO standard T separator between date and time - https://stackoverflow.com/questions/16597853/combine-date-and-time-string-into-single-date-with-javascript
-  const eventDateTime = new Date(`${reminder.date}T${formatEventTime}`);
-  console.log('Reminder datetime:', eventDateTime);
-  // Convert event datetime into milliseconds since epoch for computation in handler
-  // How to get epoch for a specific datetime - https://stackoverflow.com/questions/3367415/get-epoch-for-a-specific-date-using-javascript
-  const unixMilliseconds = eventDateTime.getTime();
-  console.log('Unix milliseconds:', unixMilliseconds);
-  // Schedule reminder notification using electron API exposed in preload script
-  const result = await window.reminderNotificationAPI.scheduleReminderNotification({ itemID, date: reminder.date, title: reminder.title, time: eventTime, unixMilliseconds});
-  if (result) {
-    console.log('Successfully scheduled reminder notification');
-  }
-  else {
-    console.log('Failed to schedule reminder notification');
-  }
-    */
 }
 
 // Function to delete selected individual checkbox reminders
@@ -1178,4 +1120,5 @@ function onClickHeadDay(data: Timestamp) {
 function onClickHeadWorkweek(data: Timestamp) {
   console.info('onClickHeadWorkweek', data)
 }
+
 </script>

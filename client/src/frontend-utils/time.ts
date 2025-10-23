@@ -16,7 +16,9 @@ import {
 } from '@quasar/quasar-ui-qcalendar';
 
 // Helper function to convert inputted date YYYY-MM-DD and time HH:MM strings into a qcalendar TimeStamp to store in DB
-export function ConvertTimeAndDateToTimestamp(dateString: string, timeString: string): Timestamp {
+// If timeString is empty, it defaults to 00:00:00
+// Used to convert event start and end times into timestamps
+export function convertTimeAndDateToTimestamp(dateString: string, timeString: string): Timestamp {
   const date = dateString.trim();
   const time = timeString.trim();
   // Pad seconds :00 onto time field since only HH:MM is provided
@@ -34,5 +36,44 @@ export function ConvertTimeAndDateToTimestamp(dateString: string, timeString: st
   } as Timestamp;
 }
 
+// Function to convert notification time (ex. remind me 30 mins before event start time) into a qcalendar timestamp to store in backend
+// If MinutesBefore is 0, it is the same as event start time. If its negative, notification is after event time'
+export function convertNotificationTimestamp(dateString: string, timeString: string, minutesBeforeEvent: number): Timestamp {
+  const date = dateString.trim();
+  const time = timeString.trim();
+  const formatTime = time === '' ? '00:00:00' : (time.length === 5 ? `${time}:00` : time);
+  // User input into date and time of event start
+  const dateTime = new Date(`${date}T${formatTime}`);
+  // console.log('Combined DateTime:', dateTime);
+  // Compute notification time (ex. remind me 30 mins before event start) into a usable date object for scheduling
+  // Subtracts the epoch of the event start time (in ms) by the minutes before event converted to ms (* 60000)
+  const notifyTime = new Date(dateTime.getTime() - Number(minutesBeforeEvent) * 60000);
+  // console.log('Notification time:', notifyTime);
+  // Convert notification date object into a qcalendar timestamp
+  const notifyTimestamp = parseDate(notifyTime);
+  // console.log('Notification Timestamp:', notifyTimestamp);
+  return notifyTimestamp as Timestamp;
+}
+
+// Function to convert a QCalendar timestamp back into a local date and epoch time for scheduling
+// Javascript dateTime: YYYY-MM-DDTHH:mm:ss.sssZ
+export function timeStamptoEpoch(timestamp: Timestamp): number {
+  // Q-calendar month is 1-based (Jan = 1), Javascript date month is 0-based (Jan = 0) so subtract 1 from month
+  // Set seconds to 0 since notification will go off at exact minute change
+  const date = new Date(timestamp.year, timestamp.month - 1, timestamp.day, timestamp.hour, timestamp.minute, 0);
+  // console.log("Converted date object from timestamp:", date);
+  const epochTime = date.getTime();
+  // console.log("Converted epoch time from timestamp:", epochTime);
+  return epochTime;
+}
+
+// Function to format a qcalendar Timestamp back into HH:MM string for time display on notification
+export function timestampToTimeString(timestamp: Timestamp): string {
+  // Pad hour and minute integers with leading zeroes
+  // Ex. Hour = 9 -> 09 or minute =5 -> 05
+  const hour = String(timestamp.hour).padStart(2, '0');
+  const minute = String(timestamp.minute).padStart(2, '0');
+  return `${hour}:${minute}`;
+}
 
 
