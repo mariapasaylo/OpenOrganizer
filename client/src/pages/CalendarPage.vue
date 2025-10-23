@@ -126,7 +126,7 @@
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
                   <div class="reminder-header-container">
-                    <q-checkbox :color="getEventTypeColor(item.eventType)" v-model="item.isSelected" class="q-mr-sm" />
+                    <q-checkbox :color="getEventTypeColor(eventTypes, item.eventType)" v-model="item.isSelected" class="q-mr-sm" />
                     <q-input
                       v-model="item.temporaryTitle"
                       :error="item.titleMessageError != ''"
@@ -161,8 +161,18 @@
                 outlined
                 style="background-color: #f2f2f2; margin-bottom: 10px"
               />
+              <q-select
+                v-model="item.temporaryNotificationTime"
+                :options="notificationOptions"
+                label="Remind me:"
+                emit-value 
+                map-options
+                dense
+                outlined
+                style="background-color: #f2f2f2; margin-bottom: 10px"
+              />
               <!-- Render fields for selected event type - each input corresponds to its type -->
-              <div v-for="field in getEventTypeFields(item.eventType)" :key="field.id" style="margin-bottom: 10px">
+              <div v-for="field in getEventTypeFields(eventTypes, item.eventType)" :key="field.id" style="margin-bottom: 10px">
                 <q-input
                  v-if="field.type === 'text'"
                   v-model="item.extension[field.id]"
@@ -318,7 +328,6 @@
 </template>
 
 <script setup lang="ts">
-
 import {
   QCalendarMonth,
   addToDate,
@@ -330,20 +339,46 @@ import {
 } from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
 
+import {
+  buildCalendarEvents,
+  groupEventsByDate, 
+  getEventTypeColor,
+  getEventTypeFields
+} from '../frontend-utils/events';
+import type { EventType } from '../frontend-utils/events'
 
+import { 
+  nest,
+  buildBreadcrumbs,
+  convertFolderTreetoQTree,
+} from '../frontend-utils/tree';
+
+import { ConvertTimeAndDateToTimestamp } from '../frontend-utils/time';
 import { ref, computed, watch } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
-import {createNote, createReminder, createFolder, createRootFolder, createDeleted, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, readRemindersInRange, readNotesInRange} from '../utils/local-db'
+import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, readRemindersInRange, readNotesInRange} from '../utils/local-db'
 import { onMounted } from 'vue';
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
-// Array of reminders. Default reminder adds to the current day's date
+// Array of reminders. 
 const reminders = ref<UIReminder[]>([])
+// List of notification options for when to be notified for reminder
+// Value is minutes before the event start time
+const notificationOptions = [
+  { label: 'Never', value: null },
+  { label: 'At time of event', value: 0 },
+  { label: '5 minutes before', value: 5 },
+  { label: '15 minutes before', value: 15 },
+  { label: '30 minutes before', value: 30 },
+  { label: '1 hour before', value: 60 },
+  { label: '2 hours before', value: 120 }
+  ];
+
 // Array of notes
 const notes = ref<UINote[]>([])
 // Object of event types
-const eventTypes = [
+const eventTypes: EventType[] = [
    {
        // Generic event type (no extra type fields)
         id: 0,
@@ -351,7 +386,7 @@ const eventTypes = [
         color: 'blue',
         fields: [
            { id: 'eventStartTime', name: 'Start Time', type: 'time' },
-           { id: 'eventEndTime', name: 'End Time', type: 'time' }
+           { id: 'eventEndTime', name: 'End Time', type: 'time' },
         ]
     },
     {
@@ -426,52 +461,16 @@ const eventTypeOptions = computed(() => {
   }));
 });
 
-// Function to get event type fields - will render different fields based on event type selected
-function getEventTypeFields(selectedEventTypeId: number) {
-  // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
-  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeId);
-  // If the event type is found, return the fields. Otherwise, return an empty array
-  return type ? type.fields : [];
-}
-
-// Function to get event type colors - will change checkbox to match event type color
-function getEventTypeColor(selectedEventTypeId: number) {
-  // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
-  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeId);
-  // If the event type is found, return the color. Otherwise, return a default color
-  return type ? type.color : 'blue';
-}
-
 const showSettings = ref(false);
 const showAddFolderName = ref(false);
 const newFolderName = ref('');
 const folderNameErrorMessage = ref('');
 const isCloudOn = ref(false);
 const selectAll = ref(false)
-const noteText = ref('');
 const searchQuery = ref('');
 // Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<number | null>(null);
-
-// Reminder on calendar
-type CalendarEvent = {
-  id: number;
-  title: string;
-  date: string;
-  color: string;
-};
-
-// This type represents the way QTree stores its folder data
-type QTreeFolder = {
-  label: string;
-  id: number  | string;
-  icon?: string;
-  // Could use this later to change folder icon colors
-  iconColor?: string;
-  children?: QTreeFolder[];
-};
-
 const folders = ref<UIFolder[]>([]);
 
 // Map folders to format for q-select dropdown menu
@@ -484,160 +483,22 @@ const folderDropdownOptions = computed(() => {
   }));
 });
 
-// Normalize selected node to be folderID for breadcrumb trail navigation 
-// Needed because notes/reminders are selectable children with negative IDs in the tree
-function normalizeFolderID(selectedNode: number | null): number | null {
-  // Selected tree node is null, return null
-   if (selectedNode === null) {
-      return null;
-    }
-  // Selected tree node is positive ID, must be a folder, just return the folder
-  if (selectedNode > 0) {
-    return selectedNode;
-  }
-  // Selected tree node is a reminder/note (negative of itemID), find its folder ID
-  else {
-    // Recover original item ID from tree ID by taking absolute value
-    const itemID = Math.abs(selectedNode);
-    // Try to find note thats itemID matches the selected node item ID to get UI data (folderID, title, color, etc.)
-    const note = notes.value.find(note => note.itemID === itemID);
-    // If note is found, return its folderID
-    if (note) {
-      return note.folderID ?? null;
-    }
-    // Try to find reminder thats itemID matches the selected node item ID
-    const reminder = reminders.value.find(reminder => reminder.itemID === itemID);
-    // If reminder is found, return its folderID
-    if (reminder) {
-      return reminder.folderID ?? null;
-    }
-  }
-  return null;
-}
+// Create nested folder tree structure from flat folders array
+const nestedFolderTree = computed(() => nest(folders.value, -1));
+console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
+
+// Convert nested folder tree to Q-Tree format
+// Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
+const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value, notes.value, reminders.value));
+console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
 
 // Computed breadcrumbs array that walks from the selected folder up to the root to build the path
-const breadcrumbs = computed(() => {
-  // Normalize currently selected folder ID on QTree
-  const currentFolderID = normalizeFolderID(selectedFolderID.value);
-  // Empty path if there is no currently selected folder
-  if (currentFolderID == null) {
-    return [];
-  }
-  // May want to convert this later to some sort of lookup (map?) for better effiency if there's a lot of folders
-  const path: { label: string; id: number }[] = [];
-  // Start from current folder ID
-  let currentID: number | null = currentFolderID;
-  // While a folder is selected, walk up the tree to build the path
-  while (currentID != null) {
-    // Find folder in folders array that matches the current folder ID
-    const current = folders.value.find(folder => folder.folderID === currentID);
-    // If current folder is valid, add it to the path
-    if (current) {
-        path.push({ label: current.folderName, id: current.folderID });
-        // Update currentID to be the parent folder ID for the next iteration
-        // If its 0 return null as it is root
-        currentID = current.parentFolderID === 0 ? null : current.parentFolderID;
-    }
-    // Break if there is no current folder found (root or invalid)
-    else {
-      break;
-    }
-  }
-
-  // Reverse the path so visually it goes from root to selected folder
-  return path.reverse();
-
-});
+const breadcrumbs = computed(() => buildBreadcrumbs(selectedFolderID.value, folders.value, notes.value, reminders.value))
 
 // Click a breadcrumb name to select that folder in the tree
 // Reactive so whenever selected folder ID changes, breadcrumb path will be ran and recomputed automatically
 function selectBreadcrumbItem(folderID : number) {
   selectedFolderID.value = folderID;
-}
-  
-
-// example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
-const nest = (items: UIFolder[], id: number):
-  UIFolder[] =>
-  // Filter finds all folders where the parent id is equal to the current folder id 
-  items.filter(item => item.parentFolderID === id)
-    // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parentFolderID)
-    .map(item => ({
-      ...item,
-      // Add a children property to the item object and recursively call nest function to find children of the current folder
-      children: nest(items, item.folderID)
-    }));
-
-// Function to convert nested folder tree to Q-Tree format
-function convertFolderTreetoQTree(folders: UIFolder[]): QTreeFolder[] {
-  return folders.map(folder => {
-    // Find notes saved in the current folder
-    const notesInCurrFolder = notes.value.filter(note => note.folderID === folder.folderID && note.isSaved);
-
-    // For each note, create a QTree node with label and id properties and return it
-    const noteTreeNodes = notesInCurrFolder.map((note) => {
-      return {
-        label: note.title,
-        id: -Math.abs(note.itemID), // Use negative ID to distinguish notes and reminders from folders
-        // No icon, color, or children properties for notes
-      };
-    });
-
-    // Find reminders saved in the current folder
-    const remindersInCurrFolder = reminders.value.filter(reminder => reminder.folderID === folder.folderID && reminder.isSaved);
-
-    // For each reminder, create a QTree node with label and id properties and return it
-    const reminderTreeNodes = remindersInCurrFolder.map((reminder) => {
-      return {
-        label: reminder.title,
-        id: -Math.abs(reminder.itemID), 
-        // No icon, color, or children properties for reminders
-      };
-    });
-
-    // For each folder, create a QTree node with label, id, and children properties and return it
-    return {
-      label: folder.folderName,
-      id: folder.folderID,
-      icon: 'folder',
-      iconColor: 'blue',
-      children: [
-        ...noteTreeNodes,
-        ...reminderTreeNodes,
-        ...convertFolderTreetoQTree(folder.children ?? [])
-      ]
-    };
-  });
-}
-
-const nestedFolderTree = computed(() => {
-  // Convert folders array to nested n-ary tree (first call will start at root/parentFolderID -1)
-  return nest(folders.value, -1);
-});
-console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
-
-// Convert nested folder tree to Q-Tree format
-// Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
-const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value));
-console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
-
-// Helper function to convert date YYYY-MM-DD and time HH:MM strings into a qcalendar TimeStamp to store in DB
-function ConvertTimeAndDateToTimestamp(dateString: string, timeString: string): Timestamp {
-  const date = dateString.trim();
-  const time = timeString.trim();
-   // Pad seconds :00 onto time field since only HH:MM is provided
-    const formatTime = time === '' ? '00:00:00' : (time.length === 5 ? `${time}:00` : time);
-  // Combine date and time parts
-  const dateTime = new Date(`${date}T${formatTime}`);
-  // console.log('Combined DateTime:', dateTime);
-  // Parse date object into a qcalendar timestamp. Timestamp has year, month, day, hour, minute, second, etc.
-  const timeStamp = parseDate(dateTime);
-  // console.log('Converted Timestamp:', timeStamp);
-  // Return object that has all timestamp fields plus original date for UI rendering
-  return {
-  ...timeStamp,
-  date: dateString
-  } as Timestamp;
 }
 
 // temp id generator for UI-only drafts (negative IDs)
@@ -655,6 +516,8 @@ function addReminder() {
     eventType: 0,
     extension: {},
     title: '',
+    // Draft has no notification
+    temporaryNotificationTime: null,
     temporaryTitle: '',
     temporaryFolderID: folderID,
     date: selectedDate.value,
@@ -694,7 +557,6 @@ async function loadRemindersForCalendarDate(dateString: string) {
     console.error('Error loading reminders for date:', error);
   }
 }
-
 
 // Function to add a note to the list
 function addNote() {
@@ -797,6 +659,8 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
     temporaryFolderID: row.folderID ?? null,
     // Replace this with actual extension fields later when support is added 
     extension: typedRow.extension ?? {},
+    // If theres a notification, temporary notification time is reminder notification minute of day 
+    temporaryNotificationTime: (row.hasNotif === 1) ? row.notifMin : null,
     date,
     titleMessageError: '',
     folderMessageError: '',
@@ -1005,7 +869,7 @@ async function saveReminder(reminder: UIReminder){
       reminder.timeMessageError = 'Arrival time must be before departure time.';
       return;
     }
-    // Check that check-in time is before check-out time for hotel event type
+    //Check that check-in time is becfore check-out time for hotel event type
   } else if (reminder.eventType === 2) { 
     const checkInTime = reminder.extension.checkInTime;
     const checkOutTime = reminder.extension.checkOutTime;
@@ -1042,7 +906,13 @@ try {
 
   folders.value = await readAllFolders();
   await loadRemindersForCalendarDate(selectedDate.value);
-  }
+
+  // Show reminder notification on save for demo purposes
+  await window.reminderNotificationAPI.showReminderNotification({
+    date: reminder.date,
+    title: reminder.temporaryTitle,
+  });
+}
   // Reminder is saved, just updating a preexisting reminder
   else {
       await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notifTime, false, reminder.temporaryTitle);
@@ -1070,6 +940,12 @@ try {
       folders.value = await readAllFolders();
       // Reload reminders for selected calendar date to include newly added reminder
       await loadRemindersForCalendarDate(selectedDate.value);
+
+      // Show reminder notification on save for demo purposes
+      await window.reminderNotificationAPI.showReminderNotification({
+      date: reminder.date,
+      title: reminder.temporaryTitle,
+      });
   }
   } catch (error) {
     console.error('Error adding reminder:', error);
@@ -1221,35 +1097,10 @@ watch(selectedDate, async (newDate) => {
   await loadNotesForCalendarDate(newDate);
 });
 
-
-
 // Create events on calendar from reminders
-// script source code similar to slot - day month example
-// https://qcalendar.netlify.app/developing/qcalendar-month
-const events = computed<CalendarEvent[]>(() =>
-// Only show saved reminders on calendar
-  reminders.value.filter(reminder => reminder.isSaved).
-  map(reminder => ({
-    id: reminder.itemID,
-    title: reminder.title,
-    date: reminder.date,
-    // Have background color be same as event type color
-    color: getEventTypeColor(reminder.eventType)
-  }))
-);
-
-
-// Map dates to array of events - key is date string, value is array of events on that date
-// script source code similar to slot - day month example
-// https://qcalendar.netlify.app/developing/qcalendar-month
-const eventsMap = computed<Record<string, CalendarEvent[]>>(() => {
-  const map: Record<string, CalendarEvent[]> = {};
-  events.value.forEach(event => {
-    (map[event.date] = map[event.date] || []).push(event);
-  });
-  return map;
-});
-
+const events = computed(() => buildCalendarEvents(reminders.value, eventTypes))
+// Group events by date
+const eventsMap = computed(() => groupEventsByDate(events.value))
 
 // Filtered note array for specific date
 const filteredNotes = computed(() => {
@@ -1327,5 +1178,4 @@ function onClickHeadDay(data: Timestamp) {
 function onClickHeadWorkweek(data: Timestamp) {
   console.info('onClickHeadWorkweek', data)
 }
-
 </script>

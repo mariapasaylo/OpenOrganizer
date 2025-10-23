@@ -37,6 +37,7 @@ export type UINote = Note & {
 export type UIReminder = Reminder & {
   temporaryTitle: string;
   temporaryFolderID: number | null;
+  temporaryNotificationTime: number | null; // Either minutes before event start or null for no notification
   titleMessageError?: string;
   folderMessageError?: string;
   timeMessageError?: string;
