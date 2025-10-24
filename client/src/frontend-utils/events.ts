@@ -75,3 +75,30 @@ export function groupEventsByDate(events: CalendarEvent[]): Record<string, Calen
   return map;
 }
 
+// Function to rename event start time label dependent on event type
+export function getEventStartLabel(eventType: number) {
+  // Flight
+  if (eventType === 1) {
+    return 'Arrival Time';
+  }
+  // Hotel
+  if (eventType === 2) {
+    return 'Check-in Time';
+  }
+  // General
+  return 'Start Time'; 
+}
+
+// Function to rename event start time label dependent on event type
+export function getEventEndLabel(eventType: number) {
+  // Flight
+  if (eventType === 1) {
+    return 'Departure Time';
+  }
+  // Hotel
+  if (eventType === 2) {
+    return 'Check-out Time';
+  }
+  // General
+  return 'End Time'; 
+}

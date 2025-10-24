@@ -38,9 +38,12 @@ export type UIReminder = Reminder & {
   temporaryTitle: string;
   temporaryFolderID: number | null;
   temporaryNotificationTime: number | null; // Either minutes before event start or null for no notification
+  temporaryEventStartTime: string | null;
+  temporaryEventEndTime: string | null;
   titleMessageError?: string;
   folderMessageError?: string;
   timeMessageError?: string;
+  // Extension is always present (may be empty) to avoid undefined checks in UI>. Still optional in backend
   extension: Record<string, string | number | null>;  // Essentially extension is a dictionary-like object with keys (ex. field names) and values  
   // useful for adding on custom event type fields/extensions that we may not know the types to yet
   // Need to parse and store this text data in the separate extensions table in the backend

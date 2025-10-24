@@ -171,6 +171,22 @@
                 outlined
                 style="background-color: #f2f2f2; margin-bottom: 10px"
               />
+              <q-input
+                  v-model="item.temporaryEventStartTime"
+                  :label="getEventStartLabel(item.eventType)"
+                  type="time"
+                  outlined
+                  dense
+                  style="background-color: #f2f2f2; margin-bottom: 10px"
+                />
+                <q-input
+                  v-model="item.temporaryEventEndTime"
+                  :label="getEventEndLabel(item.eventType)"
+                  type="time"
+                  outlined
+                  dense
+                  style="background-color: #f2f2f2; margin-bottom: 10px"
+                />
               <!-- Render fields for selected event type - each input corresponds to its type -->
               <div v-for="field in getEventTypeFields(eventTypes, item.eventType)" :key="field.id" style="margin-bottom: 10px">
                 <q-input
@@ -331,9 +347,9 @@
 
 import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
-import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, type EventType} from '../frontend-utils/events';
+import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType} from '../frontend-utils/events';
 import {nest, buildBreadcrumbs, convertFolderTreetoQTree,} from '../frontend-utils/tree';
-import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString } from '../frontend-utils/time';
+import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
 import { ref, computed, watch } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
@@ -356,8 +372,10 @@ const notificationOptions = [
   { label: '2 hours before', value: 120 }
   ];
 
+  
 // Array of notes
 const notes = ref<UINote[]>([])
+/*
 // Object of event types
 const eventTypes: EventType[] = [
    {
@@ -433,8 +451,66 @@ const eventTypes: EventType[] = [
     }
     // can add any more event types here
   ];
+*/
 
-  // Map event types to format for q-select dropdown menu
+// Object of event types
+// Every reminder has event start time, event end time fields so these are not extensions
+// These are just named differently depending on event type (ex. flight has arrival - start and departure - end times. 
+// Hotel has check-in - start and check out - end times)
+const eventTypes: EventType[] = [
+   {
+       // Generic event type (no extra type fields)
+        id: 0,
+        name: 'General',
+        color: 'blue',
+        fields: []
+    },
+    {
+       // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
+        id: 1,
+        // Event type name 
+        name: 'Flight',
+        // Color-coded for display in reminder list
+        color: 'red',
+        // Fields for each event type
+        fields: [
+            {
+               // Essentially the unique ID/key of the field
+                id: 'flightNumber',
+               // Name of the field displayed to the user
+                name: "Flight Number",
+                // Type is helpful for rendering the frontend field inputs to match and input validation. 
+                type: 'number'
+            },
+            {
+                id: 'airportLocation',
+                name: "Airport Location",
+                type: 'text'
+            },
+        ]
+    },
+    {
+        id: 2,
+        name: 'Hotel',
+        color: 'green',
+        fields: [
+            {
+                id: 'roomNumber',
+                name: "Room Number",
+                type: 'number'
+            },
+            {
+                id: 'hotelLocation',
+                name: "Hotel Location",
+                type: 'text'
+            },
+        ]
+    }
+    // can add any more event types here
+  ];
+
+
+// Map event types to format for q-select dropdown menu
 const eventTypeOptions = computed(() => {
   return eventTypes.map(eventType => ({
     label: eventType.name,
@@ -499,6 +575,8 @@ function addReminder() {
     title: '',
     // Draft has no notification
     temporaryNotificationTime: null,
+    temporaryEventStartTime: '',
+    temporaryEventEndTime: '',
     temporaryTitle: '',
     temporaryFolderID: folderID,
     date: selectedDate.value,
@@ -630,6 +708,14 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
   // Add extension onto reminder row type at compile time
   const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
 
+  // Build extension row time fields from database stored dayOfMin value (to properly format and display)
+  const ext: Record<string, string | number | null> = { ...(typedRow.extension ?? {}) };
+
+  // Derive HH:MM time strings for display from database stored minutes of day value
+  // Convert event start and end min into HH:MM string
+  const startStr = (typeof row.eventStartMin === 'number') ? minutesToHHMM(row.eventStartMin) : '';
+  const endStr = (typeof row.eventEndMin === 'number') ? minutesToHHMM(row.eventEndMin) : '';
+
   const eventStartMin = typeof row.eventStartMin === 'number' ? row.eventStartMin : null;
   const notifMin = typeof row.notifMin === 'number' ? row.notifMin : null;
   // Compute dropdown remind me option (ex. 5 mins before event time)
@@ -644,7 +730,9 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
     temporaryTitle: row.title ?? '',
     temporaryFolderID: row.folderID ?? null,
     // Replace this with actual extension fields later when support is added 
-    extension: typedRow.extension ?? {},
+    extension: ext,
+    temporaryEventStartTime: startStr,
+    temporaryEventEndTime: endStr,
     // If theres a notification, temporary notification time is reminder notification minute of day 
     temporaryNotificationTime: minutesBeforeStartTime,
     date,
@@ -827,39 +915,18 @@ async function saveReminder(reminder: UIReminder){
     return;
   }
 
-  // Check that arrival time is before departure time for flight event type
-  if (reminder.eventType === 0) { 
-    const startTime = reminder.extension.eventStartTime;
-    const endTime = reminder.extension.eventEndTime;
+  // Check that event start time is before event end time and vice versa for all event types
+    const startTime = reminder.temporaryEventStartTime;
+    const endTime = reminder.temporaryEventEndTime;
     // If start & end time are valid and start time is after end time, show error message and disable save button
     if (startTime && endTime && startTime >= endTime) {
       reminder.timeMessageError = 'Start time must be before end time.';
       return;
     }
-  }
-  // Check that arrival time is before departure time for flight event type
-  if (reminder.eventType === 1) { 
-    const arrivalTime = reminder.extension.arrivalTime;
-    const departureTime = reminder.extension.departureTime;
-    // If arrival & departure time are valid and arrival time is after departure time, show error message and disable save button
-    if (arrivalTime && departureTime && arrivalTime >= departureTime) {
-      reminder.timeMessageError = 'Arrival time must be before departure time.';
-      return;
-    }
-    // Check that check-in time is before check-out time for hotel event type
-  } else if (reminder.eventType === 2) { 
-    const checkInTime = reminder.extension.checkInTime;
-    const checkOutTime = reminder.extension.checkOutTime;
-    // If check-in & check-out time are valid and check-in time is after check-out time, show error message and disable save button
-    if (checkInTime && checkOutTime && checkInTime >= checkOutTime) {
-      reminder.timeMessageError = 'Check-in time must be before check-out time.';
-      return;
-    }
-  }
+  
   // Cast times into strings (since extension fields can be multiple types)
-  const startTimeStr = String(reminder.extension?.eventStartTime ?? '');
-  const endTimeStr = String(reminder.extension?.eventEndTime ?? '');
-  const notifTimeStr = String(reminder.extension?.eventNotificationTime ?? reminder.extension?.notifTime ?? '');
+  const startTimeStr = String(reminder.temporaryEventStartTime ?? '');
+  const endTimeStr = String(reminder.temporaryEventEndTime ?? '');
 
   const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTimeStr);
   const eventEndTime = convertTimeAndDateToTimestamp(reminder.date, endTimeStr);

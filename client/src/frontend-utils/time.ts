@@ -71,9 +71,27 @@ export function timeStamptoEpoch(timestamp: Timestamp): number {
 export function timestampToTimeString(timestamp: Timestamp): string {
   // Pad hour and minute integers with leading zeroes
   // Ex. Hour = 9 -> 09 or minute =5 -> 05
+  // Convert the time into a string in HH:MM format
   const hour = String(timestamp.hour).padStart(2, '0');
   const minute = String(timestamp.minute).padStart(2, '0');
   return `${hour}:${minute}`;
 }
+
+// Function to convert minute of day from backend into HH:MM format for time display
+// Used in mapping database row into UI reminder to display notification time on frontend
+export function minutesToHHMM(minOfDay: number): string {
+    // Calculate hours: divide number of minutes by 60 to get hours
+    // Floor to return actual integer hour, no decimals
+    const hour = Math.floor(minOfDay / 60);
+    // Calculate remaining minutes: take minutes and modulo 60 (remainder is number of minutes)
+    const minute = minOfDay % 60;
+    // Convert the time into a string in HH:MM format
+    const hourString = String(hour).padStart(2, '0');
+    const minuteString = String(minute).padStart(2, '0');
+    // Pad hour and minute integers with leading zeroes
+    // Ex. Hour = 9 -> 09 or minute =5 -> 05
+    return `${hourString}:${minuteString}`;
+  }
+
 
 
