@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-25
- * Updated: 2025-10-25
+ * Updated: 2025-10-26
  *
  * This file has several helper functions for the testing suite.
  *
@@ -77,20 +77,20 @@ func pad32(data []byte) []byte {
 
 // send to server endpoint
 
-func send(endpoint string, requestBody []byte) (responseBody []byte, err error) {
-	response, err := http.Post(url+endpoint, "", bytes.NewBuffer(requestBody))
+func send(endpoint string, requestBody []byte) (response *http.Response, responseBody []byte, err error) {
+	response, err = http.Post(url+endpoint, "", bytes.NewBuffer(requestBody))
 	if err != nil {
-		return nil, err
+		return response, responseBody, err
 	}
 	utils.PrintErrorLine(err)
 	defer response.Body.Close()
 	responseBody, err = io.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return response, responseBody, err
 	}
 	utils.PrintErrorLine(err)
 	if response.StatusCode != 200 {
-		return nil, errors.New(response.Status + " | " + string(responseBody))
+		return response, responseBody, errors.New(response.Status + " | " + string(responseBody))
 	}
-	return responseBody, nil
+	return response, responseBody, nil
 }

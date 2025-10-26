@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-25
+ * Updated: 2025-10-26
  *
  * This file is the entry point for the testing suite.
  *
@@ -46,6 +46,12 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 
 	// auth
 	test2()
+
+	// bad auths
+	test3()
+
+	// username testing on register
+	test4()
 
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16

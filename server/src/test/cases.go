@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-25
+ * Updated: 2025-10-26
  *
  * This file has the test cases.
  *
@@ -24,7 +24,7 @@ func test1() bool {
 	defer clearAllTables()
 
 	requestBody := []byte{}
-	responseBody, err := send("", requestBody)
+	_, responseBody, err := send("", requestBody)
 
 	if utils.PrintErrorLine(err) {
 		return fail()
@@ -53,7 +53,7 @@ func test2() bool {
 	requestBody := append(username, password...)
 	requestBody = append(requestBody, key1...)
 	requestBody = append(requestBody, key2...)
-	responseBody, err := send("register", requestBody)
+	_, responseBody, err := send("register", requestBody)
 
 	if utils.PrintErrorLine(err) {
 		return fail()
@@ -66,7 +66,7 @@ func test2() bool {
 	userID := utils.BytesToBigint(responseBody[0:8])
 
 	requestBody = append(username, password...)
-	responseBody, err = send("login", requestBody)
+	_, responseBody, err = send("login", requestBody)
 
 	userID2 := utils.BytesToBigint(responseBody[0:8])
 	key1Response := responseBody[40:72]
@@ -96,4 +96,110 @@ func test2() bool {
 		return success()
 	}
 	return fail()
+}
+
+// register for an account, try to log in with bad usernames and bad passwords
+func test3() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+	_, responseBody, err := send("register", requestBody)
+
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 40 {
+		fmt.Printf("test3: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
+		fmt.Printf("%s", responseBody)
+		return fail()
+	}
+
+	username2 := pad32([]byte("username2"))
+	password2 := pad32([]byte("password2"))
+
+	requestBody = append(username2, password...)
+	_, _, err = send("login", requestBody)
+	if err == nil {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	requestBody = append(username, password2...)
+	_, _, err = send("login", requestBody)
+	if err == nil {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	requestBody = append(username2, password2...)
+	_, _, err = send("login", requestBody)
+	if err == nil {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	requestBody = append(username, password...)
+	_, _, err = send("login", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// send username with any disallowed characters to register
+func test4() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+
+	// test null
+	requestBody[0] = '\x00'
+	response, _, _ := send("register", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, _, _ = send("register", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, _, _ = send("register", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// null in password, key1 and key2 should not fail, as these are all raw fields
+	requestBody[32] = '\x00'
+	requestBody[64] = '\x00'
+	requestBody[96] = '\x00'
+	_, _, err := send("register", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	return success()
 }

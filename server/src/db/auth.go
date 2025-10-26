@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-19
+ * Updated: 2025-10-26
  *
  * This file provides authentication functionality that interfaces with the database.
  * This includes CRUD operations on user accounts and tokens.
@@ -22,6 +22,15 @@ import (
 	"openorganizer/src/models"
 	"openorganizer/src/utils"
 )
+
+func ValidateUsername(username []byte) bool {
+	for i := range username {
+		if username[i] == '\x00' {
+			return false
+		}
+	}
+	return true
+}
 
 func hashPassword(passwordHash []byte, salt int32) []byte {
 	var input []byte
