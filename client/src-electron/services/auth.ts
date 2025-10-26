@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-22
+ * Updated: 2025-10-26
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -21,7 +21,7 @@ interface Account{
   password: string;
   privateKey: Buffer;
   authToken: Buffer;
-  userId: Buffer;
+  userId: string;
 }
 
 const accountSchema: Schema<Account> ={
@@ -41,14 +41,14 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'object', // TO DO : fix - does not like storing it as a big int
-    default: Buffer.alloc(8)
+    type: 'string', 
+    default: ''
   }
 }
 
 const accountStore = new Store<Account>({
   schema: accountSchema,
-  name: 'accountInfo'
+  name: 'accountCredentials'
 });
 
 function getUsername() {
@@ -84,10 +84,10 @@ function setPrivateKey(privateKey : Buffer) {
 }
 
 function getUserId() {
-  return accountStore.get('userId').readBigInt64LE(0);
+  return accountStore.get('userId');
 } 
 
-function setUserId(userId : Buffer) {
+function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
@@ -130,7 +130,8 @@ export async function createAccount(username : string, password : string): Promi
     const userIdBytes = responseData.slice(0, 8);
     const authTokenBytes = responseData.slice(8, 40);
     setAuthToken(authTokenBytes);
-    setUserId(userIdBytes);
+    //read as little endian and need to convert to string because electron-store does not support bigint
+    setUserId(userIdBytes.readBigInt64LE(0).toString());
     
     
   } catch (error) {
