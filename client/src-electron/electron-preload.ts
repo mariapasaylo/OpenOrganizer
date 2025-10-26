@@ -127,7 +127,11 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
 
 contextBridge.exposeInMainWorld('reminderNotificationAPI', {
   showReminderNotification: (reminder: { title: string; date: string }) => ipcRenderer.invoke('showReminderNotification', reminder),
-  scheduleReminderNotification: (reminder: { itemID: string; date: string; title: string; time?: string; unixMilliseconds?: number }) => ipcRenderer.invoke('scheduleReminderNotification', reminder)
+  scheduleReminderNotification: (reminder: { itemID: number; date: string; title: string; time?: string; unixMilliseconds?: number }) => ipcRenderer.invoke('scheduleReminderNotification', reminder)
+});
+
+contextBridge.exposeInMainWorld('electronAuthAPI', {
+  createAccount: (username: string, password: string) => ipcRenderer.invoke('createAccount', username, password)
 });
 
 contextBridge.exposeInMainWorld('electronAuthAPI', {
