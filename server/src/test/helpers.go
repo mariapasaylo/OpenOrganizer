@@ -15,11 +15,13 @@ package test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"openorganizer/src/db"
 	"openorganizer/src/models"
 	"openorganizer/src/utils"
+	"slices"
 )
 
 // pass and fail functions
@@ -76,7 +78,6 @@ func pad32(data []byte) []byte {
 }
 
 // send to server endpoint
-
 func send(endpoint string, requestBody []byte) (response *http.Response, responseBody []byte, err error) {
 	response, err = http.Post(url+endpoint, "", bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -93,4 +94,148 @@ func send(endpoint string, requestBody []byte) (response *http.Response, respons
 		return response, responseBody, errors.New(response.Status + " | " + string(responseBody))
 	}
 	return response, responseBody, nil
+}
+
+// do a basic registration
+func simpleRegister() (response *http.Response, responseBody []byte, err error) {
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+	response, responseBody, err = send("register", requestBody)
+	return response, responseBody, err
+}
+
+// do a basic registration and return the authentication header
+func simpleAuthSetup() (authHeader []byte, err error) {
+	_, responseBody, err := simpleRegister()
+	if err != nil {
+		return nil, err
+	}
+	userID := responseBody[0:8]
+	token := responseBody[8:40]
+	authHeader = append(userID, token...)
+	return authHeader, nil
+}
+
+func packItem(item models.RowItems) (body []byte) {
+	body = append(body, utils.BigintToBytes(item.ItemID)...)
+	body = append(body, utils.BigintToBytes(item.LastModified)...)
+	body = append(body, item.EncryptedData...)
+	return body
+}
+
+func unpackItem(body []byte) (item models.RowItems) {
+	item.ItemID = utils.BytesToBigint(body[0:8])
+	item.LastModified = utils.BytesToBigint(body[8:16])
+	item.EncryptedData = body[16:]
+	return item
+}
+
+func compareItem(item1 models.RowItems, item2 models.RowItems) bool {
+	if item1.ItemID != item2.ItemID {
+		return false
+	}
+	if item1.LastModified != item2.LastModified {
+		return false
+	}
+	if !slices.Equal(item1.EncryptedData, item2.EncryptedData) {
+		return false
+	}
+	return true
+}
+
+// do a simple syncup and syncdown and verify what is sent is received
+func simpleSync(testNumber string, encryptedSize int32, endpoint string, authHeader []byte) bool {
+	_, responseBody, _ := send("", []byte{})
+	maxRecordCount := utils.BytesToInt(responseBody)
+	if maxRecordCount < 4 {
+		fmt.Printf("maxRecordCount (%v) is less than 4\n", maxRecordCount)
+		return false
+	}
+
+	item1 := models.RowItems{
+		ItemID:        1,
+		LastModified:  11,
+		LastUpdated:   11,
+		EncryptedData: utils.RandArray(encryptedSize),
+	}
+	item2 := models.RowItems{
+		ItemID:        2,
+		LastModified:  12,
+		LastUpdated:   12,
+		EncryptedData: utils.RandArray(encryptedSize),
+	}
+	item3 := models.RowItems{
+		ItemID:        3,
+		LastModified:  13,
+		LastUpdated:   13,
+		EncryptedData: utils.RandArray(encryptedSize),
+	}
+	item4 := models.RowItems{
+		ItemID:        4,
+		LastModified:  14,
+		LastUpdated:   14,
+		EncryptedData: utils.RandArray(encryptedSize),
+	}
+	requestBody := append(authHeader, utils.IntToBytes(4)...)
+	requestBody = append(requestBody, packItem(item1)...)
+	requestBody = append(requestBody, packItem(item2)...)
+	requestBody = append(requestBody, packItem(item3)...)
+	requestBody = append(requestBody, packItem(item4)...)
+
+	_, responseBody, err := send("syncup/"+endpoint, requestBody)
+	if utils.PrintErrorLine(err) {
+		return false
+	}
+	if len(responseBody) != 1 {
+		fmt.Printf("test%s: Expected response body length 1 does not match with received length of %v.\n", testNumber, len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return false
+	}
+	if responseBody[0] != '\x00' {
+		fmt.Printf("All insertions should have succeeded.\n")
+		return false
+	}
+
+	_, responseBody, err = send("syncup/"+endpoint, requestBody)
+	if utils.PrintErrorLine(err) {
+		return false
+	}
+	if len(responseBody) != 1 {
+		fmt.Printf("test%s: Expected response body length 1 does not match with received length of %v.\n", testNumber, len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return false
+	}
+	if responseBody[0] != '\xF0' {
+		fmt.Printf("All insertions should have failed.\n")
+		return false
+	}
+
+	requestBody = append(authHeader, utils.BigintToBytes(-9223372036854775808)...)
+	requestBody = append(requestBody, utils.BigintToBytes(9223372036854775807)...)
+	_, responseBody, err = send("syncdown/"+endpoint, requestBody)
+	if utils.PrintErrorLine(err) {
+		return false
+	}
+	var packedSize int = int(encryptedSize) + 16
+	if len(responseBody) != (4*packedSize)+4 {
+		fmt.Printf("test%s: Expected response body length %v does not match with received length of %v.\n", testNumber, (4*packedSize)+4, len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return false
+	}
+
+	item1Returned := unpackItem(responseBody[4+(0*packedSize) : 4+(1*packedSize)])
+	item2Returned := unpackItem(responseBody[4+(1*packedSize) : 4+(2*packedSize)])
+	item3Returned := unpackItem(responseBody[4+(2*packedSize) : 4+(3*packedSize)])
+	item4Returned := unpackItem(responseBody[4+(3*packedSize) : 4+(4*packedSize)])
+	if !compareItem(item1, item1Returned) || !compareItem(item2, item2Returned) || !compareItem(item3, item3Returned) || !compareItem(item4, item4Returned) {
+		fmt.Printf("test%s: Returned item(s) is/are not equal to sent item.\n", testNumber)
+		return fail()
+	}
+
+	return true
 }

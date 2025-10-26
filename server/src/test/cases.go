@@ -438,3 +438,133 @@ func test7() bool {
 	}
 	return success()
 }
+
+// retrieve lastUpdated and verify all returned values are equal
+func test8() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	_, responseBody, err := send("lastupdated", authHeader)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 80 {
+		fmt.Printf("test8: Expected response body length 80 does not match with received length of %v.\n", len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return fail()
+	}
+
+	var lastUpList []int64
+	for i := range len(responseBody) / 8 {
+		currentValue := utils.BytesToBigint(responseBody[i*8 : i*8+8])
+		lastUpList = append(lastUpList, currentValue)
+	}
+
+	for i := range len(lastUpList) - 1 {
+		if lastUpList[i] != lastUpList[i+1] {
+			return fail()
+		}
+	}
+	return success()
+}
+
+// note syncing
+func test9() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("9", 128, "notes", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// reminder syncing
+func test10() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("10", 96, "reminders", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// daily reminder syncing
+func test11() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("11", 96, "reminders/daily", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// weekly reminder syncing
+func test12() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("12", 96, "reminders/weekly", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// monthly reminder syncing
+func test13() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("13", 96, "reminders/monthly", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// yearly reminder syncing
+func test14() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("14", 96, "reminders/yearly", authHeader) {
+		return fail()
+	}
+	return success()
+}

@@ -62,6 +62,17 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	// test changelogin
 	test7()
 
+	// retrieve lastUpdated
+	test8()
+
+	// test simple item syncing - notes, reminders, daily, weekly, monthly, yearly
+	test9()
+	test10()
+	test11()
+	test12()
+	test13()
+	test14()
+
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16
 	for i, b := range successes {
