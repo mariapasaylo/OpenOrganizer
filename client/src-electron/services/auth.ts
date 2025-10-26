@@ -84,7 +84,7 @@ function setPrivateKey(privateKey : Buffer) {
 }
 
 function getUserId() {
-  return accountStore.get('userId');
+  return BigInt(accountStore.get('userId'));
 } 
 
 function setUserId(userId : string) {
@@ -112,6 +112,7 @@ export async function createAccount(username : string, password : string): Promi
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
+  console.log(getUserId(), getUserId());
 
   try{
     //TO DO: use serverAdress text file 
