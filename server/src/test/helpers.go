@@ -78,8 +78,20 @@ func pad32(data []byte) []byte {
 }
 
 // send to server endpoint
-func send(endpoint string, requestBody []byte) (response *http.Response, responseBody []byte, err error) {
-	response, err = http.Post(url+endpoint, "", bytes.NewBuffer(requestBody))
+// headers must be an even amount that are added in (i, i + 1) key-value pairs
+func send(endpoint string, requestBody []byte, headers ...string) (response *http.Response, responseBody []byte, err error) {
+	request, err := http.NewRequest("POST", url+endpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(headers)%2 == 1 {
+		return nil, nil, errors.New("odd number of headers")
+	}
+	for i := 0; i < len(headers); i += 2 {
+		request.Header.Set(headers[i], headers[i+1])
+	}
+
+	response, err = http.DefaultClient.Do(request)
 	if err != nil {
 		return response, responseBody, err
 	}

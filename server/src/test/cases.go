@@ -16,6 +16,9 @@ import (
 	"fmt"
 	"openorganizer/src/utils"
 	"slices"
+	"strconv"
+	"sync"
+	"time"
 )
 
 // test MAX_RECORD_COUNT retrieval from /
@@ -566,5 +569,164 @@ func test14() bool {
 	if !simpleSync("14", 96, "reminders/yearly", authHeader) {
 		return fail()
 	}
+	return success()
+}
+
+// extensions syncing
+func test15() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("15", 4+64, "extensions", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// overrides syncing
+func test16() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("16", 8+64, "overrides", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// folders syncing
+func test17() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("17", 0+64, "folders", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// deleted syncing
+func test18() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("18", 2+0, "deleted", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// all endpoints trying too long and too short
+// also tests making content-length header too long / too short compared to the body and compared to what is expected
+func test19() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	var endpoints []string = []string{
+		"register", "login", "changelogin", "lastupdated",
+
+		"syncup/notes", "syncup/reminders",
+		"syncup/reminders/daily", "syncup/reminders/weekly", "syncup/reminders/monthly", "syncup/reminders/yearly",
+		"syncup/extensions", "syncup/overrides", "syncup/folders", "syncup/deleted",
+
+		"syncdown/notes", "syncdown/reminders",
+		"syncdown/reminders/daily", "syncdown/reminders/weekly", "syncdown/reminders/monthly", "syncdown/reminders/yearly",
+		"syncdown/extensions", "syncdown/overrides", "syncdown/folders", "syncdown/deleted"}
+	// sending 2 records per syncup for expected lengths
+	var expectedLengths []int = []int{
+		128, 64, 192, 40,
+		332, 268,
+		268, 268, 268, 268,
+		212, 220, 204, 80,
+		56, 56,
+		56, 56, 56, 56,
+		56, 56, 56, 56}
+
+	results := make([]bool, len(endpoints)*15)
+	var recordCount int32 = 2
+
+	setupPayload := func(expectedLength int) (payload []byte) {
+		payload = make([]byte, expectedLength)
+		for i := range payload {
+			payload[i] = '1'
+		}
+		if expectedLength > 44 {
+			copy(payload[40:44], utils.IntToBytes(int32(recordCount)))
+		}
+		return payload
+	}
+
+	var waitGroup sync.WaitGroup
+	for i := range endpoints {
+		for j := -2; j <= 2; j++ {
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i] - 1)
+				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if response.StatusCode == 400 {
+					results[15*i+2+j] = true
+				} else {
+					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
+					results[15*i+2+j] = false
+				}
+			}()
+			time.Sleep(10 * time.Millisecond)
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i] + 1)
+				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if response.StatusCode == 400 {
+					results[15*i+7+j] = true
+				} else {
+					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
+					results[15*i+7+j] = false
+				}
+			}()
+			time.Sleep(10 * time.Millisecond)
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i])
+				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if response.StatusCode != 400 {
+					results[15*i+12+j] = true
+				} else {
+					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
+					results[15*i+12+j] = false
+				}
+			}()
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	waitGroup.Wait()
+	for _, val := range results {
+		if !val {
+			return fail()
+		}
+	}
+
 	return success()
 }

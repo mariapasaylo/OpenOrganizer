@@ -73,6 +73,15 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	test13()
 	test14()
 
+	// test simple non-item syncing - extensions, overrides, folders, and deleted
+	test15()
+	test16()
+	test17()
+	test18()
+
+	// try incorrect body sizes for all endpoints other than root
+	test19()
+
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16
 	for i, b := range successes {
