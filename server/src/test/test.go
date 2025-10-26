@@ -50,8 +50,17 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	// bad auths
 	test3()
 
-	// username testing on register
+	// username character testing on register
 	test4()
+
+	// username character testing on login
+	test5()
+
+	// username character testing on register
+	test6()
+
+	// test changelogin
+	test7()
 
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16

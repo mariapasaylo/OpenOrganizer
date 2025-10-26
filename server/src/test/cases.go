@@ -60,7 +60,7 @@ func test2() bool {
 	}
 	if len(responseBody) != 40 {
 		fmt.Printf("test2: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s", responseBody)
+		fmt.Printf("%s\n", responseBody)
 		return fail()
 	}
 	userID := utils.BytesToBigint(responseBody[0:8])
@@ -92,10 +92,10 @@ func test2() bool {
 		errs += 1
 	}
 
-	if errs == 0 {
-		return success()
+	if errs > 0 {
+		return fail()
 	}
-	return fail()
+	return success()
 }
 
 // register for an account, try to log in with bad usernames and bad passwords
@@ -117,7 +117,7 @@ func test3() bool {
 	}
 	if len(responseBody) != 40 {
 		fmt.Printf("test3: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s", responseBody)
+		fmt.Printf("%s\n", responseBody)
 		return fail()
 	}
 
@@ -192,7 +192,7 @@ func test4() bool {
 	}
 	requestBody[31] = ' '
 
-	// null in password, key1 and key2 should not fail, as these are all raw fields
+	// null in password, key1, and key2 should not fail, as these are all raw fields
 	requestBody[32] = '\x00'
 	requestBody[64] = '\x00'
 	requestBody[96] = '\x00'
@@ -201,5 +201,240 @@ func test4() bool {
 		return fail()
 	}
 
+	return success()
+}
+
+// send username with any disallowed characters to login
+func test5() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("\x00assword"))
+	requestBody := append(username, password...)
+
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(requestBody, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	_, _, err := send("register", requestBodyReg)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	// test null
+	requestBody[0] = '\x00'
+	response, _, _ := send("login", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, _, _ = send("login", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, _, _ = send("login", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// null in password should not fail, as it is a raw field
+	_, _, err = send("login", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// send username with any disallowed characters to changelogin
+func test6() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("\x00assword"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(username, password...)
+	requestBodyReg = append(requestBodyReg, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	_, _, err := send("register", requestBodyReg)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	usernameNew := pad32([]byte("usernameNew"))
+	passwordNew := pad32([]byte("passwordNew"))
+	key1New := pad32([]byte("key1New"))
+	key2New := pad32([]byte("key2New"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, usernameNew...)
+	requestBody = append(requestBody, passwordNew...)
+	requestBody = append(requestBody, key1New...)
+	requestBody = append(requestBody, key2New...)
+
+	// username
+
+	requestBody[0] = '\x00'
+	response, _, _ := send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, _, _ = send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, _, _ = send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// usernameNew
+
+	requestBody[64] = '\x00'
+	response, _, _ = send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[64] = 'u'
+
+	requestBody[72] = '\x00'
+	response, _, _ = send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[72] = ' '
+
+	requestBody[95] = '\x00'
+	response, _, _ = send("changelogin", requestBody)
+	if response.StatusCode != 400 {
+		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+		return fail()
+	}
+	requestBody[95] = ' '
+
+	// null in password, passwordNew, key1New, and key2New should not fail, as these are all raw fields
+	requestBody[96] = '\x00'
+	requestBody[128] = '\x00'
+	requestBody[160] = '\x00'
+	_, _, err = send("changelogin", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// test register + changelogin + login
+func test7() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(username, password...)
+	requestBodyReg = append(requestBodyReg, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	_, responseBody, err := send("register", requestBodyReg)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 40 {
+		fmt.Printf("test7: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return fail()
+	}
+	userID := utils.BytesToBigint(responseBody[0:8])
+
+	usernameNew := pad32([]byte("usernameNew"))
+	passwordNew := pad32([]byte("passwordNew"))
+	key1New := pad32([]byte("key1New"))
+	key2New := pad32([]byte("key2New"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, usernameNew...)
+	requestBody = append(requestBody, passwordNew...)
+	requestBody = append(requestBody, key1New...)
+	requestBody = append(requestBody, key2New...)
+
+	_, responseBody, err = send("changelogin", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 40 {
+		fmt.Printf("test7: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return fail()
+	}
+	userID2 := utils.BytesToBigint(responseBody[0:8])
+
+	requestBody = append(usernameNew, passwordNew...)
+	_, responseBody, err = send("login", requestBody)
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 104 {
+		fmt.Printf("test7: Expected response body length 104 does not match with received length of %v.\n", len(responseBody))
+		fmt.Printf("%s\n", responseBody)
+		return fail()
+	}
+	userID3 := utils.BytesToBigint(responseBody[0:8])
+
+	key1Response := responseBody[40:72]
+	key2Response := responseBody[72:104]
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	if len(responseBody) != 104 {
+		fmt.Printf("test7: Expected response body length 104 does not match with received length of %v.\n", len(responseBody))
+		return fail()
+	}
+	var errs int = 0
+	if userID != userID2 {
+		fmt.Printf("test7: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
+		errs += 1
+	}
+	if userID != userID3 {
+		fmt.Printf("test7: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
+		errs += 1
+	}
+	if !slices.Equal(key1New, key1Response) {
+		fmt.Printf("test7: Expected key1 %s does not match with received key1 of %s.\n", key1New, key1Response)
+		errs += 1
+	}
+	if !slices.Equal(key2New, key2Response) {
+		fmt.Printf("test7: Expected key2 %s does not match with received key2 of %s.\n", key2New, key2Response)
+		errs += 1
+	}
+
+	if errs > 0 {
+		return fail()
+	}
 	return success()
 }

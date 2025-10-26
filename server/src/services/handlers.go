@@ -133,6 +133,10 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
 		return
 	}
+	if !db.ValidateUsername(userLoginNew.Username) {
+		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
+		return
+	}
 	_, err = db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)

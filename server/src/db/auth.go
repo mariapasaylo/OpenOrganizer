@@ -105,7 +105,7 @@ func Login(userLogin models.UserLogin) (response []byte, err error) {
 // change user information
 func ModifyUser(userLogin models.UserLogin, userLoginNew models.UserLogin, userData models.UserData) (response []byte, err error) {
 	salt := rand.Int31()
-	passwordHashHash := hashPassword(userLogin.PasswordHash, salt)
+	passwordHashHash := hashPassword(userLoginNew.PasswordHash, salt)
 	now := utils.Now()
 	row, err := db.Query(userUpdate, userLogin.Username, userLoginNew.Username, now, now, passwordHashHash, salt, userData.EncrPrivateKey, userData.EncrPrivateKey2)
 	if err != nil {
