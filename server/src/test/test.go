@@ -1,10 +1,9 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-20
+ * Updated: 2025-10-25
  *
- * This file is the entry point to the server.
- * It handles the large scope of the order of operations for initialization and serving requests.
+ * This file is the entry point for the testing suite.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -17,22 +16,8 @@ import (
 	"fmt"
 	"time"
 
-	"openorganizer/src/db"
 	"openorganizer/src/models"
 )
-
-var envClearAll = models.ENVVars{
-	CLEAR_DB_AUTH: true,
-	CLEAR_DB_DATA: true,
-}
-var envClearAuth = models.ENVVars{
-	CLEAR_DB_AUTH: true,
-	CLEAR_DB_DATA: false,
-}
-var envClearData = models.ENVVars{
-	CLEAR_DB_AUTH: false,
-	CLEAR_DB_DATA: true,
-}
 
 var env models.ENVVars
 var url string
@@ -53,10 +38,14 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	time.Sleep(time.Duration(env.TEST_SUITE_DELAY) * time.Second)
 	fmt.Printf("Test Suite initiated.\n\n")
 
-	db.EnsureDBTables(envClearAll)
+	clearAllTables()
 	url = "http://localhost:" + env.SERVER_PORT_HTTP + "/"
 
+	// root
 	test1()
+
+	// auth
+	test2()
 
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16
@@ -67,21 +56,11 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	}
 	fmt.Printf("Passed %v of %v tests.\n", len(successes)-len(failures), len(successes))
 	if len(failures) > 0 {
-		fmt.Printf("Failed tests: ")
+		fmt.Printf("Failed test numbers: ")
 		for _, v := range failures {
 			fmt.Printf("%v ", v)
 		}
 		fmt.Printf("\n")
 	}
 	fmt.Printf("\n")
-}
-
-func success() bool {
-	successes = append(successes, true)
-	return true
-}
-
-func fail() bool {
-	successes = append(successes, false)
-	return false
 }
