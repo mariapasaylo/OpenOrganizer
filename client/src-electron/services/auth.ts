@@ -106,7 +106,7 @@ export async function createAccount(username : string, password : string): Promi
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
   
-  //username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128]
+  //Send username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
   encryptedPrivateKey.copy(userData, 64);
@@ -141,4 +141,19 @@ export async function createAccount(username : string, password : string): Promi
   }
 
   return true;
+  }
+
+
+  export async function loginAccount(username : string, password : string): Promise<boolean> {
+    // send username and hash the password
+    
+    //parse and store the userID and authToken and encrypted private keys
+
+    //if valid login and password
+    //store userID and authToken
+    //decrypt private keys and store them
+    //else display message
+
+
+    return true;
   }
