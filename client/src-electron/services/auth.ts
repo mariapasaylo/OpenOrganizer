@@ -19,7 +19,8 @@ import type {Schema} from 'electron-store';
 interface Account{ 
   username: string;
   password: string;
-  privateKey: Buffer;
+  privateKey1: Buffer;
+  privateKey2: Buffer;
   authToken: Buffer;
   userId: string;
 }
@@ -33,7 +34,12 @@ const accountSchema: Schema<Account> ={
     type: 'string',
     default: ''
   },
-  privateKey: {
+  privateKey1: {
+    type:'object',
+    default: Buffer.alloc(32)
+  },
+  privateKey2: {
+    type:'object',
     default: Buffer.alloc(32)
   },
   authToken:{
@@ -48,7 +54,7 @@ const accountSchema: Schema<Account> ={
 
 const accountStore = new Store<Account>({
   schema: accountSchema,
-  name: 'accountCredentials'
+  name: 'accountInfo'
 });
 
 function getUsername() {
@@ -101,7 +107,8 @@ export async function createAccount(username : string, password : string): Promi
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, hashKeyPassword);
   
   // Sending in raw data via API request to /register
-  const userData = Buffer.alloc(128,0);
+  // Do not send 0 for username
+  const userData = Buffer.alloc(128,20); 
 
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
@@ -112,7 +119,10 @@ export async function createAccount(username : string, password : string): Promi
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
-  console.log(getUserId(), getUserId());
+  //console.log(getUserId(), getUserId());
+  console.log('THIS IS THE USER DATA', userData.toString('utf8'));
+  console.log('USER DATA RAW', userData);
+  console.log('THIS IS THE USER DATA LENGTH', userData.length);
 
   try{
     //TO DO: use serverAdress text file 
@@ -125,7 +135,9 @@ export async function createAccount(username : string, password : string): Promi
     // Parse the reponse
     const responseData = Buffer.from(await response.arrayBuffer());
     
-    //console.log('Response data', responseData); //why is it length 43 instead of 40?
+    console.log('Response data', responseData.length); //why is it length 43 instead of 40?
+    console.log('Response data', responseData.toString('utf8'));
+    console.log(response.status);
 
     //userID [0:8], authToken[8:40]
     const userIdBytes = responseData.slice(0, 8);
