@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-22
+ * Updated: 2025-10-27
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -39,7 +39,7 @@ export async function createNote(folderID: number, title: string, text: string) 
     itemID: timeMs,
     lastModified: timeMs,
     folderID: folderID,
-    isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
+    isExtended: (extensions === 0 || extensions === -1) ? 0 : 1, // If text is <= 64 chars, isExtended is false
     title: title,
     text: text.substring(0, 64)
   };
@@ -360,7 +360,7 @@ export async function updateNote(itemID: number, folderID: number, title: string
     itemID: itemID,
     lastModified: timeMs,
     folderID: folderID,
-    isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
+    isExtended: (extensions === 0 || extensions === -1) ? 0 : 1, // If text is <= 64 chars, isExtended is false
     title: title,
     text: text.substring(0, 64)
   };
