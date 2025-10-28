@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -626,6 +626,10 @@ export async function deleteFolder(folderID: bigint) {
   for (const subFolder of subFolders) await deleteFolder(subFolder.folderID); // recursively delete subfolders
 
   if (await window.sqliteAPI.deleteFolder(folderID)) await createDeleted(folderID, foldersTable); // finally, delete the folder and create deleted entry
+}
+
+export async function clearAllTables() {
+  await window.sqliteAPI.clearAllTables(); // drop then recreate all tables
 }
 
 // helpers

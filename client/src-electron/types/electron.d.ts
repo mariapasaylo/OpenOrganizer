@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -85,6 +85,7 @@ declare global {
       deleteExtension: (itemID: bigint, sequenceNum: number) => Promise<void>;
       deleteAllExtensions: (itemID: bigint) => Promise<void>;
       deleteFolder: (folderID: bigint) => Promise<boolean>;
+      clearAllTables: () => Promise<void>;
 
       // Example functions
       sqliteRead: (key: string) => Promise<string>;

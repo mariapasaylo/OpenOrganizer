@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -113,6 +113,7 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   deleteExtension: (itemID: bigint, sequenceNum: number): Promise<void> => ipcRenderer.invoke('deleteExtension', itemID, sequenceNum),
   deleteAllExtensions: (itemID: bigint): Promise<void> => ipcRenderer.invoke('deleteAllExtensions', itemID),
   deleteFolder: (folderID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteFolder', folderID),
+  clearAllTables: (): Promise<void> => ipcRenderer.invoke('clearAllTables'),
 
   // Example functions
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),

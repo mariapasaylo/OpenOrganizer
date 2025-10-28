@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -32,17 +32,7 @@ const dbPath = path.join(app.getPath('userData'), 'local.db');
 const db = new Database(dbPath);
 
 // Create tables if not exists
-db.exec(sql.createNotesTable);
-db.exec(sql.createRemindersTable);
-db.exec(sql.createDailyTable);
-db.exec(sql.createWeeklyTable);
-db.exec(sql.createMonthlyTable);
-db.exec(sql.createYearlyTable);
-db.exec(sql.createGeneratedTable);
-db.exec(sql.createExtensionsTable);
-db.exec(sql.createOverridesTable);
-db.exec(sql.createFoldersTable);
-db.exec(sql.createDeletedTable);
+createTables();
 
 // prepare all sql queries once
 // create
@@ -378,6 +368,11 @@ export function deleteFolder(folderID: bigint) {
   return (deleteFolderStmt.run(folderID).changes != 0);
 }
 
+export function clearAllTables() {
+  dropTables();
+  createTables();
+}
+
 
 // Example db
 // test.db located in ..\AppData\Roaming\Electron
@@ -414,4 +409,34 @@ export function update(key: string, value: string) {
 // Delete entry from example table
 export function deleteEntry(key: string) {
   deleteExEntry.run(key);
+}
+
+
+// helpers
+function createTables() {
+  db.exec(sql.createNotesTable);
+  db.exec(sql.createRemindersTable);
+  db.exec(sql.createDailyTable);
+  db.exec(sql.createWeeklyTable);
+  db.exec(sql.createMonthlyTable);
+  db.exec(sql.createYearlyTable);
+  db.exec(sql.createGeneratedTable);
+  db.exec(sql.createExtensionsTable);
+  db.exec(sql.createOverridesTable);
+  db.exec(sql.createFoldersTable);
+  db.exec(sql.createDeletedTable);
+}
+
+function dropTables() {
+  db.exec(sql.dropNotesTable);
+  db.exec(sql.dropRemindersTable);
+  db.exec(sql.dropDailyTable);
+  db.exec(sql.dropWeeklyTable);
+  db.exec(sql.dropMonthlyTable);
+  db.exec(sql.dropYearlyTable);
+  db.exec(sql.dropGeneratedTable);
+  db.exec(sql.dropExtensionsTable);
+  db.exec(sql.dropOverridesTable);
+  db.exec(sql.dropFoldersTable);
+  db.exec(sql.dropDeletedTable);
 }

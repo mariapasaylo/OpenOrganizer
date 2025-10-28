@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -228,6 +228,9 @@ export function registerHandlers()
     return db.deleteFolder(folderID);
   });
 
+  ipcMain.handle('clearAllTables', (event) => {
+    db.clearAllTables();
+  });
 
   // Example Handlers
   ipcMain.handle('sqliteRead', (event, key: string) => {
