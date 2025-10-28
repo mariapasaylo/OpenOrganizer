@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-22
+ * Updated: 2025-10-27
  *
  * This file is the registration form for a user to create a new account that includes a sidebar with the application name and logo
  *
@@ -59,7 +59,7 @@ const $q = useQuasar();
 const username = ref<string>('');
 const password = ref<string>('');
 const isPwd = ref(true);
-const isLoading = ref(false)
+const isLoading = ref(false);
 
 async function register() {
     if (!username.value || !password.value){
@@ -80,7 +80,7 @@ async function register() {
         if(result){
             console.log('Account creation result:', result);
             //navigate to main calendar page
-            await router.push('/calendar')
+            await router.push('/calendar');
         } 
     } catch (error) {
         console.error('Error creating account', error);

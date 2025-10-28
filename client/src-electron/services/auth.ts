@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-26
+ * Updated: 2025-10-27
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -106,24 +106,25 @@ export async function createAccount(username : string, password : string): Promi
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey(), hashKeyPassword, hashKeyPassword);
   
-  // Sending in raw data via API request to /register
-  // Do not send 0 for username
+  //Note do not send 0 for username
   const userData = Buffer.alloc(128,20); 
 
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
   
-  //Send username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to server
+  //Store username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to send to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
+  //Testing output
   //console.log(getUserId(), getUserId());
-  console.log('THIS IS THE USER DATA', userData.toString('utf8'));
-  console.log('USER DATA RAW', userData);
-  console.log('THIS IS THE USER DATA LENGTH', userData.length);
+  console.log('REGISTER USER DATA', userData.toString('utf8'));
+  console.log('REGISTER USER DATA RAW', userData);
+  console.log('REGISTER USER DATA LENGTH', userData.length);
 
+  // Sending in raw data via API request to /register
   try{
     //TO DO: use serverAdress text file 
     const response = await fetch("http://localhost:3001/register", {
@@ -157,8 +158,31 @@ export async function createAccount(username : string, password : string): Promi
 
 
   export async function loginAccount(username : string, password : string): Promise<boolean> {
-    // send username and hash the password
+    //hash the password
+    const hashServerPassword: Buffer = hash512_256(password);
+    //Ensure username is max 32 bytes
+    const usernameBuffer = Buffer.from(username).slice(0,32);
+
+    //Store username[0:32], passwordHash[32:64] to send to server
+    const userData = Buffer.alloc(64,20);
+    usernameBuffer.copy(userData, 0);
+    hashServerPassword.copy(userData, 32);
     
+    //testing output
+    console.log('LOG IN USER DATA', userData.toString('utf8'));
+    console.log('LOG IN USER DATA RAW', userData);
+    console.log('LOG IN USER DATA LENGTH', userData.length);
+    //MARIA START HERE AFTER YOU TEST THE ABOVE
+    // Sending in raw data via API request to /login
+    // try {
+    //   const response = await fetch ("http://localhost:3001/login",{
+    //     method: 'POST',
+    //     headers: {'Content-Type':''}
+    //   });
+    // } catch (error){
+    //   return false;
+    // }
+
     //parse and store the userID and authToken and encrypted private keys
 
     //if valid login and password
