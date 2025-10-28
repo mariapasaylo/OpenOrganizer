@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-10-22
+ * Updated: 2025-10-27
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -25,7 +25,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
-import { createAccount } from "./auth";
+import { createAccount, loginAccount } from "./auth";
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -310,4 +310,8 @@ export function registerHandlers()
 
 ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
   return await createAccount(username, password);
+});
+
+ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
+  return await loginAccount(username, password);
 });
