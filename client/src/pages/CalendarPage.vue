@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-22
+ * Updated: 2025-10-28
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -82,7 +82,7 @@
           <!-- Each selectable item in breadcrumb path -->
             <q-breadcrumbs-el
             v-for="crumb in breadcrumbs"
-            :key="crumb.id"
+            :key="String(crumb.id)"
             :label="crumb.label"
             @click="selectBreadcrumbItem(crumb.id)"
           /> 
@@ -122,7 +122,7 @@
       <div class="reminder-note-card-container">
         <div v-if="tab === 'reminders'">
           <!-- Reminder Cards -->
-          <q-card class="reminder-note-cards" v-for="item in filteredReminders" :key="item.itemID">
+          <q-card class="reminder-note-cards" v-for="item in filteredReminders" :key="String(item.itemID)">
             <q-expansion-item v-model="item.expanded" expand-icon="keyboard_arrow_down">
               <template v-slot:header>
                   <div class="reminder-header-container">
@@ -312,7 +312,7 @@
                 @click-date="onClickDate" @click-day="onClickDay" @click-workweek="onClickWorkweek"
                 @click-head-workweek="onClickHeadWorkweek" @click-head-day="onClickHeadDay" style="height: 400px;" >
                 <template #day="{ scope: { timestamp } }">
-              <template v-for="event in eventsMap[timestamp.date]" :key="event.id">
+              <template v-for="event in eventsMap[timestamp.date]" :key="String(event.id)">
                 <div
                   :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
                   style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
@@ -527,7 +527,7 @@ const selectAll = ref(false)
 const searchQuery = ref('');
 // Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
-const selectedFolderID = ref<number | null>(null);
+const selectedFolderID = ref<bigint | null>(null);
 const folders = ref<UIFolder[]>([]);
 
 // Map folders to format for q-select dropdown menu
@@ -541,31 +541,32 @@ const folderDropdownOptions = computed(() => {
 });
 
 // Create nested folder tree structure from flat folders array
-const nestedFolderTree = computed(() => nest(folders.value, -1));
-console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, null, 2));
+const nestedFolderTree = computed(() => nest(folders.value, -1n));
+console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Convert nested folder tree to Q-Tree format
 // Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
 const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value, notes.value, reminders.value));
-console.log('qNestedTree:', JSON.stringify(qNestedTree.value, null, 2));
+// Convert bigint to string for console display since bigint isnt JSON serializable by default
+console.log('qNestedTree:', JSON.stringify(qNestedTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Computed breadcrumbs array that walks from the selected folder up to the root to build the path
 const breadcrumbs = computed(() => buildBreadcrumbs(selectedFolderID.value, folders.value, notes.value, reminders.value))
 
 // Click a breadcrumb name to select that folder in the tree
 // Reactive so whenever selected folder ID changes, breadcrumb path will be ran and recomputed automatically
-function selectBreadcrumbItem(folderID : number) {
+function selectBreadcrumbItem(folderID : bigint) {
   selectedFolderID.value = folderID;
 }
 
 // temp id generator for UI-only drafts (negative IDs)
-let tempIDCounter = -1;
+let tempIDCounter = -1n;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
-  // create a UI-only draft reminder with a temporary negative ID
+  // create a UI-only draft reminder with a temporary negative bigint ID
   const tempID = tempIDCounter--;
   // Folder to save reminder in is either root by default if nothing is selected, otherwise selected folder in tree
-  const folderID = (selectedFolderID.value as number) ?? 0;
+  const folderID = selectedFolderID.value ?? 0n;
 
   const draft: UIReminder = {
     itemID: tempID,
@@ -619,10 +620,10 @@ async function loadRemindersForCalendarDate(dateString: string) {
 
 // Function to add a note to the list
 function addNote() {
-  // create a UI-only draft note with a temporary negative ID
+  // create a UI-only draft note with a temporary negative bigint ID
   const tempID = tempIDCounter--;
    // Folder to save note in is either root by default if nothing is selected, otherwise selected folder in tree
-  const folderID = (selectedFolderID.value as number) ?? 0;
+  const folderID = selectedFolderID.value ?? 0n;
 
    const draft: UINote = {
     itemID: tempID,
@@ -673,9 +674,9 @@ async function loadNotesForCalendarDate(dateString: string) {
 async function addRootFolder() {
   try {
     // Try to load existing folders from local db
-    const folders = await readAllFolders();
+    const folders = mapDBToUIFolder(await readAllFolders());
     // If no root folder exists (no folders with parentFolderID === -1), create one
-    const hasRootFolder = folders.some(folder => folder.parentFolderID === -1 || folder.folderID === 0);
+    const hasRootFolder = folders.some(folder => folder.parentFolderID === -1n || folder.folderID === 0n);
     if (!hasRootFolder) {
       await createRootFolder(-1);
       console.log('Root folder created.', folders);
@@ -691,11 +692,15 @@ async function addRootFolder() {
     console.error('Error adding root folder:', error);
   }
 }
+  
 
 // Map a DB reminder row into the UI reminder shape needed for card display
-async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
+async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | null> {
+  // Convert incoming item ID to bigint 
+  const bigintID: bigint = (typeof itemID === 'bigint') ? itemID : BigInt(itemID);
+
   // Read newly created reminder from local DB
-  const row = await readReminder(itemID);
+  const row = await readReminder(bigintID);
   if (!row) {
     console.error('Reminder not found in DB for itemID:', itemID);
     return null;
@@ -726,9 +731,12 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
   const UIReminder = {
     // Copy all fields from DB shared type 
     ...row,
+    // normalize itemID and folder IDs to bigint so they match folder IDs used by the tree
+    itemID: (typeof row.itemID === 'bigint') ? row.itemID : BigInt(row.itemID),
+    folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID ),
+    temporaryFolderID: row.folderID == null ? null : ((typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID)),
     // Add on UI specific fields
     temporaryTitle: row.title ?? '',
-    temporaryFolderID: row.folderID ?? null,
     // Replace this with actual extension fields later when support is added 
     extension: ext,
     temporaryEventStartTime: startStr,
@@ -746,7 +754,7 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
 
   // Compute index for a reminder for card display, use itemID as unique index
   // Look for existing reminder in reminders array that matches the itemID of the newly created reminder
-  const index = reminders.value.findIndex(reminder => reminder.itemID === UIReminder.itemID);
+  const index = reminders.value.findIndex(reminder => String(reminder.itemID) === String(UIReminder.itemID));
   if (index >= 0) {
     // If found, replace preexisting reminder in array with new UI object
     reminders.value[index] = UIReminder;
@@ -758,10 +766,24 @@ async function mapDBToUIReminder(itemID: number): Promise<UIReminder | null> {
   return UIReminder;
 }
 
-// Map a DB note row into the UI note shape needed for card display
-async function mapDBToUINote(itemID: number): Promise<UINote | null> {
+// Map a DB folder row into the UI folder shape
+function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
+ return (rows ?? []).map(row => ({
+    // Copy all fields for a folder from DB row
+    ...row,
+    // If folderID is already a bigint, return it. Otherwise, cast value to a bigint
+    folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID),
+    parentFolderID: (typeof row.parentFolderID === 'bigint') ? row.parentFolderID : BigInt(row.parentFolderID),
+    lastModified: (typeof row.lastModified === 'bigint') ? row.lastModified : BigInt(row.lastModified),
+  })) as UIFolder[];
+}
+
+async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
+  // Convert incoming id to bigint for DB API which expects bigint
+  const bigintID: bigint = (typeof itemID === 'bigint') ? itemID : BigInt(itemID);
+
   // Read newly created note from local DB
-  const row = await readNote(itemID);
+  const row = await readNote(bigintID);
   if (!row) {
     console.error('Note not found in DB for itemID:', itemID);
     return null;
@@ -774,8 +796,10 @@ async function mapDBToUINote(itemID: number): Promise<UINote | null> {
   const UINote = {
     // Copy all fields from DB shared type 
     ...row,
+    itemID: (typeof row.itemID === 'bigint') ? row.itemID : BigInt(row.itemID),
+    folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID),
+    temporaryFolderID: row.folderID == null ? null : ((typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID)),
     temporaryTitle: row.title ?? '',
-    temporaryFolderID: row.folderID ?? null,
     temporaryText: row.text ?? '',
     date,
     titleMessageError: '',
@@ -787,7 +811,7 @@ async function mapDBToUINote(itemID: number): Promise<UINote | null> {
 
   // Compute index for a note for card display, use itemID as unique index
   // Look for existing note in notes array that matches the itemID of the newly created note
-  const index = notes.value.findIndex(note => note.itemID === UINote.itemID);
+  const index = notes.value.findIndex(note => String(note.itemID) === String(UINote.itemID));
   if (index >= 0) {
     // If found, replace preexisting note in array with new UI object
     notes.value[index] = UINote;
@@ -803,7 +827,7 @@ onMounted(async () => {
   // Add root folder if no folders exist on page load
   await addRootFolder();
   // Ensure folders array is populated from local DB on page load
-  folders.value = await readAllFolders();
+  folders.value = mapDBToUIFolder(await readAllFolders());
   // Load reminders for selected calendar date on startup
   await loadRemindersForCalendarDate(selectedDate.value);
   // Load notes for selected calendar date on startup
@@ -821,13 +845,13 @@ async function addFolder() {
   }
   // Otherwise, folder name is good and add folder to tree
   // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = -1)
-  const newFolderParentID = (selectedFolderID.value as number) ?? -1;
+  const newFolderParentID: bigint = selectedFolderID.value ?? -1n;
   try {
     // Create new folder in local DB with folder name and parent folder ID
     await createFolder(newFolderParentID, -1, newFolderName.value);
     console.log('Folder created successfully.', folders);
     // Refresh the folders list after creating the new folder to show it
-    folders.value = await readAllFolders();
+    folders.value = mapDBToUIFolder(await readAllFolders());
     console.log('Folders loaded successfully:', folders.value);
   }
 catch (error) {
@@ -853,7 +877,7 @@ async function saveNote(note: UINote){
   }
    // Folder must exist 
    // Checks if folder id (temporary folder) matches any existing folder ids in folders array
-  if (note.temporaryFolderID == null || !folders.value.some(folder => folder.folderID === note.temporaryFolderID)) {
+  if (note.temporaryFolderID == null || !folders.value.some(folder => String(folder.folderID) === String(note.temporaryFolderID))) {
     note.folderMessageError = 'Note must be in a existing folder';
     return;
   }
@@ -870,7 +894,7 @@ async function saveNote(note: UINote){
     // Map DB row into UI and update notes.value array
     await mapDBToUINote(note.itemID);
     // Refresh folders to show newly added note in file explorer tree
-    folders.value = await readAllFolders();
+    folders.value = mapDBToUIFolder(await readAllFolders());
     // Reload notes for selected calendar date to include newly added note
     await loadNotesForCalendarDate(selectedDate.value);
   }
@@ -881,7 +905,7 @@ async function saveNote(note: UINote){
       // Map DB row into UI and update notes.value array
       await mapDBToUINote(note.itemID);
       // Reload folders to see updated note in file tree
-      folders.value = await readAllFolders();
+      folders.value = mapDBToUIFolder(await readAllFolders());
       // Reload notes for selected date to see updated note card
       await loadNotesForCalendarDate(selectedDate.value);
   }
@@ -910,7 +934,7 @@ async function saveReminder(reminder: UIReminder){
 
   // Folder must exist
   // Checks if folder id (temporary folder) matches any existing folder ids in folders array
-  if (reminder.temporaryFolderID == null || !folders.value.some(folder => folder.folderID === reminder.temporaryFolderID)) {
+  if (reminder.temporaryFolderID == null || !folders.value.some(folder => String(folder.folderID) === String(reminder.temporaryFolderID))) {
     reminder.folderMessageError = 'Reminder must be in a existing folder';
     return;
   }
@@ -953,7 +977,7 @@ try {
   // Map DB row into UI and update reminders.value array
   await mapDBToUIReminder(reminder.itemID);
 
-  folders.value = await readAllFolders();
+  folders.value = mapDBToUIFolder(await readAllFolders());
   await loadRemindersForCalendarDate(selectedDate.value);
 
   if (hasNotification) {
@@ -972,7 +996,7 @@ try {
       // Map DB row into UI and update reminders.value array
       await mapDBToUIReminder(reminder.itemID);
       // Refresh folders to show newly added reminder in file explorer tree
-      folders.value = await readAllFolders();
+      folders.value = mapDBToUIFolder(await readAllFolders());
       // Reload reminders for selected calendar date to include newly added reminder
       await loadRemindersForCalendarDate(selectedDate.value);
 
@@ -999,7 +1023,7 @@ async function deleteReminder(reminder: UIReminder) {
     reminders.value = reminders.value.filter(r => r.itemID !== reminder.itemID);
     console.log('Reminder deleted successfully from DB.');
     // Refresh folders for tree to remove deleted reminder
-    folders.value = await readAllFolders();
+    folders.value = mapDBToUIFolder(await readAllFolders());
     // Re-load reminders for calendar date after deleted reminder
     await loadRemindersForCalendarDate(selectedDate.value);
 
@@ -1021,7 +1045,7 @@ async function deleteNote(note: UINote) {
     notes.value = notes.value.filter(n => n.itemID !== note.itemID);
     console.log('Note deleted successfully from DB.');
     // Refresh folders for tree to remove deleted note
-    folders.value = await readAllFolders();
+    folders.value = mapDBToUIFolder(await readAllFolders());
     // Re-load notes for calendar date after deleted note
     await loadNotesForCalendarDate(selectedDate.value);
   } catch (error) {

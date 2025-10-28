@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-17
+ * Updated: 2025-10-27
  *
  * This file contains interfaces that are shared between the main and renderer processes to easily pass database entries
  * and other values.
@@ -13,33 +13,33 @@
 
 // table interfaces
 export interface Note {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   isExtended: number;
   title: string;
   text: string;
 }
 
 export interface Extension {
-  itemID: number;
+  itemID: bigint;
   sequenceNum: number;
-  lastModified: number;
+  lastModified: bigint;
   data: string;
 }
 
 export interface Folder {
-  folderID: number;
-  lastModified: number;
-  parentFolderID: number;
+  folderID: bigint;
+  lastModified: bigint;
+  parentFolderID: bigint;
   colorCode: number;
   folderName: string;
 }
 
 export interface Reminder {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   eventType: number;
   eventStartYear: number;
   eventStartDay: number;
@@ -56,9 +56,9 @@ export interface Reminder {
 }
 
 export interface DailyReminder {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   eventType: number;
   seriesStartYear: number;
   seriesStartDay: number;
@@ -76,9 +76,9 @@ export interface DailyReminder {
 }
 
 export interface WeeklyReminder {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   eventType: number;
   seriesStartYear: number;
   seriesStartDay: number;
@@ -97,9 +97,9 @@ export interface WeeklyReminder {
 }
 
 export interface MonthlyReminder {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   eventType: number;
   seriesStartYear: number;
   seriesStartDay: number;
@@ -118,9 +118,9 @@ export interface MonthlyReminder {
 }
 
 export interface YearlyReminder {
-  itemID: number;
-  lastModified: number;
-  folderID: number;
+  itemID: bigint;
+  lastModified: bigint;
+  folderID: bigint;
   eventType: number;
   seriesStartYear: number;
   seriesStartDay: number;
@@ -138,8 +138,8 @@ export interface YearlyReminder {
 }
 
 export interface Deleted {
-  itemID: number;
-  lastModified: number;
+  itemID: bigint;
+  lastModified: bigint;
   itemTable: number;
 }
 
