@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-20
+ * Updated: 2025-10-27
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -40,16 +40,16 @@ declare global {
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
       // read
-      readNote: (itemID: number) => Promise<Note>;
-      readReminder: (itemID: number) => Promise<Reminder>;
-      readDailyReminder: (itemID: number) => Promise<DailyReminder>;
-      readWeeklyReminder: (itemID: number) => Promise<WeeklyReminder>;
-      readMonthlyReminder: (itemID: number) => Promise<MonthlyReminder>;
-      readYearlyReminder: (itemID: number) => Promise<YearlyReminder>;
-      readExtensions: (itemID: number) => Promise<Extension[]>;
-      readFolder: (folderID: number) => Promise<Folder>;
+      readNote: (itemID: bigint) => Promise<Note>;
+      readReminder: (itemID: bigint) => Promise<Reminder>;
+      readDailyReminder: (itemID: bigint) => Promise<DailyReminder>;
+      readWeeklyReminder: (itemID: bigint) => Promise<WeeklyReminder>;
+      readMonthlyReminder: (itemID: bigint) => Promise<MonthlyReminder>;
+      readYearlyReminder: (itemID: bigint) => Promise<YearlyReminder>;
+      readExtensions: (itemID: bigint) => Promise<Extension[]>;
+      readFolder: (folderID: bigint) => Promise<Folder>;
 
-      readNotesInRange: (windowStartMs: number, windowEndMs: number) => Promise<Note[]>;
+      readNotesInRange: (windowStartMs: bigint, windowEndMs: bigint) => Promise<Note[]>;
       readRemindersInRange: (rangeWindow: RangeWindow) => Promise<Reminder[]>;
       readDailyRemindersInRange: (rangeWindow: RangeWindow) => Promise<DailyReminder[]>;
       readWeeklyRemindersInRange: (rangeWindow: RangeWindow) => Promise<WeeklyReminder[]>;
@@ -58,13 +58,13 @@ declare global {
 
       readAllFolders: () => Promise<Folder[]>;
 
-      readNotesInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readDailyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readWeeklyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readMonthlyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readYearlyRemindersInFolder: (folderID: number) => Promise<{ itemID: number }[]>;
-      readFoldersInFolder: (parentFolderID: number) => Promise<{ folderID: number }[]>;
+      readNotesInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readDailyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readYearlyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
+      readFoldersInFolder: (parentFolderID: bigint) => Promise<{ folderID: bigint }[]>;
 
       // update
       updateNote: (modNote: Note) => Promise<void>;
@@ -76,15 +76,15 @@ declare global {
       updateFolder: (modFolder: Folder) => Promise<void>;
 
       // delete
-      deleteNote: (itemID: number) => Promise<boolean>;
-      deleteReminder: (itemID: number) => Promise<boolean>;
-      deleteDailyReminder: (itemID: number) => Promise<boolean>;
-      deleteWeeklyReminder: (itemID: number) => Promise<boolean>;
-      deleteMonthlyReminder: (itemID: number) => Promise<boolean>;
-      deleteYearlyReminder: (itemID: number) => Promise<boolean>;
-      deleteExtension: (itemID: number, sequenceNum: number) => Promise<void>;
-      deleteAllExtensions: (itemID: number) => Promise<void>;
-      deleteFolder: (folderID: number) => Promise<boolean>;
+      deleteNote: (itemID: bigint) => Promise<boolean>;
+      deleteReminder: (itemID: bigint) => Promise<boolean>;
+      deleteDailyReminder: (itemID: bigint) => Promise<boolean>;
+      deleteWeeklyReminder: (itemID: bigint) => Promise<boolean>;
+      deleteMonthlyReminder: (itemID: bigint) => Promise<boolean>;
+      deleteYearlyReminder: (itemID: bigint) => Promise<boolean>;
+      deleteExtension: (itemID: bigint, sequenceNum: number) => Promise<void>;
+      deleteAllExtensions: (itemID: bigint) => Promise<void>;
+      deleteFolder: (folderID: bigint) => Promise<boolean>;
 
       // Example functions
       sqliteRead: (key: string) => Promise<string>;

@@ -68,16 +68,16 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   createDeleted: (newDeleted: Deleted): Promise<void> => ipcRenderer.invoke('createDeleted', newDeleted),
 
   // read
-  readNote: (itemID: number): Promise<Note> => ipcRenderer.invoke('readNote', itemID),
-  readReminder: (itemID: number): Promise<Reminder> => ipcRenderer.invoke('readReminder', itemID),
-  readDailyReminder: (itemID: number): Promise<DailyReminder> => ipcRenderer.invoke('readDailyReminder', itemID),
-  readWeeklyReminder: (itemID: number): Promise<WeeklyReminder> => ipcRenderer.invoke('readWeeklyReminder', itemID),
-  readMonthlyReminder: (itemID: number): Promise<MonthlyReminder> => ipcRenderer.invoke('readMonthlyReminder', itemID),
-  readYearlyReminder: (itemID: number): Promise<YearlyReminder> => ipcRenderer.invoke('readYearlyReminder', itemID),
-  readExtensions: (itemID: number): Promise<Extension[]> => ipcRenderer.invoke('readExtensions', itemID),
-  readFolder: (folderID: number): Promise<Folder> => ipcRenderer.invoke('readFolder', folderID),
+  readNote: (itemID: bigint): Promise<Note> => ipcRenderer.invoke('readNote', itemID),
+  readReminder: (itemID: bigint): Promise<Reminder> => ipcRenderer.invoke('readReminder', itemID),
+  readDailyReminder: (itemID: bigint): Promise<DailyReminder> => ipcRenderer.invoke('readDailyReminder', itemID),
+  readWeeklyReminder: (itemID: bigint): Promise<WeeklyReminder> => ipcRenderer.invoke('readWeeklyReminder', itemID),
+  readMonthlyReminder: (itemID: bigint): Promise<MonthlyReminder> => ipcRenderer.invoke('readMonthlyReminder', itemID),
+  readYearlyReminder: (itemID: bigint): Promise<YearlyReminder> => ipcRenderer.invoke('readYearlyReminder', itemID),
+  readExtensions: (itemID: bigint): Promise<Extension[]> => ipcRenderer.invoke('readExtensions', itemID),
+  readFolder: (folderID: bigint): Promise<Folder> => ipcRenderer.invoke('readFolder', folderID),
 
-  readNotesInRange: (windowStartMs: number, windowEndMs: number): Promise<Note[]> => ipcRenderer.invoke('readNotesInRange', windowStartMs, windowEndMs),
+  readNotesInRange: (windowStartMs: bigint, windowEndMs: bigint): Promise<Note[]> => ipcRenderer.invoke('readNotesInRange', windowStartMs, windowEndMs),
   readRemindersInRange: (rangeWindow: RangeWindow): Promise<Reminder[]> => ipcRenderer.invoke('readRemindersInRange', rangeWindow),
   readDailyRemindersInRange: (rangeWindow: RangeWindow): Promise<DailyReminder[]> => ipcRenderer.invoke('readDailyRemindersInRange', rangeWindow),
   readWeeklyRemindersInRange: (rangeWindow: RangeWindow): Promise<WeeklyReminder[]> => ipcRenderer.invoke('readWeeklyRemindersInRange', rangeWindow),
@@ -86,13 +86,13 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
 
   readAllFolders: (): Promise<Folder[]> => ipcRenderer.invoke('readAllFolders'),
 
-  readNotesInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readNotesInFolder', folderID),
-  readRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readRemindersInFolder', folderID),
-  readDailyRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),
-  readWeeklyRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readWeeklyRemindersInFolder', folderID),
-  readMonthlyRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
-  readYearlyRemindersInFolder: (folderID: number): Promise<{ itemID: number }[]> => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
-  readFoldersInFolder: (parentFolderID: number): Promise<{ folderID: number }[]> => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
+  readNotesInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readNotesInFolder', folderID),
+  readRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readRemindersInFolder', folderID),
+  readDailyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),
+  readWeeklyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readWeeklyRemindersInFolder', folderID),
+  readMonthlyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
+  readYearlyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
+  readFoldersInFolder: (parentFolderID: bigint): Promise<{ folderID: bigint }[]> => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
 
   // update
   updateNote: (modNote: Note): Promise<void> => ipcRenderer.invoke('updateNote', modNote),
@@ -104,15 +104,15 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   updateFolder: (modFolder: Folder): Promise<void> => ipcRenderer.invoke('updateFolder', modFolder),
 
   // delete
-  deleteNote: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteNote', itemID),
-  deleteReminder: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteReminder', itemID),
-  deleteDailyReminder: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteDailyReminder', itemID),
-  deleteWeeklyReminder: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteWeeklyReminder', itemID),
-  deleteMonthlyReminder: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteMonthlyReminder', itemID),
-  deleteYearlyReminder: (itemID: number): Promise<boolean> => ipcRenderer.invoke('deleteYearlyReminder', itemID),
-  deleteExtension: (itemID: number, sequenceNum: number): Promise<void> => ipcRenderer.invoke('deleteExtension', itemID, sequenceNum),
-  deleteAllExtensions: (itemID: number): Promise<void> => ipcRenderer.invoke('deleteAllExtensions', itemID),
-  deleteFolder: (folderID: number): Promise<boolean> => ipcRenderer.invoke('deleteFolder', folderID),
+  deleteNote: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteNote', itemID),
+  deleteReminder: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteReminder', itemID),
+  deleteDailyReminder: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteDailyReminder', itemID),
+  deleteWeeklyReminder: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteWeeklyReminder', itemID),
+  deleteMonthlyReminder: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteMonthlyReminder', itemID),
+  deleteYearlyReminder: (itemID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteYearlyReminder', itemID),
+  deleteExtension: (itemID: bigint, sequenceNum: number): Promise<void> => ipcRenderer.invoke('deleteExtension', itemID, sequenceNum),
+  deleteAllExtensions: (itemID: bigint): Promise<void> => ipcRenderer.invoke('deleteAllExtensions', itemID),
+  deleteFolder: (folderID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteFolder', folderID),
 
   // Example functions
   sqliteCreate: (key: string, value: string) => ipcRenderer.invoke('sqliteCreate', key, value),

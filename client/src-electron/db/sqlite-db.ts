@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-17
+ * Updated: 2025-10-27
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -167,40 +167,40 @@ export function createDeleted(newDeleted: Deleted) {
 
 
 // read
-export function readNote(itemID: number) {
+export function readNote(itemID: bigint) {
   return readNoteStmt.get(itemID) as Note;
 }
 
-export function readReminder(itemID: number) {
+export function readReminder(itemID: bigint) {
   return readReminderStmt.get(itemID) as Reminder;
 }
 
-export function readDailyReminder(itemID: number) {
+export function readDailyReminder(itemID: bigint) {
   return readDailyReminderStmt.get(itemID) as DailyReminder;
 }
 
-export function readWeeklyReminder(itemID: number) {
+export function readWeeklyReminder(itemID: bigint) {
   return readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
 }
 
-export function readMonthlyReminder(itemID: number) {
+export function readMonthlyReminder(itemID: bigint) {
   return readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
 }
 
-export function readYearlyReminder(itemID: number) {
+export function readYearlyReminder(itemID: bigint) {
   return readYearlyReminderStmt.get(itemID) as YearlyReminder;
 }
 
-export function readExtensions(itemID: number) {
+export function readExtensions(itemID: bigint) {
   return readExtensionsStmt.all(itemID) as Extension[];
 }
 
-export function readFolder(folderID: number) {
+export function readFolder(folderID: bigint) {
   return readFolderStmt.get(folderID) as Folder;
 }
 
 // read in range
-export function readNotesInRange(windowStartMs: number, windowEndMs: number) {
+export function readNotesInRange(windowStartMs: bigint, windowEndMs: bigint) {
   return readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
 }
 
@@ -255,31 +255,31 @@ export function readAllFolders() {
 }
 
 // get IDs based on folderID
-export function readNotesInFolder(folderID: number) {
+export function readNotesInFolder(folderID: bigint) {
   return readNotesInFolderStmt.all(folderID);
 }
 
-export function readRemindersInFolder(folderID: number) {
+export function readRemindersInFolder(folderID: bigint) {
   return readRemindersInFolderStmt.all(folderID);
 }
 
-export function readDailyRemindersInFolder(folderID: number) {
+export function readDailyRemindersInFolder(folderID: bigint) {
   return readDailyRemindersInFolderStmt.all(folderID);
 }
 
-export function readWeeklyRemindersInFolder(folderID: number) {
+export function readWeeklyRemindersInFolder(folderID: bigint) {
   return readWeeklyRemindersInFolderStmt.all(folderID);
 }
 
-export function readMonthlyRemindersInFolder(folderID: number) {
+export function readMonthlyRemindersInFolder(folderID: bigint) {
   return readMonthlyRemindersInFolderStmt.all(folderID);
 }
 
-export function readYearlyRemindersInFolder(folderID: number) {
+export function readYearlyRemindersInFolder(folderID: bigint) {
   return readYearlyRemindersInFolderStmt.all(folderID);
 }
 
-export function readFoldersInFolder(parentFolderID: number) {
+export function readFoldersInFolder(parentFolderID: bigint) {
   return readFoldersInFolderStmt.all(parentFolderID);
 }
 
@@ -342,39 +342,39 @@ export function updateFolder(modFolder: Folder) {
 
 
 // delete
-export function deleteNote(itemID: number) {
+export function deleteNote(itemID: bigint) {
   return (deleteNoteStmt.run(itemID).changes != 0);
 }
 
-export function deleteReminder(itemID: number) {
+export function deleteReminder(itemID: bigint) {
   return (deleteReminderStmt.run(itemID).changes != 0);
 }
 
-export function deleteDailyReminder(itemID: number) {
+export function deleteDailyReminder(itemID: bigint) {
   return (deleteDailyReminderStmt.run(itemID).changes != 0);
 }
 
-export function deleteWeeklyReminder(itemID: number) {
+export function deleteWeeklyReminder(itemID: bigint) {
   return (deleteWeeklyReminderStmt.run(itemID).changes != 0);
 }
 
-export function deleteMonthlyReminder(itemID: number) {
+export function deleteMonthlyReminder(itemID: bigint) {
   return (deleteMonthlyReminderStmt.run(itemID).changes != 0);
 }
 
-export function deleteYearlyReminder(itemID: number) {
+export function deleteYearlyReminder(itemID: bigint) {
   return (deleteYearlyReminderStmt.run(itemID).changes != 0);
 }
 
-export function deleteExtension(itemID: number, sequenceNum: number) {
+export function deleteExtension(itemID: bigint, sequenceNum: number) {
   deleteExtensionStmt.run(itemID, sequenceNum);
 }
 
-export function deleteAllExtensions(itemID: number) {
+export function deleteAllExtensions(itemID: bigint) {
   deleteAllExtensionsStmt.run(itemID);
 }
 
-export function deleteFolder(folderID: number) {
+export function deleteFolder(folderID: bigint) {
   return (deleteFolderStmt.run(folderID).changes != 0);
 }
 
