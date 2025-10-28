@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-23
+ * Updated: 2025-10-28
  *
  * This file contains functions to build calendar events from reminders and retrieve event type details
  *
@@ -14,7 +14,7 @@ import type { UIReminder } from '../types/ui-types';
 
 // Reminder on calendar
 export type CalendarEvent = {
-  id: number;
+  id: bigint;
   title: string;
   date: string;
   color: string;
@@ -27,6 +27,7 @@ export type EventField = {
 };
 
 export type EventType = { 
+   // Event type is a number, not bigint like itemID in backend
     id: number; 
     name: string; 
     color: string; 
@@ -56,7 +57,7 @@ export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventTy
   // Only show saved reminders on calendar
   return reminders.filter(reminder => reminder.isSaved)
     .map(reminder => ({
-      id: reminder.itemID,
+      id: reminder.itemID, 
       title: reminder.title,
       date: reminder.date,
       // Have background color be same as event type color

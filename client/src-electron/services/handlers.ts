@@ -272,7 +272,7 @@ export function registerHandlers()
   });
 
   // Schedule a reminder notification once at local timezone and specific date and time
-  ipcMain.handle('scheduleReminderNotification', (event, reminder: { itemID: number; date: string; title: string; time?: string; unixMilliseconds?: number}) => {
+  ipcMain.handle('scheduleReminderNotification', (event, reminder: { itemID: bigint; date: string; title: string; time?: string; unixMilliseconds?: number}) => {
       const unixMillisecondsTime = Number(reminder.unixMilliseconds);
       // Derive datetime from unix epoch milliseconds timestamp
       // const dateTime = new Date(unixMillisecondsTime);

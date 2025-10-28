@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-23
+ * Updated: 2025-10-28
  *
  * This file contains functions to create the file explorer tree structure and breadcrumb trail path
  *
@@ -10,19 +10,20 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
 
+import type { Folder } from 'app/src-electron/types/shared-types';
 import type { UIFolder, UINote, UIReminder } from '../types/ui-types';
 
 export type QTreeFolder = {
   label: string;
-  id: number | string;
+  id: bigint;
   icon?: string;
   iconColor?: string;
   children?: QTreeFolder[];
 };
 
 // example JS nest function for how to convert flat array into n-ary nested tree from https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript
-export function nest(items: UIFolder[], id: number): UIFolder[] {
-  // Filter finds all folders where the parent id is equal to the current folder id 
+export function nest(items: UIFolder[], id: bigint): UIFolder[] {
+  // Filter finds all folders where the parent id is equal to the current folder id
   return items.filter(item => item.parentFolderID === id)
     // For each folder, create/map new item object that includes the original folder properties ...item (id, name, parentFolderID)
     .map(item => ({
@@ -40,10 +41,10 @@ export function convertFolderTreetoQTree(folders: UIFolder[], notes: UINote[], r
 
     // For each note, create a QTree node with label and id properties and return it
     const noteTreeNodes = notesInCurrFolder.map((note) => {
+      const itemIDBig = note.itemID;
       return {
         label: note.title,
-        id: -Math.abs(note.itemID), // Use negative ID to distinguish notes and reminders from folders
-        // No icon, color, or children properties for notes
+        id: -itemIDBig, // Use negative bigint to distinguish notes and reminders from folders
       };
     });
 
@@ -52,10 +53,10 @@ export function convertFolderTreetoQTree(folders: UIFolder[], notes: UINote[], r
 
     // For each reminder, create a QTree node with label and id properties and return it
     const reminderTreeNodes = remindersInCurrFolder.map((reminder) => {
+      const itemIDBig = reminder.itemID;
       return {
         label: reminder.title,
-        id: -Math.abs(reminder.itemID),
-        // No icon, color, or children properties for reminders
+        id: -itemIDBig,
       };
     });
 
@@ -76,19 +77,20 @@ export function convertFolderTreetoQTree(folders: UIFolder[], notes: UINote[], r
 
 // Function to normalize selected node to be folderID for breadcrumb trail navigation 
 // Needed to distinguish because notes/reminders are selectable children with negative IDs in the tree
-export function normalizeFolderID(selectedNode: number | null, notes: UINote[], reminders: UIReminder[]): number | null {
-    // Selected tree node is null, return null
+export function normalizeFolderID(selectedNode: bigint | null, notes: UINote[], reminders: UIReminder[]): bigint | null {
+  // Selected tree node is null, return null
   if (selectedNode === null) {
     return null;
-  } 
+  }
+
   // Selected tree node is positive ID, must be a folder, just return the folder
-  if (selectedNode > 0) {
+  if (selectedNode > 0n) {
     return selectedNode;
   }
   // Selected tree node is a reminder/note (negative of itemID), find its folder ID
   else {
-    const itemID = Math.abs(selectedNode);
-    // Try to find note thats itemID matches the selected node item ID to get UI data (folderID, title, color, etc.)
+    const itemID = selectedNode < 0n ? -selectedNode : selectedNode;
+    // Try to find note thats itemID matches the selected node item ID 
     const note = notes.find(note => note.itemID === itemID);
     // If note is found, return its folderID
     if (note) {
@@ -99,23 +101,34 @@ export function normalizeFolderID(selectedNode: number | null, notes: UINote[], 
     // If reminder is found, return its folderID
     if (reminder) {
       return reminder.folderID ?? null;
-    }
-  }
-    return null;
+    } 
+}
+return null;
+}
+
+// Normalize folder rows returned from IPC into consistent UIFolder with bigint fields
+function normalizeFolderRows(rows: Folder[]): UIFolder[] {
+  return (rows ?? []).map(r => ({
+    ...r,
+    folderID: (typeof r.folderID === 'bigint') ? r.folderID : BigInt(r.folderID ?? 0),
+    parentFolderID: (typeof r.parentFolderID === 'bigint') ? r.parentFolderID : BigInt(r.parentFolderID ?? -1),
+    lastModified: (typeof r.lastModified === 'bigint') ? r.lastModified : BigInt(r.lastModified ?? Date.now()),
+  })) as UIFolder[];
 }
 
 // Function to build breadcrumbs array that walks from the selected folder up to the root to build the path
-export function buildBreadcrumbs(selectedNode: number | null, folders: UIFolder[], notes: UINote[], reminders: UIReminder[]): { label: string; id: number }[] {
-// Normalize currently selected folder ID on QTree
+export function buildBreadcrumbs(selectedNode: bigint | null, folders: UIFolder[], notes: UINote[], reminders: UIReminder[]): { label: string; id: bigint }[] {
+  // Normalize currently selected folder ID on QTree
   const currentFolderID = normalizeFolderID(selectedNode, notes, reminders);
   // Empty path if there is no currently selected folder
   if (currentFolderID == null) {
     return [];
   }
   // Initialize empty path array
-  const path: { label: string; id: number }[] = [];
-  // Start from current folder ID
-  let currentID: number | null = currentFolderID;
+  const path: { label: string; id: bigint }[] = [];
+
+  let currentID: bigint | null = currentFolderID;
+
   // While a folder is selected, walk up the tree to build the path
   while (currentID != null) {
     // Find folder in folders array that matches the current folder ID
@@ -124,9 +137,8 @@ export function buildBreadcrumbs(selectedNode: number | null, folders: UIFolder[
     if (current) {
       path.push({ label: current.folderName, id: current.folderID });
       // Update currentID to be the parent folder ID for the next iteration
-      // If its -1 return null as it is root
-      currentID = current.parentFolderID === -1 ? null : current.parentFolderID;
-    // Break if there is no current folder found (root or invalid)
+      // parentFolderID === -1n means root
+      currentID = current.parentFolderID === -1n ? null : current.parentFolderID;
     } else {
       break;
     }

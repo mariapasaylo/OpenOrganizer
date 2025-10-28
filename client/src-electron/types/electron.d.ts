@@ -106,7 +106,7 @@ declare global {
 
     reminderNotificationAPI: {
       showReminderNotification: (reminder: { title: string; date: string }) => Promise<boolean>;
-      scheduleReminderNotification: (reminder: { itemID: number; date: string; title: string; time?: string; unixMilliseconds?: number }) => Promise<boolean>;
+      scheduleReminderNotification: (reminder: { itemID: bigint; date: string; title: string; time?: string; unixMilliseconds?: number }) => Promise<boolean>;
     };
   }
 }
