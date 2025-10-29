@@ -40,7 +40,7 @@ export function packNotes(notes: Note[]) {
 
     encrData.writeBigInt64LE(notes[i]!.folderID, encrBufPos);
     encrBufPos += 8;
-    encrData[encrBufPos] = notes[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = notes[i]!.isExtended;
     encrBufPos += 1;
     encrData.write(notes[i]!.title, encrBufPos);
     encrBufPos += 48;
@@ -73,9 +73,9 @@ export function packReminders(reminders: Reminder[]) {
 
     encrBufPos = packEventTimes(encrData, reminders[i]!, encrBufPos);
 
-    encrData[encrBufPos] = reminders[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = reminders[i]!.isExtended;
     encrBufPos += 1;
-    encrData[encrBufPos] = reminders[i]!.hasNotif ? 1 : 0;
+    encrData[encrBufPos] = reminders[i]!.hasNotif;
     encrBufPos += 1;
     encrData.write(reminders[i]!.title, encrBufPos);
 
@@ -112,9 +112,9 @@ export function packDailyReminders(dailyReminders: DailyReminder[]) {
     encrBufPos += 4;
     encrData.writeInt32LE(dailyReminders[i]!.notifOffsetTimeMin, encrBufPos);
     encrBufPos += 4;
-    encrData[encrBufPos] = dailyReminders[i]!.hasNotifs ? 1 : 0;
+    encrData[encrBufPos] = dailyReminders[i]!.hasNotifs;
     encrBufPos += 1;
-    encrData[encrBufPos] = dailyReminders[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = dailyReminders[i]!.isExtended;
     encrBufPos += 1;
     encrData.writeInt16LE(dailyReminders[i]!.everyNDays, encrBufPos);
     encrBufPos += 2;
@@ -153,9 +153,9 @@ export function packWeeklyReminders(weeklyReminders: WeeklyReminder[]) {
     encrBufPos += 4;
     encrData.writeInt32LE(weeklyReminders[i]!.notifOffsetTimeMin, encrBufPos);
     encrBufPos += 4;
-    encrData[encrBufPos] = weeklyReminders[i]!.hasNotifs ? 1 : 0;
+    encrData[encrBufPos] = weeklyReminders[i]!.hasNotifs;
     encrBufPos += 1;
-    encrData[encrBufPos] = weeklyReminders[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = weeklyReminders[i]!.isExtended;
     encrBufPos += 1;
     encrData.writeInt16LE(weeklyReminders[i]!.everyNWeeks, encrBufPos);
     encrBufPos += 2;
@@ -196,11 +196,11 @@ export function packMonthlyReminders(monthlyReminders: MonthlyReminder[]) {
     encrBufPos += 4;
     encrData.writeInt32LE(monthlyReminders[i]!.notifOffsetTimeMin, encrBufPos);
     encrBufPos += 4;
-    encrData[encrBufPos] = monthlyReminders[i]!.hasNotifs ? 1 : 0;
+    encrData[encrBufPos] = monthlyReminders[i]!.hasNotifs;
     encrBufPos += 1;
-    encrData[encrBufPos] = monthlyReminders[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = monthlyReminders[i]!.isExtended;
     encrBufPos += 1;
-    encrData[encrBufPos] = monthlyReminders[i]!.lastDayOfMonth ? 1 : 0;
+    encrData[encrBufPos] = monthlyReminders[i]!.lastDayOfMonth;
     encrBufPos += 1;
     encrData.copy(packDaysOfMonth(monthlyReminders[i]!.daysOfMonth), encrBufPos);
     encrBufPos += 4;
@@ -239,9 +239,9 @@ export function packYearlyReminders(yearlyReminders: YearlyReminder[]) {
     encrBufPos += 4;
     encrData.writeInt32LE(yearlyReminders[i]!.notifOffsetTimeMin, encrBufPos);
     encrBufPos += 4;
-    encrData[encrBufPos] = yearlyReminders[i]!.hasNotifs ? 1 : 0;
+    encrData[encrBufPos] = yearlyReminders[i]!.hasNotifs;
     encrBufPos += 1;
-    encrData[encrBufPos] = yearlyReminders[i]!.isExtended ? 1 : 0;
+    encrData[encrBufPos] = yearlyReminders[i]!.isExtended;
     encrBufPos += 1;
     encrData.writeInt16LE(yearlyReminders[i]!.dayOfYear, encrBufPos);
     encrBufPos += 2;
