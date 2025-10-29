@@ -260,10 +260,10 @@ export function packExtensions(extensions: Extension[]) {
     // unencrypted itemID and lastModified values
     repeatedData.writeBigInt64LE(extensions[i]!.itemID, bufPos);
     bufPos += 8;
-    repeatedData.writeInt32LE(extensions[i]!.sequenceNum, bufPos);
-    bufPos += 4;
     repeatedData.writeBigInt64LE(extensions[i]!.lastModified, bufPos);
     bufPos += 8;
+    repeatedData.writeInt32LE(extensions[i]!.sequenceNum, bufPos);
+    bufPos += 4;
 
     // encrypted data
     const encrData = Buffer.alloc(64);
@@ -364,8 +364,8 @@ function packDaysOfWeek(daysOfWeek: string) {
   return packedDoW;
 }
 
-function packDaysOfMonth(daysOfMonth: string) {
+function packDaysOfMonth(daysOfMonth: string) { // uses big-endian to store bits in same order
   const packedDoM = Buffer.alloc(4);
-  packedDoM.writeUint32LE(parseInt(daysOfMonth, 2), 0); // turns binary string into int representation ex: "00000011" = 3
+  packedDoM.writeUint32BE(parseInt(daysOfMonth, 2), 0); // turns binary string into int representation ex: "0000011111010000" = 2000
   return packedDoM;
 }
