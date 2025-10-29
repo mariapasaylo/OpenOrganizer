@@ -1,9 +1,9 @@
 /*
- * Authors: Kevin Sirantoine, Maria Pasaylo
+ * Authors: Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-27
+ * Updated: 2025-10-28
  *
- * This file contains functions related to user authentication including getters 
+ * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
  * This file will eventually contain login and account creation functions.
  *
@@ -16,7 +16,7 @@ import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/sr
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
 
-interface Account{ 
+interface Account{
   username: string;
   password: string;
   privateKey1: Buffer;
@@ -47,7 +47,7 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'string', 
+    type: 'string',
     default: ''
   }
 }
@@ -81,7 +81,7 @@ function setAuthToken(authToken : Buffer) {
   accountStore.set('authToken', authToken);
 }
 
-function getPrivateKey1() {
+export function getPrivateKey1() {
   return Buffer.from(accountStore.get('privateKey1'));
 }
 
@@ -99,7 +99,7 @@ function setPrivateKey2(privateKey : Buffer) {
 
 function getUserId() {
   return BigInt(accountStore.get('userId'));
-} 
+}
 
 function setUserId(userId : string) {
   accountStore.set('userId', userId);
@@ -113,13 +113,13 @@ export async function createAccount(username : string, password : string): Promi
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
-  
+
   //Note do not send 0 for username
-  const userData = Buffer.alloc(128,20); 
+  const userData = Buffer.alloc(128,20);
 
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
-  
+
   //Store username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to send to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
@@ -134,7 +134,7 @@ export async function createAccount(username : string, password : string): Promi
 
   // Sending in raw data via API request to /register
   try{
-    //TO DO: use serverAdress text file 
+    //TO DO: use serverAdress text file
     const response = await fetch("http://localhost:3001/register", {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
@@ -143,7 +143,7 @@ export async function createAccount(username : string, password : string): Promi
 
     //Parse the reponse
     const responseData = Buffer.from(await response.arrayBuffer());
-    
+
     //More testing
     console.log('Response data', responseData.length);
     console.log('Response data', responseData.toString('utf8'));
@@ -155,8 +155,8 @@ export async function createAccount(username : string, password : string): Promi
     setAuthToken(authTokenBytes);
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
-    
-    
+
+
   } catch (error) {
     console.error("Error registering account: ", error);
     return false;
@@ -178,7 +178,7 @@ export async function createAccount(username : string, password : string): Promi
     const userData = Buffer.alloc(64,20);
     usernameBuffer.copy(userData, 0);
     hashServerPassword.copy(userData, 32);
-    
+
     //testing output
     console.log('LOG IN USER DATA', userData.toString('utf8'));
     console.log('LOG IN USER DATA RAW', userData);
