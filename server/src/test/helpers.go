@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-25
- * Updated: 2025-10-26
+ * Updated: 2025-10-29
  *
  * This file has several helper functions for the testing suite.
  *
@@ -77,6 +77,27 @@ func pad32(data []byte) []byte {
 	return append(data, padding...)
 }
 
+// expect message to be certain status code and body length, print message on fail
+// checks if err != nil, print and return on fail
+// checks if response status code != expected status code unless expected == -1, print and return on fail
+// checks if body length != expected body length unless expected == -1, print and return on fail
+func expect(testNum string, response *http.Response, expectedStatusCode int, responseBody []byte, expectedBodyLength int, err error) bool {
+	if err != nil {
+		fmt.Printf("test%s(): error - ", testNum)
+		return utils.PrintErrorLine(err)
+	}
+	if (response.StatusCode != expectedStatusCode) && (expectedStatusCode != -1) {
+		fmt.Printf("test%s(): Expected response status code %v, but received %v with body \"%s\".\n", testNum, response.StatusCode, expectedStatusCode, responseBody)
+		return false
+	}
+	if (len(responseBody) != expectedBodyLength) && (expectedBodyLength != -1) {
+		fmt.Printf("test%s(): Expected response body length %v does not match with received length of %v.\n", testNum, expectedBodyLength, len(responseBody))
+		fmt.Printf("Body: %s\n", responseBody)
+		return false
+	}
+	return true
+}
+
 // send to server endpoint
 // headers must be an even amount that are added in (i, i + 1) key-value pairs
 func send(endpoint string, requestBody []byte, headers ...string) (response *http.Response, responseBody []byte, err error) {
@@ -98,14 +119,7 @@ func send(endpoint string, requestBody []byte, headers ...string) (response *htt
 	utils.PrintErrorLine(err)
 	defer response.Body.Close()
 	responseBody, err = io.ReadAll(response.Body)
-	if err != nil {
-		return response, responseBody, err
-	}
-	utils.PrintErrorLine(err)
-	if response.StatusCode != 200 {
-		return response, responseBody, errors.New(response.Status + " | " + string(responseBody))
-	}
-	return response, responseBody, nil
+	return response, responseBody, err
 }
 
 // do a basic registration
@@ -123,8 +137,8 @@ func simpleRegister() (response *http.Response, responseBody []byte, err error) 
 
 // do a basic registration and return the authentication header
 func simpleAuthSetup() (authHeader []byte, err error) {
-	_, responseBody, err := simpleRegister()
-	if err != nil {
+	response, responseBody, err := simpleRegister()
+	if !expect("", response, 200, responseBody, 40, err) {
 		return nil, err
 	}
 	userID := responseBody[0:8]

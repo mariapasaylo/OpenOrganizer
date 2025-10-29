@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-26
+ * Updated: 2025-10-29
  *
  * This file has the test cases.
  *
@@ -27,13 +27,9 @@ func test1() bool {
 	defer clearAllTables()
 
 	requestBody := []byte{}
-	_, responseBody, err := send("", requestBody)
+	response, responseBody, err := send("", requestBody)
 
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 4 {
-		fmt.Printf("test1: Expected response body length 4 does not match with received length of %v.\n", len(responseBody))
+	if !expect("1", response, 200, responseBody, 4, err) {
 		return fail()
 	}
 	maxRecordCount := uint32(utils.BytesToInt(responseBody))
@@ -56,29 +52,20 @@ func test2() bool {
 	requestBody := append(username, password...)
 	requestBody = append(requestBody, key1...)
 	requestBody = append(requestBody, key2...)
-	_, responseBody, err := send("register", requestBody)
+	response, responseBody, err := send("register", requestBody)
 
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 40 {
-		fmt.Printf("test2: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	if !expect("2", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 	userID := utils.BytesToBigint(responseBody[0:8])
 
 	requestBody = append(username, password...)
-	_, responseBody, err = send("login", requestBody)
+	response, responseBody, err = send("login", requestBody)
 
 	userID2 := utils.BytesToBigint(responseBody[0:8])
 	key1Response := responseBody[40:72]
 	key2Response := responseBody[72:104]
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 104 {
-		fmt.Printf("test2: Expected response body length 104 does not match with received length of %v.\n", len(responseBody))
+	if !expect("2", response, 200, responseBody, 104, err) {
 		return fail()
 	}
 	var errs int = 0
@@ -113,14 +100,8 @@ func test3() bool {
 	requestBody := append(username, password...)
 	requestBody = append(requestBody, key1...)
 	requestBody = append(requestBody, key2...)
-	_, responseBody, err := send("register", requestBody)
-
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 40 {
-		fmt.Printf("test3: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err := send("register", requestBody)
+	if !expect("3", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 
@@ -128,29 +109,29 @@ func test3() bool {
 	password2 := pad32([]byte("password2"))
 
 	requestBody = append(username2, password...)
-	_, _, err = send("login", requestBody)
-	if err == nil {
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
 		fmt.Printf("test3: Login succeeded with bad credentials.\n")
 		return fail()
 	}
 
 	requestBody = append(username, password2...)
-	_, _, err = send("login", requestBody)
-	if err == nil {
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
 		fmt.Printf("test3: Login succeeded with bad credentials.\n")
 		return fail()
 	}
 
 	requestBody = append(username2, password2...)
-	_, _, err = send("login", requestBody)
-	if err == nil {
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
 		fmt.Printf("test3: Login succeeded with bad credentials.\n")
 		return fail()
 	}
 
 	requestBody = append(username, password...)
-	_, _, err = send("login", requestBody)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 200, responseBody, 104, err) {
 		return fail()
 	}
 
@@ -172,25 +153,22 @@ func test4() bool {
 
 	// test null
 	requestBody[0] = '\x00'
-	response, _, _ := send("register", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err := send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[0] = 'u'
 
 	requestBody[8] = '\x00'
-	response, _, _ = send("register", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[8] = ' '
 
 	requestBody[31] = '\x00'
-	response, _, _ = send("register", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[31] = ' '
@@ -199,8 +177,8 @@ func test4() bool {
 	requestBody[32] = '\x00'
 	requestBody[64] = '\x00'
 	requestBody[96] = '\x00'
-	_, _, err := send("register", requestBody)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 
@@ -221,39 +199,36 @@ func test5() bool {
 	requestBodyReg := append(requestBody, key1...)
 	requestBodyReg = append(requestBodyReg, key2...)
 
-	_, _, err := send("register", requestBodyReg)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("5", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 
 	// test null
 	requestBody[0] = '\x00'
-	response, _, _ := send("login", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[0] = 'u'
 
 	requestBody[8] = '\x00'
-	response, _, _ = send("login", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[8] = ' '
 
 	requestBody[31] = '\x00'
-	response, _, _ = send("login", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[31] = ' '
 
 	// null in password should not fail, as it is a raw field
-	_, _, err = send("login", requestBody)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 200, responseBody, 104, err) {
 		return fail()
 	}
 
@@ -273,8 +248,8 @@ func test6() bool {
 	requestBodyReg = append(requestBodyReg, key1...)
 	requestBodyReg = append(requestBodyReg, key2...)
 
-	_, _, err := send("register", requestBodyReg)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("6", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 
@@ -291,25 +266,22 @@ func test6() bool {
 	// username
 
 	requestBody[0] = '\x00'
-	response, _, _ := send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[0] = 'u'
 
 	requestBody[8] = '\x00'
-	response, _, _ = send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[8] = ' '
 
 	requestBody[31] = '\x00'
-	response, _, _ = send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[31] = ' '
@@ -317,25 +289,22 @@ func test6() bool {
 	// usernameNew
 
 	requestBody[64] = '\x00'
-	response, _, _ = send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[64] = 'u'
 
 	requestBody[72] = '\x00'
-	response, _, _ = send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[72] = ' '
 
 	requestBody[95] = '\x00'
-	response, _, _ = send("changelogin", requestBody)
-	if response.StatusCode != 400 {
-		fmt.Printf("test4: Expected status code 400, received %v.\n", response.StatusCode)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
 		return fail()
 	}
 	requestBody[95] = ' '
@@ -344,15 +313,15 @@ func test6() bool {
 	requestBody[96] = '\x00'
 	requestBody[128] = '\x00'
 	requestBody[160] = '\x00'
-	_, _, err = send("changelogin", requestBody)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 
 	return success()
 }
 
-// test register + changelogin + login
+// test double register, changelogin, login on old info and login on new info, and registration of previously used username
 func test7() bool {
 	clearAllTables()
 	defer clearAllTables()
@@ -365,16 +334,16 @@ func test7() bool {
 	requestBodyReg = append(requestBodyReg, key1...)
 	requestBodyReg = append(requestBodyReg, key2...)
 
-	_, responseBody, err := send("register", requestBodyReg)
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 40 {
-		fmt.Printf("test7: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("7", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 	userID := utils.BytesToBigint(responseBody[0:8])
+
+	response, responseBody, err = send("register", requestBodyReg)
+	if !expect("7", response, 401, responseBody, -1, err) {
+		return fail()
+	}
 
 	usernameNew := pad32([]byte("usernameNew"))
 	passwordNew := pad32([]byte("passwordNew"))
@@ -386,38 +355,26 @@ func test7() bool {
 	requestBody = append(requestBody, key1New...)
 	requestBody = append(requestBody, key2New...)
 
-	_, responseBody, err = send("changelogin", requestBody)
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 40 {
-		fmt.Printf("test7: Expected response body length 40 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("7", response, 200, responseBody, 40, err) {
 		return fail()
 	}
 	userID2 := utils.BytesToBigint(responseBody[0:8])
 
-	requestBody = append(usernameNew, passwordNew...)
-	_, responseBody, err = send("login", requestBody)
-	if utils.PrintErrorLine(err) {
+	response, responseBody, err = send("login", requestBodyReg[0:64])
+	if !expect("7", response, 401, responseBody, -1, err) {
 		return fail()
 	}
-	if len(responseBody) != 104 {
-		fmt.Printf("test7: Expected response body length 104 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+
+	requestBody = append(usernameNew, passwordNew...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("7", response, 200, responseBody, 104, err) {
 		return fail()
 	}
 	userID3 := utils.BytesToBigint(responseBody[0:8])
-
 	key1Response := responseBody[40:72]
 	key2Response := responseBody[72:104]
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 104 {
-		fmt.Printf("test7: Expected response body length 104 does not match with received length of %v.\n", len(responseBody))
-		return fail()
-	}
+
 	var errs int = 0
 	if userID != userID2 {
 		fmt.Printf("test7: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
@@ -436,6 +393,15 @@ func test7() bool {
 		errs += 1
 	}
 
+	response, responseBody, err = send("register", requestBodyReg)
+	if !expect("7", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+	response, responseBody, err = send("login", requestBodyReg[0:64])
+	if !expect("7", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+
 	if errs > 0 {
 		return fail()
 	}
@@ -452,13 +418,8 @@ func test8() bool {
 		return fail()
 	}
 
-	_, responseBody, err := send("lastupdated", authHeader)
-	if utils.PrintErrorLine(err) {
-		return fail()
-	}
-	if len(responseBody) != 80 {
-		fmt.Printf("test8: Expected response body length 80 does not match with received length of %v.\n", len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err := send("lastupdated", authHeader)
+	if !expect("8", response, 200, responseBody, 80, err) {
 		return fail()
 	}
 
@@ -683,41 +644,44 @@ func test19() bool {
 			go func() {
 				defer waitGroup.Done()
 				payload := setupPayload(expectedLengths[i] - 1)
-				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
 				if response.StatusCode == 400 {
 					results[15*i+2+j] = true
 				} else {
 					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
 					results[15*i+2+j] = false
 				}
+				utils.PrintErrorLine(err)
 			}()
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			waitGroup.Add(1)
 			go func() {
 				defer waitGroup.Done()
 				payload := setupPayload(expectedLengths[i] + 1)
-				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
 				if response.StatusCode == 400 {
 					results[15*i+7+j] = true
 				} else {
 					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
 					results[15*i+7+j] = false
 				}
+				utils.PrintErrorLine(err)
 			}()
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			waitGroup.Add(1)
 			go func() {
 				defer waitGroup.Done()
 				payload := setupPayload(expectedLengths[i])
-				response, _, _ := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
 				if response.StatusCode != 400 {
 					results[15*i+12+j] = true
 				} else {
 					fmt.Printf("%v,%v : %s | Expected status 400\n", i, j, response.Status)
 					results[15*i+12+j] = false
 				}
+				utils.PrintErrorLine(err)
 			}()
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 		}
 	}
 
