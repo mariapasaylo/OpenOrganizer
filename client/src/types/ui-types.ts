@@ -2,7 +2,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-21
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file contains interfaces that extend the shared-types with UI-specific fields.
  *
@@ -55,6 +55,10 @@ export type UIReminder = Reminder & {
 
 // Shared-types folder has folderID, lastModified, parentFolderID, colorCode, folderName
 export type UIFolder = Folder & {
+  temporaryFolderName: string;
+  isSaved: boolean;
+  isEditing: boolean; // flag if folder is currently being edited/renamed in UI
+  folderNameError?: string;
   children?: UIFolder[];
 };
 

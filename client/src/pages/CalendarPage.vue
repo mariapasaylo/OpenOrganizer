@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -14,6 +14,7 @@
  * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
  * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
  * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
+ * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -40,20 +41,6 @@
               <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
             </div>
           </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-      <q-dialog v-model="showAddFolderName">
-      <q-card style="width: 500px" class="q-px-sm q-pb-md">
-        <q-card-section>
-        <!-- Error state will change to true if folderNameErrorMessage is set to true (in addFolder function)-->
-        <q-input
-          v-model="newFolderName"
-          :error="folderNameErrorMessage != ''"
-          :error-message="folderNameErrorMessage"
-          placeholder ="Enter name of new folder here..."
-        />
-        <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Add" @click="addFolder"/>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -92,14 +79,45 @@
           node-key="id"
           no-connectors
           default-expand-all
-          v-model:selected="selectedFolderID"
-        />
-        <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
-          <!-- Clear folder error message when dialog first pops up -->
-          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="showAddFolderName = true; folderNameErrorMessage = ''" />
+          :selected="selectedFolderID"
+          @update:selected="handleTreeSelection"
+        >
+          <!-- Render q-input box where node label (name) would be with custom slot -->
+          <!-- How to add custom node header: https://github.com/quasarframework/quasar/discussions/11048 -->
+          <template v-slot:default-header ="{ node }">
+            <div style="display: flex; align-items: center">
+              <!-- find the UIFolder for this node and if that folder is editing, show it inline -->
+              <template v-if="getFolder(node.id) && getFolder(node.id)!.isEditing">
+                <q-input dense
+                  v-model="getFolder(node.id)!.temporaryFolderName"
+                  :error="(getFolder(node.id)!.folderNameError) != ''"
+                  :error-message="getFolder(node.id)!.folderNameError"
+                  @keyup.enter.prevent="saveFolder(getFolder(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
+                  @keydown.capture.stop
+                  @focus.stop
+                  @click.stop
+                  placeholder="Folder name"
+                  style="min-width: 160px;"
+                />
+              </template>
+              <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
+              <template v-else>
+                <div class="row items-center">
+                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" class="q-mr-sm" />
+                  <span>{{ node.label }}</span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </q-tree>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="edit"  label="Rename" @click="renameFolder(getFolder(selectedFolderID)!)" />
         </div>
       </div>
-      
+     
       <!-- Left column - File Explorer bottom row-->
       <div style="grid-area: file-explorer-cloud; padding: 20px 30px; display: flex; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;" data-area="file-explorer-cloud">
         <div style="color: #474747; font-size: 1.15rem;">Cloud Not Synced</div>
@@ -134,14 +152,14 @@
                       placeholder="Enter reminder title..."
                       borderless
                       dense
-                      style="max-width: 300px; padding-top: 20px"
+                      style="max-width: 450px; padding-top: 20px"
                       @click.stop
                       @focus.stop
                       />
                     </div>
               </template>
               <q-card-section>
-                 <q-select
+                <q-select
                 v-model="item.eventType"
                 :options="eventTypeOptions"
                 label="Event Type"
@@ -344,16 +362,15 @@
 </template>
 
 <script setup lang="ts">
-
 import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
 import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType} from '../frontend-utils/events';
-import {nest, buildBreadcrumbs, convertFolderTreetoQTree,} from '../frontend-utils/tree';
+import {nest, buildBreadcrumbs, convertFolderTreetoQTree, normalizeFolderID} from '../frontend-utils/tree';
 import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
 import { ref, computed, watch } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
-import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, readRemindersInRange, readNotesInRange} from '../utils/local-db'
+import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db'
 import { onMounted } from 'vue';
 
 // Initialize active tab to reminder by default
@@ -371,87 +388,8 @@ const notificationOptions = [
   { label: '1 hour before', value: 60 },
   { label: '2 hours before', value: 120 }
   ];
-
-  
 // Array of notes
 const notes = ref<UINote[]>([])
-/*
-// Object of event types
-const eventTypes: EventType[] = [
-   {
-       // Generic event type (no extra type fields)
-        id: 0,
-        name: 'General',
-        color: 'blue',
-        fields: [
-           { id: 'eventStartTime', name: 'Start Time', type: 'time' },
-           { id: 'eventEndTime', name: 'End Time', type: 'time' },
-        ]
-    },
-    {
-       // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
-        id: 1,
-        // Event type name 
-        name: 'Flight',
-        // Color-coded for display in reminder list
-        color: 'red',
-        // Fields for each event type
-        fields: [
-            {
-               // Essentially the unique ID/key of the field
-                id: 'flightNumber',
-               // Name of the field displayed to the user
-                name: "Flight Number",
-                // Type is helpful for rendering the frontend field inputs to match and input validation. 
-                type: 'number'
-            },
-            {
-                id: 'arrivalTime',
-                name: "Arrival Time",
-                type: 'time'
-            },
-            {
-                id: 'departureTime',
-                name: "Departure Time",
-                type: 'time'
-            },
-            {
-                id: 'airportLocation',
-                name: "Airport Location",
-                type: 'text'
-            },
-        ]
-    },
-    {
-        id: 2,
-        name: 'Hotel',
-        color: 'green',
-        fields: [
-            {
-                id: 'roomNumber',
-                name: "Room Number",
-                type: 'number'
-            },
-            {
-                id: 'checkInTime',
-                name: "Check-in Time",
-                type: 'time'
-            },
-            {
-                id: 'checkOutTime',
-                name: "Check-out Time",
-                type: 'time'
-            },
-            {
-                id: 'hotelLocationn',
-                name: "Hotel Location",
-                type: 'text'
-            },
-        ]
-    }
-    // can add any more event types here
-  ];
-*/
 
 // Object of event types
 // Every reminder has event start time, event end time fields so these are not extensions
@@ -519,13 +457,10 @@ const eventTypeOptions = computed(() => {
 });
 
 const showSettings = ref(false);
-const showAddFolderName = ref(false);
-const newFolderName = ref('');
-const folderNameErrorMessage = ref('');
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const searchQuery = ref('');
-// Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
+// Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<bigint | null>(null);
 const folders = ref<UIFolder[]>([]);
@@ -540,15 +475,54 @@ const folderDropdownOptions = computed(() => {
   }));
 });
 
+// Function to get folder by its ID
+// getFolder() returns UI folder object for currently selected folder in tree
+// getFolder(ID) returns UI folder for a specific node ID
+// When rendering tree nodes, check isEditing property of the UIFolder to see if it should show q-input
+function getFolder(id?: bigint | null): UIFolder | null {
+  const folderID = id ?? selectedFolderID.value;
+  if (folderID === null) {
+    return null;
+  }
+  return folders.value.find(folder => String(folder.folderID) === String(folderID)) ?? null;
+}
+
+// Function to handle selection changes in folder tree
+// Prevents changing selected folder while editing so input box stays focused
+function handleTreeSelection(newlySelectedNode: bigint | null) {
+  // If any folder is being edited, do not change selected node until editing is done
+  const nodeBeingEdited = folders.value.some(folder => folder.isEditing);
+  if (nodeBeingEdited) {
+    return;
+  }
+  // Otherwise, allow selection to other nodes like normal
+  else {
+    selectedFolderID.value = newlySelectedNode;
+  }
+}
+
+// When rename button is clicked, set isEditing (q-input field) to appear for folder
+// On enter when editing, folder is renamed
+function renameFolder(folder: UIFolder) {
+  folder.isEditing = true;
+  folder.temporaryFolderName = folder.folderName;
+  // Have tree select this node when renaming
+  selectedFolderID.value = folder.folderID;
+}
+
+// On escape when editing, cancel rename and revert back to original name
+function cancelRename(folder: UIFolder) {
+  folder.isEditing = false;
+  folder.temporaryFolderName = folder.folderName ?? '';
+  folder.folderNameError = '';
+}
+
 // Create nested folder tree structure from flat folders array
 const nestedFolderTree = computed(() => nest(folders.value, -1n));
-console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Convert nested folder tree to Q-Tree format
 // Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
 const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value, notes.value, reminders.value));
-// Convert bigint to string for console display since bigint isnt JSON serializable by default
-console.log('qNestedTree:', JSON.stringify(qNestedTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Computed breadcrumbs array that walks from the selected folder up to the root to build the path
 const breadcrumbs = computed(() => buildBreadcrumbs(selectedFolderID.value, folders.value, notes.value, reminders.value))
@@ -560,7 +534,7 @@ function selectBreadcrumbItem(folderID : bigint) {
 }
 
 // temp id generator for UI-only drafts (negative IDs)
-let tempIDCounter = -1n;
+let tempIDCounter = -2n;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   // create a UI-only draft reminder with a temporary negative bigint ID
@@ -685,7 +659,7 @@ async function addRootFolder() {
     }
     else {
       // Root folder already exists
-      console.log('Root folder already exists.');
+      //console.log('Root folder already exists.');
     }
   }
   catch (error) {
@@ -771,10 +745,14 @@ function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
  return (rows ?? []).map(row => ({
     // Copy all fields for a folder from DB row
     ...row,
+    temporaryFolderName: row.folderName ?? '',
+    folderNameError: '',
     // If folderID is already a bigint, return it. Otherwise, cast value to a bigint
     folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID),
     parentFolderID: (typeof row.parentFolderID === 'bigint') ? row.parentFolderID : BigInt(row.parentFolderID),
     lastModified: (typeof row.lastModified === 'bigint') ? row.lastModified : BigInt(row.lastModified),
+    isSaved: true,
+    isEditing: false
   })) as UIFolder[];
 }
 
@@ -834,36 +812,59 @@ onMounted(async () => {
   await loadNotesForCalendarDate(selectedDate.value);
 });
 
-
-// Function to add and name a new folder
-async function addFolder() {
-  // Trim removes whitespace from beginning and end of string so if user enters nothing but spaces it is an empty string still
-  // If folder name (with whitespace removed) is empty, show error message and disable add folder button 
-    if (!newFolderName.value.trim()) {
-    folderNameErrorMessage.value = 'Folder name cannot be empty.';
-    return;
-  }
-  // Otherwise, folder name is good and add folder to tree
+// Function to add a folder to the tree
+function addFolder() {
+   // create a UI-only draft folder with a temporary negative bigint ID
+  const tempID = tempIDCounter--;
   // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = -1)
-  const newFolderParentID: bigint = selectedFolderID.value ?? -1n;
-  try {
-    // Create new folder in local DB with folder name and parent folder ID
-    await createFolder(newFolderParentID, -1, newFolderName.value);
-    console.log('Folder created successfully.', folders);
-    // Refresh the folders list after creating the new folder to show it
-    folders.value = mapDBToUIFolder(await readAllFolders());
-    console.log('Folders loaded successfully:', folders.value);
-  }
-catch (error) {
-    console.error('Error adding folder:', error);
-  }
-  // After adding new folder, reset new folder name input, error message, and close popup
-  newFolderName.value = '';
-  folderNameErrorMessage.value = '';
-  showAddFolderName.value = false;
+  const newParentFolderID = normalizeFolderID(selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+
+  const draft: UIFolder = {
+    folderID: tempID,
+    parentFolderID: newParentFolderID,
+    folderName: 'New Folder',
+    folderNameError: '',
+    temporaryFolderName: 'New Folder',
+    isSaved: false,
+    isEditing: true, // When new draft is added, automatically in editing mode to name it
+    colorCode: -1
+  } as UIFolder;
+
+  
+  // Add draft folder to folders array for UI rendering
+  folders.value.push(draft);
+  //selectedFolderID.value = tempID;
 }
 
-// Function to save note text when save button is clicked
+// Function to save folder after user hits enter
+async function saveFolder(folder: UIFolder){
+  // If folder name (with whitespace removed) is empty, show error message and disable save button
+  if (!folder.temporaryFolderName.trim()) {
+    folder.folderNameError = 'Folder name cannot be empty.';
+    return;
+  }
+
+  try {
+    // First time is a draft folder, create new folder in local DB
+    if (!folder.isSaved) {
+      const newParentFolderID = normalizeFolderID(folder.parentFolderID ?? selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+      const folderID: bigint = await createFolder(newParentFolderID, -1, folder.temporaryFolderName);
+      folders.value = mapDBToUIFolder(await readAllFolders());
+      selectedFolderID.value = folderID;
+    }
+    // Anytime afterwards, update preexisting folder
+    else {
+      await updateFolder(folder.folderID, folder.parentFolderID, -1, folder.temporaryFolderName);
+      folders.value = mapDBToUIFolder(await readAllFolders());
+    }
+  }
+  catch (error) {
+    console.error('Error adding folder:', error);
+  }
+}
+
+
+// Function to save note fields when save button is clicked
 async function saveNote(note: UINote){
   // If note title (with whitespace removed) is empty, show error message and disable save button
     if (!note.temporaryTitle.trim()) {
