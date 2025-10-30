@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-26
+ * Updated: 2025-10-30
  *
  * This file provides authentication functionality that interfaces with the database.
  * This includes CRUD operations on user accounts and tokens.
@@ -63,7 +63,7 @@ func RegisterUser(userLogin models.UserLogin, userData models.UserData) (respons
 		AuthToken: token,
 	}
 	response = utils.PackAuth(userAuth)
-	_, _ = db.Query(lastupCreate, userID, now)
+	_, _ = db.Exec(lastupCreate, userID, now)
 	return response, err
 }
 
@@ -89,7 +89,7 @@ func Login(userLogin models.UserLogin) (response []byte, err error) {
 	if !reflect.DeepEqual(passwordHashHash, rowUser.PasswordHashHash) {
 		return nil, errors.New("incorrect password")
 	}
-	_, _ = db.Query(userUpdateLastLogin, userLogin.Username, utils.Now())
+	_, _ = db.Exec(userUpdateLastLogin, userLogin.Username, utils.Now())
 
 	token, err := addToken(rowUser.UserID)
 	userAuth := models.UserAuth{
@@ -133,7 +133,7 @@ func addToken(userID int64) (token []byte, err error) {
 	token = utils.RandArray(32)
 	now := utils.Now()
 	expirationTime := now + (int64(tokenExpireTime) * 1000)
-	_, err = db.Query(tokensCreate, userID, now, expirationTime, token)
+	_, err = db.Exec(tokensCreate, userID, now, expirationTime, token)
 	return token, err
 }
 
@@ -159,15 +159,15 @@ func CheckTokenAuth(userAuth models.UserAuth) bool {
 
 func refreshTokenExpiration(userID int64, creationTime int64) {
 	newExpirationTime := utils.Now() + (int64(tokenExpireTime) * 1000)
-	_, _ = db.Query(tokenUpdateExpiration, userID, creationTime, newExpirationTime)
+	_, _ = db.Exec(tokenUpdateExpiration, userID, creationTime, newExpirationTime)
 }
 
 func ClearTokensFromUser(userID int64) {
-	_, _ = db.Query(tokensDeleteAllFromUser, userID)
+	_, _ = db.Exec(tokensDeleteAllFromUser, userID)
 }
 
-func ClearExpiredTokens(expirationTime int64) {
-	_, _ = db.Query(tokensDeleteExpiredByTime, expirationTime)
+func ClearExpiredTokens() {
+	_, _ = db.Exec(tokensDeleteExpiredByTime, utils.Now())
 }
 
 func DeleteUser(username string) {
@@ -181,7 +181,7 @@ func DeleteUser(username string) {
 	}
 	var userID int64
 	_ = row.Scan(&userID)
-	_, _ = db.Query(tokensDeleteAllFromUser, userID)
-	_, _ = db.Query(lastupDelete, userID)
-	_, _ = db.Query(userDeleteAllDataTables, userID)
+	_, _ = db.Exec(tokensDeleteAllFromUser, userID)
+	_, _ = db.Exec(lastupDelete, userID)
+	_, _ = db.Exec(userDeleteAllDataTables, userID)
 }
