@@ -77,7 +77,7 @@ function setPassword(password : string) {
   accountStore.set('password', password);
 }
 
-function getAuthToken() {
+export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
@@ -101,7 +101,7 @@ function setPrivateKey2(privateKey : Buffer) {
   accountStore.set('privateKey2', privateKey);
 }
 
-function getUserId() {
+export function getUserId() {
   return BigInt(accountStore.get('userId'));
 }
 
