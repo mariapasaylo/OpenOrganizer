@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -373,6 +373,52 @@ ORDER BY itemID ASC`;
 // read all
 export const readAllFoldersStmt = `
 SELECT * FROM folders`;
+
+// read all modified after a given timestamp
+export const readNotesAfterStmt = `
+SELECT * FROM notes
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readRemindersAfterStmt = `
+SELECT * FROM reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readDailyRemindersAfterStmt = `
+SELECT * FROM daily_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readWeeklyRemindersAfterStmt = `
+SELECT * FROM weekly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readMonthlyRemindersAfterStmt = `
+SELECT * FROM monthly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readYearlyRemindersAfterStmt = `
+SELECT * FROM yearly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readExtensionsAfterStmt = `
+SELECT * FROM extensions
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readFoldersAfterStmt = `
+SELECT * FROM folders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readDeletesAfterStmt = `
+SELECT * FROM deleted
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
 
 // get IDs based on folderID
 export const readNotesInFolderStmt = `
