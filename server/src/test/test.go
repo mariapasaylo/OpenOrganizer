@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-26
+ * Updated: 2025-10-29
  *
  * This file is the entry point for the testing suite.
  *
@@ -79,8 +79,11 @@ PLEASE TERMINATE THE PROGRAM BEFORE THIS TIME ELAPSES IF YOU WOULD LIKE TO PRESE
 	test17()
 	test18()
 
-	// try incorrect body sizes for all endpoints other than root
+	// deletion of items from their tables when uploading deleted records
 	test19()
+
+	// try incorrect body sizes for all endpoints other than root
+	test20()
 
 	fmt.Printf("\nTest Suite complete.\n")
 	var failures []uint16

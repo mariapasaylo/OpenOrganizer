@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"openorganizer/src/db"
 	"openorganizer/src/models"
@@ -87,7 +88,7 @@ func expect(testNum string, response *http.Response, expectedStatusCode int, res
 		return utils.PrintErrorLine(err)
 	}
 	if (response.StatusCode != expectedStatusCode) && (expectedStatusCode != -1) {
-		fmt.Printf("test%s(): Expected response status code %v, but received %v with body \"%s\".\n", testNum, response.StatusCode, expectedStatusCode, responseBody)
+		fmt.Printf("test%s(): Expected response status code %v, but received %v with body \"%s\".\n", testNum, expectedStatusCode, response.StatusCode, responseBody)
 		return false
 	}
 	if (len(responseBody) != expectedBodyLength) && (expectedBodyLength != -1) {
@@ -161,6 +162,13 @@ func unpackItem(body []byte) (item models.RowItems) {
 	return item
 }
 
+func packDeleted(deleted models.RowDeleted) (body []byte) {
+	body = append(body, utils.BigintToBytes(deleted.ItemID)...)
+	body = append(body, utils.BigintToBytes(deleted.LastModified)...)
+	body = append(body, utils.SmallintToBytes(deleted.ItemTable)...)
+	return body
+}
+
 func compareItem(item1 models.RowItems, item2 models.RowItems) bool {
 	if item1.ItemID != item2.ItemID {
 		return false
@@ -176,7 +184,10 @@ func compareItem(item1 models.RowItems, item2 models.RowItems) bool {
 
 // do a simple syncup and syncdown and verify what is sent is received
 func simpleSync(testNumber string, encryptedSize int32, endpoint string, authHeader []byte) bool {
-	_, responseBody, _ := send("", []byte{})
+	_, responseBody, err := send("", []byte{})
+	if utils.PrintErrorLine(err) {
+		return false
+	}
 	maxRecordCount := utils.BytesToInt(responseBody)
 	if maxRecordCount < 4 {
 		fmt.Printf("maxRecordCount (%v) is less than 4\n", maxRecordCount)
@@ -213,13 +224,8 @@ func simpleSync(testNumber string, encryptedSize int32, endpoint string, authHea
 	requestBody = append(requestBody, packItem(item3)...)
 	requestBody = append(requestBody, packItem(item4)...)
 
-	_, responseBody, err := send("syncup/"+endpoint, requestBody)
-	if utils.PrintErrorLine(err) {
-		return false
-	}
-	if len(responseBody) != 1 {
-		fmt.Printf("test%s: Expected response body length 1 does not match with received length of %v.\n", testNumber, len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err := send("syncup/"+endpoint, requestBody)
+	if !expect(testNumber, response, 200, responseBody, 1, err) {
 		return false
 	}
 	if responseBody[0] != '\x00' {
@@ -227,13 +233,8 @@ func simpleSync(testNumber string, encryptedSize int32, endpoint string, authHea
 		return false
 	}
 
-	_, responseBody, err = send("syncup/"+endpoint, requestBody)
-	if utils.PrintErrorLine(err) {
-		return false
-	}
-	if len(responseBody) != 1 {
-		fmt.Printf("test%s: Expected response body length 1 does not match with received length of %v.\n", testNumber, len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	response, responseBody, err = send("syncup/"+endpoint, requestBody)
+	if !expect(testNumber, response, 200, responseBody, 1, err) {
 		return false
 	}
 	if responseBody[0] != '\xF0' {
@@ -241,16 +242,11 @@ func simpleSync(testNumber string, encryptedSize int32, endpoint string, authHea
 		return false
 	}
 
-	requestBody = append(authHeader, utils.BigintToBytes(-9223372036854775808)...)
-	requestBody = append(requestBody, utils.BigintToBytes(9223372036854775807)...)
-	_, responseBody, err = send("syncdown/"+endpoint, requestBody)
-	if utils.PrintErrorLine(err) {
-		return false
-	}
+	requestBody = append(authHeader, utils.BigintToBytes(math.MinInt64)...)
+	requestBody = append(requestBody, utils.BigintToBytes(math.MaxInt64)...)
+	response, responseBody, err = send("syncdown/"+endpoint, requestBody)
 	var packedSize int = int(encryptedSize) + 16
-	if len(responseBody) != (4*packedSize)+4 {
-		fmt.Printf("test%s: Expected response body length %v does not match with received length of %v.\n", testNumber, (4*packedSize)+4, len(responseBody))
-		fmt.Printf("%s\n", responseBody)
+	if !expect(testNumber, response, 200, responseBody, (4*packedSize)+4, err) {
 		return false
 	}
 
