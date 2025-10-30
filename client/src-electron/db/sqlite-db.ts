@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -63,6 +63,16 @@ const readWeeklyRemindersInRangeStmt = db.prepare(sql.readWeeklyRemindersInRange
 const readMonthlyRemindersInRangeStmt = db.prepare(sql.readMonthlyRemindersInRangeStmt);
 const readYearlyRemindersInRangeStmt = db.prepare(sql.readYearlyRemindersInRangeStmt);
 const readAllFoldersStmt = db.prepare(sql.readAllFoldersStmt);
+
+const readNotesAfterStmt = db.prepare(sql.readNotesAfterStmt);
+const readRemindersAfterStmt = db.prepare(sql.readRemindersAfterStmt);
+const readDailyRemindersAfterStmt = db.prepare(sql.readDailyRemindersAfterStmt);
+const readWeeklyRemindersAfterStmt = db.prepare(sql.readWeeklyRemindersAfterStmt);
+const readMonthlyRemindersAfterStmt = db.prepare(sql.readMonthlyRemindersAfterStmt);
+const readYearlyRemindersAfterStmt = db.prepare(sql.readYearlyRemindersAfterStmt);
+const readExtensionsAfterStmt = db.prepare(sql.readExtensionsAfterStmt);
+const readFoldersAfterStmt = db.prepare(sql.readFoldersAfterStmt);
+const readDeletesAfterStmt = db.prepare(sql.readDeletesAfterStmt);
 
 const readNotesInFolderStmt = db.prepare(sql.readNotesInFolderStmt);
 const readRemindersInFolderStmt = db.prepare(sql.readRemindersInFolderStmt);
@@ -273,6 +283,42 @@ export function readFoldersInFolder(parentFolderID: bigint) {
   return readFoldersInFolderStmt.all(parentFolderID);
 }
 
+// read all modified after a given timestamp
+export function readNotesAfter(lastUpdated: bigint) {
+  return readNotesAfterStmt.all(lastUpdated) as Note[];
+}
+
+export function readRemindersAfter(lastUpdated: bigint) {
+  return readRemindersAfterStmt.all(lastUpdated) as Reminder[];
+}
+
+export function readDailyRemindersAfter(lastUpdated: bigint) {
+  return readDailyRemindersAfterStmt.all(lastUpdated) as DailyReminder[];
+}
+
+export function readWeeklyRemindersAfter(lastUpdated: bigint) {
+  return readWeeklyRemindersAfterStmt.all(lastUpdated) as WeeklyReminder[];
+}
+
+export function readMonthlyRemindersAfter(lastUpdated: bigint) {
+  return readMonthlyRemindersAfterStmt.all(lastUpdated) as MonthlyReminder[];
+}
+
+export function readYearlyRemindersAfter(lastUpdated: bigint) {
+  return readYearlyRemindersAfterStmt.all(lastUpdated) as YearlyReminder[];
+}
+
+export function readExtensionsAfter(lastUpdated: bigint) {
+  return readExtensionsAfterStmt.all(lastUpdated) as Extension[];
+}
+
+export function readFoldersAfter(lastUpdated: bigint) {
+  return readFoldersAfterStmt.all(lastUpdated) as Folder[];
+}
+
+export function readDeletesAfter(lastUpdated: bigint) {
+  return readDeletesAfterStmt.all(lastUpdated) as Deleted[];
+}
 
 // update
 export function updateNote(modNote: Note) {
