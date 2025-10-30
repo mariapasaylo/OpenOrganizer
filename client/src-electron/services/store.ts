@@ -9,7 +9,7 @@
  * https://github.com/sindresorhus/electron-store/tree/main
  *
  * Updated on 9/20/2025 by Maria Pasaylo - removed console logs for testing on terminal
- * Updated on 10/29/25 by Kevin Sirantoine
+ * Updated on 10/30/25 by Kevin Sirantoine
  */
 import Store from 'electron-store';
 import type { Schema } from 'electron-store';
@@ -29,50 +29,59 @@ interface LastUpdated {
 }
 
 // Define schema for the store to enforce data types and defaults
+function defaultLastUp() {
+  const buffer = Buffer.alloc(8);
+  buffer.writeBigInt64LE(-9223372036854775808n); // minimum value for bigint
+  return buffer;
+}
+
 const lastUpdatedSchema: Schema<LastUpdated> = {
   lastUpNotes: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpReminders: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpDaily: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpWeekly: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpMonthly: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpYearly: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpExtensions: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpOverrides: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpFolders: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   },
   lastUpDeleted: {
     type: 'object',
-    default: Buffer.alloc(8)
+    default: defaultLastUp()
   }
 };
 
-export const lastUpdated = new Store<LastUpdated>({ schema: lastUpdatedSchema });
+export const lastUpdated = new Store<LastUpdated>({
+  name: 'lastUpdated',
+  schema: lastUpdatedSchema
+});
 
 
 // Index Page Testing

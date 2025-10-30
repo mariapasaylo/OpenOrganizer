@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-29
+ * Updated: 2025-10-30
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -168,156 +168,234 @@ export function createDeleted(newDeleted: Deleted) {
 
 // read
 export function readNote(itemID: bigint) {
-  return readNoteStmt.get(itemID) as Note;
+  const note = readNoteStmt.get(itemID) as Note;
+  if (note === undefined) return undefined;
+  castItemBigInts(note);
+  return note;
 }
 
 export function readReminder(itemID: bigint) {
-  return readReminderStmt.get(itemID) as Reminder;
+  const rem = readReminderStmt.get(itemID) as Reminder;
+  if (rem === undefined) return undefined;
+  castItemBigInts(rem);
+  return rem;
 }
 
 export function readDailyReminder(itemID: bigint) {
-  return readDailyReminderStmt.get(itemID) as DailyReminder;
+  const dailyRem = readDailyReminderStmt.get(itemID) as DailyReminder;
+  if (dailyRem === undefined) return undefined;
+  castItemBigInts(dailyRem);
+  return dailyRem;
 }
 
 export function readWeeklyReminder(itemID: bigint) {
-  return readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
+  const weeklyRem = readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
+  if (weeklyRem === undefined) return undefined;
+  castItemBigInts(weeklyRem);
+  return weeklyRem;
 }
 
 export function readMonthlyReminder(itemID: bigint) {
-  return readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
+  const monthlyRem = readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
+  if (monthlyRem === undefined) return undefined;
+  castItemBigInts(monthlyRem);
+  return monthlyRem;
 }
 
 export function readYearlyReminder(itemID: bigint) {
-  return readYearlyReminderStmt.get(itemID) as YearlyReminder;
+  const yearlyRem = readYearlyReminderStmt.get(itemID) as YearlyReminder;
+  if (yearlyRem === undefined) return undefined;
+  castItemBigInts(yearlyRem);
+  return yearlyRem;
 }
 
 export function readExtensions(itemID: bigint) {
-  return readExtensionsStmt.all(itemID) as Extension[];
+  const extensions = readExtensionsStmt.all(itemID) as Extension[];
+  if (extensions === undefined) return undefined;
+  castExtensionsBigInts(extensions);
+  return extensions;
 }
 
 export function readFolder(folderID: bigint) {
-  return readFolderStmt.get(folderID) as Folder;
+  const folder = readFolderStmt.get(folderID) as Folder;
+  if (folder === undefined) return undefined;
+  castFolderBigInts(folder);
+  return folder;
 }
 
 // read in range
 export function readNotesInRange(windowStartMs: bigint, windowEndMs: bigint) {
-  return readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
+  const notes = readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
+  if (notes === undefined) return undefined;
+  castItemsBigInts(notes);
+  return notes;
 }
 
 export function readRemindersInRange(rangeWindow: RangeWindow) {
-  return readRemindersInRangeStmt.all({
-    windowStartYear: rangeWindow.startYear,
+  const rems = readRemindersInRangeStmt.all({windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
     windowEndYear: rangeWindow.endYear,
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as Reminder[];
+  if (rems === undefined) return undefined;
+  castItemsBigInts(rems);
+  return rems;
 }
 
 export function readDailyRemindersInRange(rangeWindow: RangeWindow) {
-  return readDailyRemindersInRangeStmt.all({
+  const dailyRems = readDailyRemindersInRangeStmt.all({
     windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
     windowEndYear: rangeWindow.endYear,
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as DailyReminder[];
+  if (dailyRems === undefined) return undefined;
+  castItemsBigInts(dailyRems);
+  return dailyRems;
 }
 
 export function readWeeklyRemindersInRange(rangeWindow: RangeWindow) {
-  return readWeeklyRemindersInRangeStmt.all({
+  const weeklyRems = readWeeklyRemindersInRangeStmt.all({
     windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
     windowEndYear: rangeWindow.endYear,
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as WeeklyReminder[];
+  if (weeklyRems === undefined) return undefined;
+  castItemsBigInts(weeklyRems);
+  return weeklyRems;
 }
 
 export function readMonthlyRemindersInRange(rangeWindow: RangeWindow) {
-  return readMonthlyRemindersInRangeStmt.all({
+  const monthlyRems = readMonthlyRemindersInRangeStmt.all({
     windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
     windowEndYear: rangeWindow.endYear,
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as MonthlyReminder[];
+  if (monthlyRems === undefined) return undefined;
+  castItemsBigInts(monthlyRems);
+  return monthlyRems;
 }
 
 export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
-  return readYearlyRemindersInRangeStmt.all({
+  const yearlyRems = readYearlyRemindersInRangeStmt.all({
     windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
     windowEndYear: rangeWindow.endYear,
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as YearlyReminder[];
+  if (yearlyRems === undefined) return undefined;
+  castItemsBigInts(yearlyRems);
+  return yearlyRems;
 }
 
 // read all
 export function readAllFolders() {
-  return readAllFoldersStmt.all() as Folder[];
+  const folders = readAllFoldersStmt.all() as Folder[];
+  if (folders === undefined) return undefined;
+  castFoldersBigInts(folders);
+  return folders;
 }
 
 // get IDs based on folderID
 export function readNotesInFolder(folderID: bigint) {
-  return readNotesInFolderStmt.all(folderID);
+  const itemIDs = readNotesInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readRemindersInFolder(folderID: bigint) {
-  return readRemindersInFolderStmt.all(folderID);
+  const itemIDs = readRemindersInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readDailyRemindersInFolder(folderID: bigint) {
-  return readDailyRemindersInFolderStmt.all(folderID);
+  const itemIDs = readDailyRemindersInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readWeeklyRemindersInFolder(folderID: bigint) {
-  return readWeeklyRemindersInFolderStmt.all(folderID);
+  const itemIDs = readWeeklyRemindersInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readMonthlyRemindersInFolder(folderID: bigint) {
-  return readMonthlyRemindersInFolderStmt.all(folderID);
+  const itemIDs = readMonthlyRemindersInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readYearlyRemindersInFolder(folderID: bigint) {
-  return readYearlyRemindersInFolderStmt.all(folderID);
+  const itemIDs = readYearlyRemindersInFolderStmt.all(folderID) as bigint[];
+  return itemIDs.map((itemID) => BigInt(itemID));
 }
 
 export function readFoldersInFolder(parentFolderID: bigint) {
-  return readFoldersInFolderStmt.all(parentFolderID);
+  const folderIDs = readFoldersInFolderStmt.all(parentFolderID) as bigint[];
+  return folderIDs.map((folderID) => BigInt(folderID));
 }
 
 // read all modified after a given timestamp
 export function readNotesAfter(lastUpdated: bigint) {
-  return readNotesAfterStmt.all(lastUpdated) as Note[];
+  const notes = readNotesAfterStmt.all(lastUpdated) as Note[];
+  if (notes === undefined) return undefined;
+  castItemsBigInts(notes);
+  return notes;
 }
 
 export function readRemindersAfter(lastUpdated: bigint) {
-  return readRemindersAfterStmt.all(lastUpdated) as Reminder[];
+  const rems = readRemindersAfterStmt.all(lastUpdated) as Reminder[];
+  if (rems === undefined) return undefined;
+  castItemsBigInts(rems);
+  return rems;
 }
 
 export function readDailyRemindersAfter(lastUpdated: bigint) {
-  return readDailyRemindersAfterStmt.all(lastUpdated) as DailyReminder[];
+  const dailyRems = readDailyRemindersAfterStmt.all(lastUpdated) as DailyReminder[];
+  if (dailyRems === undefined) return undefined;
+  castItemsBigInts(dailyRems);
+  return dailyRems;
 }
 
 export function readWeeklyRemindersAfter(lastUpdated: bigint) {
-  return readWeeklyRemindersAfterStmt.all(lastUpdated) as WeeklyReminder[];
+  const weeklyRems = readWeeklyRemindersAfterStmt.all(lastUpdated) as WeeklyReminder[];
+  if (weeklyRems === undefined) return undefined;
+  castItemsBigInts(weeklyRems);
+  return weeklyRems;
 }
 
 export function readMonthlyRemindersAfter(lastUpdated: bigint) {
-  return readMonthlyRemindersAfterStmt.all(lastUpdated) as MonthlyReminder[];
+  const monthlyRems = readMonthlyRemindersAfterStmt.all(lastUpdated) as MonthlyReminder[];
+  if (monthlyRems === undefined) return undefined;
+  castItemsBigInts(monthlyRems);
+  return monthlyRems;
 }
 
 export function readYearlyRemindersAfter(lastUpdated: bigint) {
-  return readYearlyRemindersAfterStmt.all(lastUpdated) as YearlyReminder[];
+  const yearlyRems = readYearlyRemindersAfterStmt.all(lastUpdated) as YearlyReminder[];
+  if (yearlyRems === undefined) return undefined;
+  castItemsBigInts(yearlyRems);
+  return yearlyRems;
 }
 
 export function readExtensionsAfter(lastUpdated: bigint) {
-  return readExtensionsAfterStmt.all(lastUpdated) as Extension[];
+  const extensions = readExtensionsAfterStmt.all(lastUpdated) as Extension[];
+  if (extensions === undefined) return undefined;
+  castExtensionsBigInts(extensions);
+  return extensions;
 }
 
 export function readFoldersAfter(lastUpdated: bigint) {
-  return readFoldersAfterStmt.all(lastUpdated) as Folder[];
+  const folders = readFoldersAfterStmt.all(lastUpdated) as Folder[];
+  if (folders === undefined) return undefined;
+  castFoldersBigInts(folders);
+  return folders;
 }
 
 export function readDeletesAfter(lastUpdated: bigint) {
-  return readDeletesAfterStmt.all(lastUpdated) as Deleted[];
+  const deletes = readDeletesAfterStmt.all(lastUpdated) as Deleted[];
+  if (deletes === undefined) return undefined;
+  castDeletesBigInts(deletes);
+  return deletes;
 }
 
 // update
@@ -485,4 +563,42 @@ function dropTables() {
   db.exec(sql.dropOverridesTable);
   db.exec(sql.dropFoldersTable);
   db.exec(sql.dropDeletedTable);
+}
+
+function castItemBigInts(item: Note | Reminder | DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder) {
+  item.itemID = BigInt(item.itemID);
+  item.lastModified = BigInt(item.lastModified);
+  item.folderID = BigInt(item.folderID);
+}
+
+function castItemsBigInts(items: Note[] | Reminder[] | DailyReminder[] | WeeklyReminder[] | MonthlyReminder[] | YearlyReminder[]) {
+  for (const item of items) castItemBigInts(item);
+}
+
+function castExtensionBigInts(extension: Extension) {
+  extension.itemID = BigInt(extension.itemID);
+  extension.lastModified = BigInt(extension.lastModified);
+}
+
+function castExtensionsBigInts(extensions: Extension[]) {
+  for (const extension of extensions) castExtensionBigInts(extension);
+}
+
+function castFolderBigInts(folder: Folder) {
+  folder.folderID = BigInt(folder.folderID);
+  folder.lastModified = BigInt(folder.lastModified);
+  folder.parentFolderID = BigInt(folder.parentFolderID);
+}
+
+function castFoldersBigInts(folders: Folder[]) {
+  for (const folder of folders) castFolderBigInts(folder);
+}
+
+function castDeleteBigInts(deleted: Deleted) {
+  deleted.itemID = BigInt(deleted.itemID);
+  deleted.lastModified = BigInt(deleted.lastModified);
+}
+
+function castDeletesBigInts(deletes: Deleted[]) {
+  for (const deleted of deletes) castDeleteBigInts(deleted);
 }
