@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-29
+ * Updated: 2025-10-30
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -15,6 +15,7 @@
  * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
  * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
  * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
+ * https://stackoverflow.com/questions/48351987/create-javascript-date-object-from-string-yyyy-mm-dd-in-local-timezone for constructing local date objects
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -94,9 +95,9 @@
                   :error-message="getFolder(node.id)!.folderNameError"
                   @keyup.enter.prevent="saveFolder(getFolder(node.id)!)"
                   @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
-                  @keydown.capture.stop
-                  @focus.stop
                   @click.stop
+                  @focus.stop
+                  autofocus
                   placeholder="Folder name"
                   style="min-width: 160px;"
                 />
@@ -113,7 +114,7 @@
         </q-tree>
         <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
-          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" @click="deleteTreeNode()" />
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="edit"  label="Rename" @click="renameFolder(getFolder(selectedFolderID)!)" />
         </div>
       </div>
@@ -580,6 +581,8 @@ async function loadRemindersForCalendarDate(dateString: string) {
   const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
 
   try {
+    // Filter out any reminders already in list for that date to avoid duplicates
+    reminders.value = reminders.value.filter(reminder => reminder.date !== dateString);
     // Read reminders for currently selected date from local DB
     const rows = await readRemindersInRange(startOfDay, endOfDay);
     // Convert each reminder in range from response to UI reminder format 
@@ -589,6 +592,54 @@ async function loadRemindersForCalendarDate(dateString: string) {
     // console.log('Reminders for date loaded successfully:');
   } catch (error) {
     console.error('Error loading reminders for date:', error);
+  }
+}
+
+// Function to display all reminders (essentially a select ALL * from reminders table)
+async function loadAllReminders() {
+    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
+    // Far into past and far into future (100 years)
+    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
+    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
+
+  try {
+    // Clear list before reloading
+    reminders.value = [];
+    // Read all reminders from local DB
+    const rows = await readRemindersInRange(start, end);
+    // Convert each reminder in range from response to UI reminder format 
+    for (const reminder of rows) {
+      await mapDBToUIReminder(reminder.itemID);
+    }
+    // Sort reminders alphabetically by title for tree 
+    reminders.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
+    // console.log('All reminders loaded successfully:');
+  } catch (error) {
+    console.error('Error loading all reminders:', error);
+  }
+}
+
+// Function to display all notes (essentially a select ALL * from notes table)
+async function loadAllNotes() {
+    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
+    // Far into past and far into future (100 years)
+    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
+    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
+
+  try {
+    // Clear list before reloading
+    notes.value = [];
+    // Read all notes from local DB
+    const rows = await readNotesInRange(start, end);
+    // Convert each note in range from response to UI note format
+    for (const note of rows) {
+      await mapDBToUINote(note.itemID);
+    }
+    // Sort notes alphabetically by title for tree 
+    notes.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
+    // console.log('All notes loaded successfully:');
+  } catch (error) {
+    console.error('Error loading all notes:', error);
   }
 }
 
@@ -623,25 +674,6 @@ function addNote() {
       note.expanded = false
     }
   })
-}
-
-// Function to display notes for selected calendar date
-async function loadNotesForCalendarDate(dateString: string) {
-  // Compute timestamp for start and end of selected date/day, '' is treated as 00:00 in helper
-  const startOfDay = convertTimeAndDateToTimestamp(dateString, '');
-  const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
-
-  try {
-    // Read notes for currently selected date from local DB
-    const rows = await readNotesInRange(startOfDay, endOfDay);
-    // Convert each note in range from response to UI note format
-    for (const note of rows) {
-      await mapDBToUINote(note.itemID);
-    }
-    // console.log('Notes for date loaded successfully:');
-  } catch (error) {
-    console.error('Error loading notes for date:', error);
-  }
 }
 
 // Root folder should always exist
@@ -679,10 +711,26 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
     console.error('Reminder not found in DB for itemID:', itemID);
     return null;
   }
-
-  // Derive a yyyy-mm-dd date string from DB row for UI so card appears under correct original event/calendar date
-  // Testing with selected date on calendar, replace later
-  const date = selectedDate.value;
+  // Create a date in local timezone from DB row for UI so filtered reminder/note list only shows entries whose event date match the calendar date
+  // Get minute of day, event day, and event year from DB row
+  const minuteOfDay = Number(row.eventStartMin);
+  const eventDay = Number(row.eventStartDay);
+  const eventYear = Number(row.eventStartYear);
+  // Start at january 1st of event year and add days to get the right month/day. 
+  const date = new Date(eventYear, 0, 1);
+  // Set date object to event day
+  date.setDate(date.getDate() + (eventDay - 1));
+  // Calculate hours: divide number of minutes by 60 to get hours
+  // Floor to return actual integer hour, no decimals
+  const eventHour = Math.floor(minuteOfDay / 60);
+  // Calculate remaining minutes: take minutes and modulo 60 (remainder is number of minutes)
+  const eventMinute = minuteOfDay % 60;
+  // Set hours and minutes of date object
+  date.setHours(eventHour, eventMinute, 0, 0);
+  // Convert date to YYYY-MM-DD string format compatible with qcalendar/selectedDate
+  // getMonth returns zero-based index add 1 to get actual month number
+  // Pad month and day so its always two digits - ex. day 5 becomes 05
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
   // Add extension onto reminder row type at compile time
   const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
@@ -717,7 +765,7 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
     temporaryEventEndTime: endStr,
     // If theres a notification, temporary notification time is reminder notification minute of day 
     temporaryNotificationTime: minutesBeforeStartTime,
-    date,
+    date: dateString,
     titleMessageError: '',
     folderMessageError: '',
     timeMessageError: '',
@@ -742,7 +790,7 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
 
 // Map a DB folder row into the UI folder shape
 function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
- return (rows ?? []).map(row => ({
+ const row = (rows ?? []).map(row => ({
     // Copy all fields for a folder from DB row
     ...row,
     temporaryFolderName: row.folderName ?? '',
@@ -754,6 +802,13 @@ function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
     isSaved: true,
     isEditing: false
   })) as UIFolder[];
+
+  // How to sort alphabetically: https://stackoverflow.com/questions/6712034/sort-array-by-firstname-alphabetically-in-javascript
+  // Sort folder names alphabetically in folder array
+  // Normalize to lowercase so the sorting is case-insensitive
+  row.sort((a, b) => String(a.folderName ?? '').toLowerCase().localeCompare(String(b.folderName ?? '').toLowerCase()));
+  return row;
+
 }
 
 async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
@@ -766,7 +821,7 @@ async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
     console.error('Note not found in DB for itemID:', itemID);
     return null;
   }
-
+  
   const date = selectedDate.value;
 
   // Need to add fields to the DB note row specific to the UI card
@@ -806,10 +861,11 @@ onMounted(async () => {
   await addRootFolder();
   // Ensure folders array is populated from local DB on page load
   folders.value = mapDBToUIFolder(await readAllFolders());
-  // Load reminders for selected calendar date on startup
+  // Load all reminders and notese so tree shows every item
+  await loadAllReminders();
+  await loadAllNotes();
+  // Load reminders for selected calendar date on startup for tab list
   await loadRemindersForCalendarDate(selectedDate.value);
-  // Load notes for selected calendar date on startup
-  await loadNotesForCalendarDate(selectedDate.value);
 });
 
 // Function to add a folder to the tree
@@ -896,8 +952,8 @@ async function saveNote(note: UINote){
     await mapDBToUINote(note.itemID);
     // Refresh folders to show newly added note in file explorer tree
     folders.value = mapDBToUIFolder(await readAllFolders());
-    // Reload notes for selected calendar date to include newly added note
-    await loadNotesForCalendarDate(selectedDate.value);
+    // Reload notes to include newly added note
+    await loadAllNotes();
   }
   else {
       await updateNote(note.itemID, note.temporaryFolderID, note.temporaryTitle, note.temporaryText);
@@ -907,8 +963,8 @@ async function saveNote(note: UINote){
       await mapDBToUINote(note.itemID);
       // Reload folders to see updated note in file tree
       folders.value = mapDBToUIFolder(await readAllFolders());
-      // Reload notes for selected date to see updated note card
-      await loadNotesForCalendarDate(selectedDate.value);
+      // Reload notes to see updated note card
+      await loadAllNotes();
   }
  } catch (error) {
     console.error('Error saving note:', error);
@@ -1047,8 +1103,8 @@ async function deleteNote(note: UINote) {
     console.log('Note deleted successfully from DB.');
     // Refresh folders for tree to remove deleted note
     folders.value = mapDBToUIFolder(await readAllFolders());
-    // Re-load notes for calendar date after deleted note
-    await loadNotesForCalendarDate(selectedDate.value);
+    // Re-load notes after deleted note
+    await loadAllNotes();
   } catch (error) {
     console.error('Error deleting note from DB:', error);
   }
@@ -1056,6 +1112,85 @@ async function deleteNote(note: UINote) {
   // Creates new filtered array to render that only includes notes that are not selected
   // notes.value = notes.value.filter(note => !note.isSelected);
 }
+
+// Function to delete a folder or note/reminder from tree and DB
+async function deleteTreeNode() {
+  const selectedNode = selectedFolderID.value;
+  // No tree node is selected, return
+  if (selectedNode == null) {
+    return;
+  }
+
+  // Tree node has a positive ID, a folder is selected
+  if (selectedNode >= 0n) {
+    // Find folder from folders array that matches currently selected tree node
+    const folderToDelete = folders.value.find(folder => String(folder.folderID) === String(selectedNode));
+    if (!folderToDelete) {
+      return;
+    }
+
+    const confirmation = window.confirm(`Delete folder "${folderToDelete.folderName}" and all its contents? This cannot be undone.`);
+    // User did not confirm folder deletion, cancel and return
+    if (!confirmation) {
+      return;
+    }
+
+    // User confirmed folder deletion, delete folder and all its contents from DB and refresh UI
+    try {
+      await deleteFolder(folderToDelete.folderID);
+      folders.value = mapDBToUIFolder(await readAllFolders());
+      await loadRemindersForCalendarDate(selectedDate.value);
+      await loadAllNotes();
+      // Clear tree node selection after deletion
+      selectedFolderID.value = null;
+    } catch (error) {
+      console.error('Error deleting folder from DB:', error);
+    }
+    return;
+  }
+
+  // Tree node has a negative ID, a note or reminder is selected
+  if (selectedNode < 0n) {
+    const itemID = -selectedNode;
+
+    // Find note from notes array that matches currently selected tree node
+    const noteToDelete = notes.value.find(note => String(note.itemID) === String(itemID));
+    if (noteToDelete) {
+      try {
+        // Delete specific selected note from DB and refresh UI
+        await deleteItem(noteToDelete.itemID, 11);
+        // Remove deleted note from notes array for UI rendering
+        notes.value = notes.value.filter(note => String(note.itemID) !== String(noteToDelete.itemID));
+        folders.value = mapDBToUIFolder(await readAllFolders());
+        await loadAllNotes();
+        // Clear tree node selection after deletion
+        selectedFolderID.value = null;
+      } catch (error) {
+        console.error('Error deleting note from DB:', error);
+      }
+      return;
+    }
+
+
+    // Find reminder from reminders array that matches currently selected tree node
+    const reminderToDelete = reminders.value.find(reminder => String(reminder.itemID) === String(itemID));
+    if (reminderToDelete) {
+      try {
+        // Delete specific selected reminder from DB and refresh UI
+        await deleteItem(reminderToDelete.itemID, 12);
+        // Remove deleted reminder from reminders array for UI rendering
+        reminders.value = reminders.value.filter(reminder => String(reminder.itemID) !== String(reminderToDelete.itemID));
+        folders.value = mapDBToUIFolder(await readAllFolders());
+        await loadRemindersForCalendarDate(selectedDate.value);
+        // Clear tree node selection after deletion
+        selectedFolderID.value = null;
+      } catch (error) {
+        console.error('Error deleting reminder from DB:', error);
+      }
+    }
+  }
+}
+
 
 // Toggles behavior of add button. If on reminder tab, add a reminder to array. If on notes tab, add a note to array.
 async function addArrayItem() {
@@ -1127,8 +1262,6 @@ const filteredReminders = computed(() => {
 watch(selectedDate, async (newDate) => {
   // Load reminders for newly selected calendar date
   await loadRemindersForCalendarDate(newDate);
-  // Load notes for newly selected calendar date
-  await loadNotesForCalendarDate(newDate);
 });
 
 // Create events on calendar from reminders
@@ -1136,9 +1269,9 @@ const events = computed(() => buildCalendarEvents(reminders.value, eventTypes))
 // Group events by date
 const eventsMap = computed(() => groupEventsByDate(events.value))
 
-// Filtered note array for specific date
+// Notes not connected to calendar dates, so just show notes array as is
 const filteredNotes = computed(() => {
-  return notes.value.filter(note => note.date === selectedDate.value)
+  return notes.value
 });
 
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
