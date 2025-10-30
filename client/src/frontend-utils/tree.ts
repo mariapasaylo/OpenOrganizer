@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file contains functions to create the file explorer tree structure and breadcrumb trail path
  *
@@ -77,16 +77,26 @@ export function convertFolderTreetoQTree(folders: UIFolder[], notes: UINote[], r
 
 // Function to normalize selected node to be folderID for breadcrumb trail navigation 
 // Needed to distinguish because notes/reminders are selectable children with negative IDs in the tree
-export function normalizeFolderID(selectedNode: bigint | null, notes: UINote[], reminders: UIReminder[]): bigint | null {
+export function normalizeFolderID(selectedNode: bigint | null, notes: UINote[], reminders: UIReminder[], folders: UIFolder[]): bigint | null {
   // Selected tree node is null, return null
   if (selectedNode === null) {
     return null;
   }
 
+  // Try to find folder in folders array that matches the selected node ID
+  // May contain draft folders (negative IDs) that arent in the DB yet
+  if (folders) {
+    const folder = folders.find(folder => folder.folderID === selectedNode);
+    if (folder) {
+      return folder.folderID;
+    }
+  }
+  
   // Selected tree node is positive ID, must be a folder, just return the folder
   if (selectedNode > 0n) {
     return selectedNode;
   }
+
   // Selected tree node is a reminder/note (negative of itemID), find its folder ID
   else {
     const itemID = selectedNode < 0n ? -selectedNode : selectedNode;
@@ -106,20 +116,10 @@ export function normalizeFolderID(selectedNode: bigint | null, notes: UINote[], 
 return null;
 }
 
-// Normalize folder rows returned from IPC into consistent UIFolder with bigint fields
-function normalizeFolderRows(rows: Folder[]): UIFolder[] {
-  return (rows ?? []).map(r => ({
-    ...r,
-    folderID: (typeof r.folderID === 'bigint') ? r.folderID : BigInt(r.folderID ?? 0),
-    parentFolderID: (typeof r.parentFolderID === 'bigint') ? r.parentFolderID : BigInt(r.parentFolderID ?? -1),
-    lastModified: (typeof r.lastModified === 'bigint') ? r.lastModified : BigInt(r.lastModified ?? Date.now()),
-  })) as UIFolder[];
-}
-
 // Function to build breadcrumbs array that walks from the selected folder up to the root to build the path
 export function buildBreadcrumbs(selectedNode: bigint | null, folders: UIFolder[], notes: UINote[], reminders: UIReminder[]): { label: string; id: bigint }[] {
   // Normalize currently selected folder ID on QTree
-  const currentFolderID = normalizeFolderID(selectedNode, notes, reminders);
+  const currentFolderID = normalizeFolderID(selectedNode, notes, reminders, folders);
   // Empty path if there is no currently selected folder
   if (currentFolderID == null) {
     return [];
