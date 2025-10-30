@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-28
- * Updated: 2025-10-29
+ * Updated: 2025-10-30
  *
  * This file defines functions for converting interface arrays into byte arrays for use in syncup.ts POST requests.
  *
@@ -46,7 +46,7 @@ export function packNotes(notes: Note[]) {
     encrBufPos += 48;
     encrData.write(notes[i]!.text, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
@@ -79,7 +79,7 @@ export function packReminders(reminders: Reminder[]) {
     encrBufPos += 1;
     encrData.write(reminders[i]!.title, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
@@ -120,7 +120,7 @@ export function packDailyReminders(dailyReminders: DailyReminder[]) {
     encrBufPos += 2;
     encrData.write(dailyReminders[i]!.title, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
@@ -159,11 +159,11 @@ export function packWeeklyReminders(weeklyReminders: WeeklyReminder[]) {
     encrBufPos += 1;
     encrData.writeInt16LE(weeklyReminders[i]!.everyNWeeks, encrBufPos);
     encrBufPos += 2;
-    encrData.copy(packDaysOfWeek(weeklyReminders[i]!.daysOfWeek), encrBufPos);
+    packDaysOfWeek(weeklyReminders[i]!.daysOfWeek).copy(encrData, encrBufPos);
     encrBufPos += 1;
     encrData.write(weeklyReminders[i]!.title, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
@@ -202,11 +202,11 @@ export function packMonthlyReminders(monthlyReminders: MonthlyReminder[]) {
     encrBufPos += 1;
     encrData[encrBufPos] = monthlyReminders[i]!.lastDayOfMonth;
     encrBufPos += 1;
-    encrData.copy(packDaysOfMonth(monthlyReminders[i]!.daysOfMonth), encrBufPos);
+    packDaysOfMonth(monthlyReminders[i]!.daysOfMonth).copy(encrData, encrBufPos);
     encrBufPos += 4;
     encrData.write(monthlyReminders[i]!.title, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos);
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);;
     bufPos += encrData.length;
   }
   return repeatedData;
@@ -247,7 +247,7 @@ export function packYearlyReminders(yearlyReminders: YearlyReminder[]) {
     encrBufPos += 2;
     encrData.write(yearlyReminders[i]!.title, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos);
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);;
     bufPos += encrData.length;
   }
   return repeatedData;
@@ -269,7 +269,7 @@ export function packExtensions(extensions: Extension[]) {
     const encrData = Buffer.alloc(64);
     encrData.write(extensions[i]!.data, 0);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
@@ -295,7 +295,7 @@ export function packFolders(folders: Folder[]) {
     encrBufPos += 4;
     encrData.write(folders[i]!.folderName, encrBufPos);
 
-    repeatedData.copy(encrypt(encrData,getPrivateKey1(), getPrivateKey1()), bufPos)
+    encrypt(encrData,getPrivateKey1(), getPrivateKey1()).copy(repeatedData, bufPos);
     bufPos += encrData.length
   }
   return repeatedData;
