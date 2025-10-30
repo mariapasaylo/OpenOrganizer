@@ -1,7 +1,7 @@
 /*
  * Authors: Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
@@ -73,7 +73,7 @@ function setPassword(password : string) {
   accountStore.set('password', password);
 }
 
-function getAuthToken() {
+export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
@@ -97,7 +97,7 @@ function setPrivateKey2(privateKey : Buffer) {
   accountStore.set('privateKey2', privateKey);
 }
 
-function getUserId() {
+export function getUserId() {
   return BigInt(accountStore.get('userId'));
 }
 
