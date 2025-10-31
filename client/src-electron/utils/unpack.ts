@@ -24,6 +24,21 @@ import type {
 import {decrypt} from "app/src-electron/services/crypto";
 import {getPrivateKey1} from "app/src-electron/services/auth";
 
+export function unpackLastUp(data: Buffer) {
+  return {
+    lastUpNotes: data.readBigInt64LE(0),
+    lastUpReminders: data.readBigInt64LE(8),
+    lastUpDaily: data.readBigInt64LE(16),
+    lastUpWeekly: data.readBigInt64LE(24),
+    lastUpMonthly: data.readBigInt64LE(32),
+    lastUpYearly: data.readBigInt64LE(40),
+    lastUpExtensions: data.readBigInt64LE(48),
+    lastUpOverrides: data.readBigInt64LE(56),
+    lastUpFolders: data.readBigInt64LE(64),
+    lastUpDeleted: data.readBigInt64LE(72),
+  } as ServerLastUp;
+}
+
 export function unpackNotes(repeatedData: Buffer, recordCount: number) {
   const notes: Note[] = new Array(recordCount);
   let bufPos = 0;
@@ -296,4 +311,17 @@ function unpackDaysOfWeek(buffer: Buffer) {
 function unpackDaysOfMonth(buffer: Buffer) {
   const bytes = buffer.readUint32BE(0);
   return bytes.toString(2).padStart(31, '0');
+}
+
+interface ServerLastUp {
+  lastUpNotes: bigint;
+  lastUpReminders: bigint;
+  lastUpDaily: bigint;
+  lastUpWeekly: bigint;
+  lastUpMonthly: bigint;
+  lastUpYearly: bigint;
+  lastUpExtensions: bigint;
+  lastUpOverrides: bigint;
+  lastUpFolders: bigint;
+  lastUpDeleted: bigint;
 }
