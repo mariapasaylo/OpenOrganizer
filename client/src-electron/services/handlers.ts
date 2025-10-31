@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-10-22
+ * Updated: 2025-10-28
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -25,7 +25,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
-import { createAccount } from "./auth";
+import { createAccount, loginAccount } from "./auth";
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -70,40 +70,40 @@ export function registerHandlers()
 
 
   // read
-  ipcMain.handle('readNote', (event, itemID: number) => {
+  ipcMain.handle('readNote', (event, itemID: bigint) => {
     return db.readNote(itemID);
   });
 
-  ipcMain.handle('readReminder', (event, itemID: number) => {
+  ipcMain.handle('readReminder', (event, itemID: bigint) => {
     return db.readReminder(itemID);
   });
 
-  ipcMain.handle('readDailyReminder', (event, itemID: number) => {
+  ipcMain.handle('readDailyReminder', (event, itemID: bigint) => {
     return db.readDailyReminder(itemID);
   });
 
-  ipcMain.handle('readWeeklyReminder', (event, itemID: number) => {
+  ipcMain.handle('readWeeklyReminder', (event, itemID: bigint) => {
     return db.readWeeklyReminder(itemID);
   });
 
-  ipcMain.handle('readMonthlyReminder', (event, itemID: number) => {
+  ipcMain.handle('readMonthlyReminder', (event, itemID: bigint) => {
     return db.readMonthlyReminder(itemID);
   });
 
-  ipcMain.handle('readYearlyReminder', (event, itemID: number) => {
+  ipcMain.handle('readYearlyReminder', (event, itemID: bigint) => {
     return db.readYearlyReminder(itemID);
   });
 
-  ipcMain.handle('readExtensions', (event, itemID: number) => {
+  ipcMain.handle('readExtensions', (event, itemID: bigint) => {
     return db.readExtensions(itemID);
   });
 
-  ipcMain.handle('readFolder', (event, folderID: number) => {
+  ipcMain.handle('readFolder', (event, folderID: bigint) => {
     return db.readFolder(folderID);
   });
 
   // read in range
-  ipcMain.handle('readNotesInRange', (event, windowStartMs: number, windowEndMs: number) => {
+  ipcMain.handle('readNotesInRange', (event, windowStartMs: bigint, windowEndMs: bigint) => {
     return db.readNotesInRange(windowStartMs, windowEndMs);
   });
 
@@ -133,31 +133,31 @@ export function registerHandlers()
   });
 
   // read IDs based on folderID
-  ipcMain.handle('readNotesInFolder', (event, folderID: number) => {
+  ipcMain.handle('readNotesInFolder', (event, folderID: bigint) => {
     return db.readNotesInFolder(folderID);
   });
 
-  ipcMain.handle('readRemindersInFolder', (event, folderID: number) => {
+  ipcMain.handle('readRemindersInFolder', (event, folderID: bigint) => {
     return db.readRemindersInFolder(folderID);
   });
 
-  ipcMain.handle('readDailyRemindersInFolder', (event, folderID: number) => {
+  ipcMain.handle('readDailyRemindersInFolder', (event, folderID: bigint) => {
     return db.readDailyRemindersInFolder(folderID);
   });
 
-  ipcMain.handle('readWeeklyRemindersInFolder', (event, folderID: number) => {
+  ipcMain.handle('readWeeklyRemindersInFolder', (event, folderID: bigint) => {
     return db.readWeeklyRemindersInFolder(folderID);
   });
 
-  ipcMain.handle('readMonthlyRemindersInFolder', (event, folderID: number) => {
+  ipcMain.handle('readMonthlyRemindersInFolder', (event, folderID: bigint) => {
     return db.readMonthlyRemindersInFolder(folderID);
   });
 
-  ipcMain.handle('readYearlyRemindersInFolder', (event, folderID: number) => {
+  ipcMain.handle('readYearlyRemindersInFolder', (event, folderID: bigint) => {
     return db.readYearlyRemindersInFolder(folderID);
   });
 
-  ipcMain.handle('readFoldersInFolder', (event, parentFolderID: number) => {
+  ipcMain.handle('readFoldersInFolder', (event, parentFolderID: bigint) => {
     return db.readFoldersInFolder(parentFolderID);
   });
 
@@ -192,42 +192,45 @@ export function registerHandlers()
   });
 
   // delete
-  ipcMain.handle('deleteNote', (event, itemID: number) => {
+  ipcMain.handle('deleteNote', (event, itemID: bigint) => {
     return db.deleteNote(itemID);
   });
 
-  ipcMain.handle('deleteReminder', (event, itemID: number) => {
+  ipcMain.handle('deleteReminder', (event, itemID: bigint) => {
     return db.deleteReminder(itemID);
   });
 
-  ipcMain.handle('deleteDailyReminder', (event, itemID: number) => {
+  ipcMain.handle('deleteDailyReminder', (event, itemID: bigint) => {
     return db.deleteDailyReminder(itemID);
   });
 
-  ipcMain.handle('deleteWeeklyReminder', (event, itemID: number) => {
+  ipcMain.handle('deleteWeeklyReminder', (event, itemID: bigint) => {
     return db.deleteWeeklyReminder(itemID);
   });
 
-  ipcMain.handle('deleteMonthlyReminder', (event, itemID: number) => {
+  ipcMain.handle('deleteMonthlyReminder', (event, itemID: bigint) => {
     return db.deleteMonthlyReminder(itemID);
   });
 
-  ipcMain.handle('deleteYearlyReminder', (event, itemID: number) => {
+  ipcMain.handle('deleteYearlyReminder', (event, itemID: bigint) => {
     return db.deleteYearlyReminder(itemID);
   });
 
-  ipcMain.handle('deleteExtension', (event, itemID: number, sequenceNum: number) => {
+  ipcMain.handle('deleteExtension', (event, itemID: bigint, sequenceNum: number) => {
     db.deleteExtension(itemID, sequenceNum);
   });
 
-  ipcMain.handle('deleteAllExtensions', (event, itemID: number) => {
+  ipcMain.handle('deleteAllExtensions', (event, itemID: bigint) => {
     db.deleteAllExtensions(itemID);
   });
 
-  ipcMain.handle('deleteFolder', (event, folderID: number) => {
+  ipcMain.handle('deleteFolder', (event, folderID: bigint) => {
     return db.deleteFolder(folderID);
   });
 
+  ipcMain.handle('clearAllTables', (event) => {
+    db.clearAllTables();
+  });
 
   // Example Handlers
   ipcMain.handle('sqliteRead', (event, key: string) => {
@@ -269,11 +272,11 @@ export function registerHandlers()
   });
 
   // Schedule a reminder notification once at local timezone and specific date and time
-  ipcMain.handle('scheduleReminderNotification', (event, reminder: { itemID: string; date: string; title: string; time?: string; unixMilliseconds?: number}) => {
+  ipcMain.handle('scheduleReminderNotification', (event, reminder: { itemID: bigint; date: string; title: string; time?: string; unixMilliseconds?: number}) => {
       const unixMillisecondsTime = Number(reminder.unixMilliseconds);
       // Derive datetime from unix epoch milliseconds timestamp
       // const dateTime = new Date(unixMillisecondsTime);
-      
+
       // Time until the notification should go off. Computes how many milliseconds there are from now until the reminder epoch time
       // Current time since epoch in ms - time since epoch for reminder in ms
       const delay = unixMillisecondsTime - Date.now();
@@ -310,4 +313,8 @@ export function registerHandlers()
 
 ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
   return await createAccount(username, password);
+});
+
+ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
+  return await loginAccount(username, password);
 });

@@ -1,7 +1,7 @@
 <!--
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-09-23
+ * Updated: 2025-09-27
  *
  * This file is the login form for users to log in to a preexisting account that includes a sidebar with the application name and logo
  *
@@ -37,7 +37,13 @@
                 @click="isPwd = !isPwd"/>
                 </template>
             </q-input>
-            <q-btn class="login-register-button" style="font-size: 15px" @click= login no-caps label="Login"/>
+            <q-btn class="login-register-button" 
+            style="font-size: 15px" 
+            @click= login
+            :loading="isLoading"
+            :disable="isLoading"
+            no-caps 
+            label="Login"/>
             <q-btn class="login-register-button" style="font-size: 15px" @click= "$router.push('/')" no-caps label="Index Screen" />
         </div>
     </qpage>
@@ -46,13 +52,46 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
 
-const username = ref('');
-const password = ref('');
-const isPwd = ref(true)
+const router = useRouter();
+const $q = useQuasar();
+const username = ref<string>('');
+const password = ref<string>('');
+const isPwd = ref(true);
+const isLoading = ref(false);
 
-function login() {
-    console.log("username: ", username)
-    console.log("password: ", password)
+async function login() {
+    // console.log("username: ", username)
+    // console.log("password: ", password)
+     if (!username.value || !password.value){
+        $q.notify({
+            type: 'negative',
+            message: 'Please fill in both username and password fields.'
+        });
+        return
+    }
+
+    //TO DO: add other input validation requirements
+    isLoading.value = true;
+
+    try {
+        const result = await window.electronAuthAPI.loginAccount(username.value, password.value);
+       
+        if(result){
+            console.log('Account login result:', result);
+            //navigate to main calendar page
+            await router.push('/calendar');
+        } 
+    } catch (error) {
+        console.error('Error logging into account', error);
+        $q.notify({
+            type: 'negative',
+            message: 'An error occured while creating account'
+        });
+    } finally {
+        isLoading.value = false;
+    }
 }
 </script>
