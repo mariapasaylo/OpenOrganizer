@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-20
+ * Updated: 2025-10-30
  *
  * This file handles many of the initialization functions, such as pulling .env variables and assigning handlers for HTTP requests.
  *
@@ -94,14 +94,18 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	env.DB_USER = DB_USER
 	env.DB_PWD = DB_PWD
 
-	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
-	if TOKEN_EXPIRE_TIME == "" {
-		TOKEN_EXPIRE_TIME = "42300"
-	}
 	env.TOKEN_EXPIRE_REFRESH = false
 	var TOKEN_EXPIRE_REFRESH = os.Getenv("TOKEN_EXPIRE_REFRESH")
 	if TOKEN_EXPIRE_REFRESH == "TRUE" {
 		env.TOKEN_EXPIRE_REFRESH = true
+	}
+	var TOKEN_EXPIRE_TIME = os.Getenv("TOKEN_EXPIRE_TIME")
+	if TOKEN_EXPIRE_TIME == "" {
+		TOKEN_EXPIRE_TIME = "3600"
+	}
+	var TOKEN_PURGE_INTERVAL = os.Getenv("TOKEN_PURGE_INTERVAL")
+	if TOKEN_PURGE_INTERVAL == "" {
+		TOKEN_PURGE_INTERVAL = "3600"
 	}
 	var MAX_RECORD_COUNT = os.Getenv("MAX_RECORD_COUNT")
 	if MAX_RECORD_COUNT == "" {
@@ -112,13 +116,18 @@ func RetrieveENVVars() (env models.ENVVars, err error) {
 	if err != nil {
 		return env, errors.New("invalid value in TOKEN_EXPIRE_TIME, must be convertible to int32")
 	}
+	tokenPurgeInterval, err := strconv.Atoi(TOKEN_PURGE_INTERVAL)
+	if err != nil {
+		return env, errors.New("invalid value in TOKEN_PURGE_INTERVAL, must be convertible to int32")
+	}
 	recordCount, err := strconv.Atoi(MAX_RECORD_COUNT)
 	if err != nil {
 		return env, errors.New("invalid value in MAX_RECORD_COUNT, must be convertible to int32")
 	}
 	env.TOKEN_EXPIRE_TIME = uint32(tokenExpireTime)
+	env.TOKEN_PURGE_INTERVAL = uint32(tokenPurgeInterval)
+	env.MAX_RECORD_COUNT = uint32(recordCount)
 	maxRecordCount = uint32(recordCount)
-	env.MAX_RECORD_COUNT = maxRecordCount
 
 	env.CLEAR_DB_AUTH = false
 	var CLEAR_DB_AUTH = os.Getenv("CLEAR_DB_AUTH")

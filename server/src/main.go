@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-04-13
- * Updated: 2025-10-20
+ * Updated: 2025-10-30
  *
  * This file is the entry point to the server.
  * It handles the large scope of the order of operations for initialization and serving requests.
@@ -42,6 +42,7 @@ func main() {
 	_ = db.EnsureDBTables(env)
 
 	services.AssignHandlers()
+	services.LaunchPeriodics(env)
 
 	errs := services.Run(env)
 	if env.TEST_SUITE {

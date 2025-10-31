@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-19
+ * Updated: 2025-10-26
  *
  * This file declares the database variable and includes databse interaction functions.
  * Included are for connecting to and closing the connection to the database, as well as functions for inserting into or selecting from.
@@ -43,16 +43,16 @@ func ConnectToDB(env models.ENVVars) error {
 }
 
 // creates all required db tables that do not already exist
-func EnsureDBTables(env models.ENVVars) chan error {
-	var errs = make(chan error)
-
+func EnsureDBTables(env models.ENVVars) (errs []error) {
 	if env.CLEAR_DB_AUTH {
 		_, err := db.Exec(dropAllAuth)
+		utils.PrintErrorLine(err)
 		utils.AddError(err, errs)
 	}
 
 	if env.CLEAR_DB_DATA {
 		_, err := db.Exec(dropAllData)
+		utils.PrintErrorLine(err)
 		utils.AddError(err, errs)
 	}
 
@@ -107,7 +107,7 @@ func GetLastUpdated(userID int64) (row models.RowLastUpdated, err error) {
 }
 
 func UpdateLastup(fieldName string, userID int64, time int64) {
-	_, _ = db.Query(lastupUpdate(fieldName), userID, time)
+	_, _ = db.Exec(lastupUpdate(fieldName), userID, time)
 }
 
 // syncup
@@ -200,23 +200,23 @@ func deleteRow(row models.RowDeleted) {
 	const foldersTable int16 = 32
 	switch row.ItemTable {
 	case notesTable:
-		_, _ = db.Query(deleteItem("notes"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("notes"), row.UserID, row.ItemID)
 	case remindersTable:
-		_, _ = db.Query(deleteItem("reminders"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("reminders"), row.UserID, row.ItemID)
 	case dailyTable:
-		_, _ = db.Query(deleteItem("daily_reminders"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("daily_reminders"), row.UserID, row.ItemID)
 	case weeklyTable:
-		_, _ = db.Query(deleteItem("weekly_reminders"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("weekly_reminders"), row.UserID, row.ItemID)
 	case monthlyTable:
-		_, _ = db.Query(deleteItem("monthly_reminders"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("monthly_reminders"), row.UserID, row.ItemID)
 	case yearlyTable:
-		_, _ = db.Query(deleteItem("yearly_reminders"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("yearly_reminders"), row.UserID, row.ItemID)
 	case overridesTable:
-		_, _ = db.Query(deleteItem("overrides"), row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteItem("overrides"), row.UserID, row.ItemID)
 	case foldersTable:
-		_, _ = db.Query(deleteFolder, row.UserID, row.ItemID)
+		_, _ = db.Exec(deleteFolder, row.UserID, row.ItemID)
 	}
-	_, _ = db.Query(deleteItem("extentions"), row.UserID, row.ItemID)
+	_, _ = db.Exec(deleteItem("extentions"), row.UserID, row.ItemID)
 }
 
 // syncdown
