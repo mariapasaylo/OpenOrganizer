@@ -97,7 +97,6 @@
                   @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
                   @click.stop
                   @focus.stop
-                  autofocus
                   placeholder="Folder name"
                   style="min-width: 160px;"
                 />
