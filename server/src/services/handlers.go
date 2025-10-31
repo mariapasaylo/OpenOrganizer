@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-09-20
- * Updated: 2025-10-20
+ * Updated: 2025-10-26
  *
  * This file defines handlers for non-syncing requests, helper functions, and general services const values.
  * The other handler files use const values and helper functions defined here.
@@ -87,6 +87,10 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userLogin, userData := utils.UnpackRegister(body)
+	if !db.ValidateUsername(userLogin.Username) {
+		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
+		return
+	}
 	response, err := db.RegisterUser(userLogin, userData)
 	if err != nil {
 		http.Error(w, "Account with that username already exists.", http.StatusUnauthorized)
@@ -104,6 +108,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userLogin := utils.UnpackLogin(body)
+	if !db.ValidateUsername(userLogin.Username) {
+		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
+		return
+	}
 	response, err := db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)
@@ -121,6 +129,14 @@ func changeLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userLogin, userLoginNew, userData := utils.UnpackChangeLogin(body)
+	if !db.ValidateUsername(userLogin.Username) {
+		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
+		return
+	}
+	if !db.ValidateUsername(userLoginNew.Username) {
+		http.Error(w, "Invalid character found in username.", http.StatusBadRequest)
+		return
+	}
 	_, err = db.Login(userLogin)
 	if err != nil {
 		http.Error(w, "Invalid username+password combination.", http.StatusUnauthorized)

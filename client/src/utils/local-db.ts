@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-17
+ * Updated: 2025-10-28
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -31,15 +31,15 @@ import type {
 } from "app/src-electron/types/shared-types";
 
 // create
-export async function createNote(folderID: number, title: string, text: string) {
-  const timeMs = Date.now();
+export async function createNote(folderID: bigint, title: string, text: string) {
+  const timeMs: bigint = BigInt(Date.now());
   const extensions = Math.ceil(text.length/64) - 1;
 
   const newNote: Note = {
     itemID: timeMs,
     lastModified: timeMs,
     folderID: folderID,
-    isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
+    isExtended: (extensions === 0 || extensions === -1) ? 0 : 1, // If text is <= 64 chars, isExtended is false
     title: title,
     text: text.substring(0, 64)
   };
@@ -54,16 +54,19 @@ export async function createNote(folderID: number, title: string, text: string) 
     };
     await window.sqliteAPI.createExtension(newExt);
   }
+
+  // Return the timestamp ID of the note to use in frontend
+  return timeMs;
 }
 
 export async function createReminder(
-  folderID: number, eventType: number, eventStartTime: Timestamp, eventEndTime: Timestamp,
+  folderID: bigint, eventType: number, eventStartTime: Timestamp, eventEndTime: Timestamp,
   notifTime: Timestamp, hasNotif: boolean, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const newRem: Reminder = {
-    itemID: timeMs,
-    lastModified: timeMs,
+    itemID: BigInt(timeMs),
+    lastModified: BigInt(timeMs),
     folderID: folderID,
     eventType: eventType,
     eventStartYear: eventStartTime.year,
@@ -80,6 +83,8 @@ export async function createReminder(
     title: title
   };
   await window.sqliteAPI.createReminder(newRem);
+  // Return the timestamp ID of the reminder to use in frontend
+  return timeMs;
 
   /* Todo: add specific extension implementation depending on eventType value
      const newExt: Extension = {
@@ -93,9 +98,9 @@ export async function createReminder(
 }
 
 export async function createDailyReminder(
-  folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNDays: number, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const newDailyRem: DailyReminder = {
     itemID: timeMs,
@@ -122,9 +127,9 @@ export async function createDailyReminder(
 }
 
 export async function createWeeklyReminder(
-  folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNWeeks: number, daysOfWeek: string, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const newWeeklyRem: WeeklyReminder = {
     itemID: timeMs,
@@ -152,9 +157,9 @@ export async function createWeeklyReminder(
 }
 
 export async function createMonthlyReminder(
-  folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, lastDayOfMonth: boolean, daysOfMonth: string, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const newMonthlyRem: MonthlyReminder = {
     itemID: timeMs,
@@ -182,9 +187,9 @@ export async function createMonthlyReminder(
 }
 
 export async function createYearlyReminder(
-  folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
   let dayOfYear = getDayOfYear(recurTime);
   if (isLeapYear(recurTime.year))
   {
@@ -216,8 +221,8 @@ export async function createYearlyReminder(
   // Todo: add specific extension implementation depending on eventType value
 }
 
-export async function createFolder(parentFolderID: number, colorCode: number, folderName: string) { // -1 treated as no colorCode
-  const timeMs = Date.now();
+export async function createFolder(parentFolderID: bigint, colorCode: number, folderName: string) { // -1 treated as no colorCode
+  const timeMs: bigint = BigInt(Date.now());
   const newFolder: Folder = {
     folderID: timeMs,
     lastModified: timeMs,
@@ -229,19 +234,19 @@ export async function createFolder(parentFolderID: number, colorCode: number, fo
 }
 
 export async function createRootFolder(colorCode: number) { // -1 treated as no colorCode
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
   const rootFolder: Folder = {
-    folderID: 0,
+    folderID: 0n,
     lastModified: timeMs,
-    parentFolderID: -1,
+    parentFolderID: -1n,
     colorCode: colorCode,
     folderName: "root"
   };
   await window.sqliteAPI.createFolder(rootFolder);
 }
 
-export async function createDeleted(itemID: number, itemTable: number) {
-  const timeMs = Date.now();
+export async function createDeleted(itemID: bigint, itemTable: number) {
+  const timeMs: bigint = BigInt(Date.now());
   const newDeleted: Deleted = {
     itemID: itemID,
     lastModified: timeMs,
@@ -252,7 +257,7 @@ export async function createDeleted(itemID: number, itemTable: number) {
 
 
 // read
-export async function readNote(itemID: number) {
+export async function readNote(itemID: bigint) {
   const note = await window.sqliteAPI.readNote(itemID);
   const extensions = await window.sqliteAPI.readExtensions(itemID);
 
@@ -263,35 +268,35 @@ export async function readNote(itemID: number) {
   return note;
 }
 
-export async function readReminder(itemID: number) {
+export async function readReminder(itemID: bigint) {
   return await window.sqliteAPI.readReminder(itemID);
 }
 
-export async function readDailyReminder(itemID: number) {
+export async function readDailyReminder(itemID: bigint) {
   return await window.sqliteAPI.readDailyReminder(itemID);
 }
 
-export async function readWeeklyReminder(itemID: number) {
+export async function readWeeklyReminder(itemID: bigint) {
   return await window.sqliteAPI.readWeeklyReminder(itemID);
 }
 
-export async function readMonthlyReminder(itemID: number) {
+export async function readMonthlyReminder(itemID: bigint) {
   return await window.sqliteAPI.readMonthlyReminder(itemID);
 }
 
-export async function readYearlyReminder(itemID: number) {
+export async function readYearlyReminder(itemID: bigint) {
   return await window.sqliteAPI.readYearlyReminder(itemID);
 }
 
-export async function readFolder(folderID: number) {
+export async function readFolder(folderID: bigint) {
   return await window.sqliteAPI.readFolder(folderID);
 }
 
 // todo: write individual functions to extract meaningful data from reminder extensions based on eventType using window.sqliteAPI.readExtensions()
 
 export async function readNotesInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) { // Range is in UTC
-  const windowStartMs = makeDateTime(windowStartTime).getTime();
-  const windowEndMs = makeDateTime(windowEndTime).getTime();
+  const windowStartMs = BigInt(makeDateTime(windowStartTime).getTime());
+  const windowEndMs = BigInt(makeDateTime(windowEndTime).getTime());
   if (windowStartMs > windowEndMs) return [];
 
   const notes = await window.sqliteAPI.readNotesInRange(windowStartMs, windowEndMs);
@@ -346,8 +351,8 @@ export async function readAllFolders() {
 }
 
 // update
-export async function updateNote(itemID: number, folderID: number, title: string, text: string) {
-  const timeMs = Date.now();
+export async function updateNote(itemID: bigint, folderID: bigint, title: string, text: string) {
+  const timeMs: bigint = BigInt(Date.now());
   const extensions = Math.ceil(text.length/64) - 1;
   await window.sqliteAPI.deleteAllExtensions(itemID); // delete all extensions associated with note as they are recreated during an update
 
@@ -355,7 +360,7 @@ export async function updateNote(itemID: number, folderID: number, title: string
     itemID: itemID,
     lastModified: timeMs,
     folderID: folderID,
-    isExtended: (extensions === 0) ? 0 : 1, // If text is <= 64 chars, isExtended is false
+    isExtended: (extensions === 0 || extensions === -1) ? 0 : 1, // If text is <= 64 chars, isExtended is false
     title: title,
     text: text.substring(0, 64)
   };
@@ -373,9 +378,9 @@ export async function updateNote(itemID: number, folderID: number, title: string
 }
 
 export async function updateReminder(
-  itemID: number, folderID: number, eventType: number, eventStartTime: Timestamp, eventEndTime: Timestamp,
+  itemID: bigint, folderID: bigint, eventType: number, eventStartTime: Timestamp, eventEndTime: Timestamp,
   notifTime: Timestamp, hasNotif: boolean, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const modRem: Reminder = {
     itemID: itemID,
@@ -409,9 +414,9 @@ export async function updateReminder(
 }
 
 export async function updateDailyReminder(
-  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  itemID: bigint, folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNDays: number, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const modDailyRem: DailyReminder = {
     itemID: itemID,
@@ -438,9 +443,9 @@ export async function updateDailyReminder(
 }
 
 export async function updateWeeklyReminder(
-  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  itemID: bigint, folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, everyNWeeks: number, daysOfWeek: string, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const modWeeklyRem: WeeklyReminder = {
     itemID: itemID,
@@ -468,9 +473,9 @@ export async function updateWeeklyReminder(
 }
 
 export async function updateMonthlyReminder(
-  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  itemID: bigint, folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, lastDayOfMonth: boolean, daysOfMonth: string, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
 
   const modMonthlyRem: MonthlyReminder = {
     itemID: itemID,
@@ -498,9 +503,9 @@ export async function updateMonthlyReminder(
 }
 
 export async function updateYearlyReminder(
-  itemID: number, folderID: number, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
+  itemID: bigint, folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number,
   eventDurationMin: number, notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string) {
-  const timeMs = Date.now();
+  const timeMs: bigint = BigInt(Date.now());
   let dayOfYear = getDayOfYear(recurTime);
   if (isLeapYear(recurTime.year))
   {
@@ -532,8 +537,8 @@ export async function updateYearlyReminder(
   // Todo: add specific extension implementation depending on eventType value
 }
 
-export async function updateFolder(folderID: number, parentFolderID: number, colorCode: number, folderName: string) { // -1 treated as no colorCode
-  const timeMs = Date.now();
+export async function updateFolder(folderID: bigint, parentFolderID: bigint, colorCode: number, folderName: string) { // -1 treated as no colorCode
+  const timeMs: bigint = BigInt(Date.now());
   const modFolder: Folder = {
     folderID: folderID,
     lastModified: timeMs,
@@ -555,7 +560,7 @@ const yearlyTable = 24;
 const overridesTable = 31;
 const foldersTable = 32;
 
-export async function deleteItem(itemID: number, itemTable: number) { // used for all but specific extensions and folders
+export async function deleteItem(itemID: bigint, itemTable: number) { // used for all but specific extensions and folders
   let deleteOccurred = false;
   switch (itemTable) {
     case notesTable: {
@@ -592,12 +597,12 @@ export async function deleteItem(itemID: number, itemTable: number) { // used fo
   }
 }
 
-export async function deleteExtension(itemID: number, sequenceNum: number) {
+export async function deleteExtension(itemID: bigint, sequenceNum: number) {
   await window.sqliteAPI.deleteExtension(itemID, sequenceNum); // delete an individual extension
 }
 
-export async function deleteFolder(folderID: number) {
-  if (folderID === 0) return // root folder cannot be deleted
+export async function deleteFolder(folderID: bigint) {
+  if (folderID === 0n) return // root folder cannot be deleted
 
   let items = await window.sqliteAPI.readNotesInFolder(folderID);
   for (const item of items) await deleteItem(item.itemID, notesTable); // delete all items in the folder
@@ -621,6 +626,10 @@ export async function deleteFolder(folderID: number) {
   for (const subFolder of subFolders) await deleteFolder(subFolder.folderID); // recursively delete subfolders
 
   if (await window.sqliteAPI.deleteFolder(folderID)) await createDeleted(folderID, foldersTable); // finally, delete the folder and create deleted entry
+}
+
+export async function clearAllTables() {
+  await window.sqliteAPI.clearAllTables(); // drop then recreate all tables
 }
 
 // helpers

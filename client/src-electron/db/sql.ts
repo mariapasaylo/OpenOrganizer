@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-17
+ * Updated: 2025-10-28
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -204,6 +204,39 @@ export const createDeletedTable = `
     itemTable SMALLINT NOT NULL
   )`;
 
+// Table deletion SQL
+export const dropNotesTable = `
+DROP TABLE IF EXISTS notes`;
+
+export const dropRemindersTable = `
+DROP TABLE IF EXISTS reminders`;
+
+export const dropDailyTable = `
+DROP TABLE IF EXISTS daily_reminders`;
+
+export const dropWeeklyTable = `
+DROP TABLE IF EXISTS weekly_reminders`;
+
+export const dropMonthlyTable = `
+DROP TABLE IF EXISTS monthly_reminders`;
+
+export const dropYearlyTable = `
+DROP TABLE IF EXISTS yearly_reminders`;
+
+export const dropGeneratedTable = `
+DROP TABLE IF EXISTS generated_reminders`;
+
+export const dropExtensionsTable = `
+DROP TABLE IF EXISTS extensions`;
+
+export const dropOverridesTable = `
+DROP TABLE IF EXISTS overrides`;
+
+export const dropFoldersTable = `
+DROP TABLE IF EXISTS folders`;
+
+export const dropDeletedTable = `
+DROP TABLE IF EXISTS deleted`;
 
 // create entry SQL statements
 export const createNoteStmt = `
