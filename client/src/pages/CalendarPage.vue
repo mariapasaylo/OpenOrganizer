@@ -86,17 +86,16 @@
           <!-- Render q-input box where node label (name) would be with custom slot -->
           <!-- How to add custom node header: https://github.com/quasarframework/quasar/discussions/11048 -->
           <template v-slot:default-header ="{ node }">
-            <div style="display: flex; align-items: center">
+            <div style="display: flex; align-items: center" @click.stop @keypress.stop>
               <!-- find the UIFolder for this node and if that folder is editing, show it inline -->
               <template v-if="getFolder(node.id) && getFolder(node.id)!.isEditing">
                 <q-input dense
+                  :key="String(node.id)"
                   v-model="getFolder(node.id)!.temporaryFolderName"
                   :error="(getFolder(node.id)!.folderNameError) != ''"
                   :error-message="getFolder(node.id)!.folderNameError"
                   @keyup.enter.prevent="saveFolder(getFolder(node.id)!)"
                   @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
-                  @click.stop
-                  @focus.stop
                   placeholder="Folder name"
                   style="min-width: 160px;"
                 />
@@ -367,11 +366,10 @@ import '@quasar/quasar-ui-qcalendar/index.css';
 import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType} from '../frontend-utils/events';
 import {nest, buildBreadcrumbs, convertFolderTreetoQTree, normalizeFolderID} from '../frontend-utils/tree';
 import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
-import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db'
-import { onMounted } from 'vue';
+import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -888,7 +886,8 @@ function addFolder() {
   
   // Add draft folder to folders array for UI rendering
   folders.value.push(draft);
-  //selectedFolderID.value = tempID;
+  // Select newly added folder
+  selectedFolderID.value = tempID;
 }
 
 // Function to save folder after user hits enter
@@ -1127,26 +1126,18 @@ async function deleteTreeNode() {
     if (!folderToDelete) {
       return;
     }
-
-    const confirmation = window.confirm(`Delete folder "${folderToDelete.folderName}" and all its contents? This cannot be undone.`);
-    // User did not confirm folder deletion, cancel and return
-    if (!confirmation) {
-      return;
+        try {
+          await deleteFolder(folderToDelete.folderID);
+          folders.value = mapDBToUIFolder(await readAllFolders());
+          await loadRemindersForCalendarDate(selectedDate.value);
+          await loadAllNotes();
+          // Clear tree node selection after deletion
+          selectedFolderID.value = null;
+        } catch (error) {
+          console.error('Error deleting folder from DB:', error);
+        }
+        return;
     }
-
-    // User confirmed folder deletion, delete folder and all its contents from DB and refresh UI
-    try {
-      await deleteFolder(folderToDelete.folderID);
-      folders.value = mapDBToUIFolder(await readAllFolders());
-      await loadRemindersForCalendarDate(selectedDate.value);
-      await loadAllNotes();
-      // Clear tree node selection after deletion
-      selectedFolderID.value = null;
-    } catch (error) {
-      console.error('Error deleting folder from DB:', error);
-    }
-    return;
-  }
 
   // Tree node has a negative ID, a note or reminder is selected
   if (selectedNode < 0n) {
@@ -1186,6 +1177,7 @@ async function deleteTreeNode() {
       } catch (error) {
         console.error('Error deleting reminder from DB:', error);
       }
+      return;
     }
   }
 }
