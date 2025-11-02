@@ -27,8 +27,9 @@ export type UINote = Note & {
   titleMessageError?: string;
   folderMessageError?: string;
   isSaved: boolean;
-  expanded: boolean; // open or closed carat
+  isEditing: boolean; 
   isSelected: boolean; // checkbox selection
+  expanded: boolean; // open or closed carat
   date: string; 
 };
 
@@ -47,8 +48,9 @@ export type UIReminder = Reminder & {
   // useful for adding on custom event type fields/extensions that we may not know the types to yet
   // Need to parse and store this text data in the separate extensions table in the backend
   isSaved: boolean;
-  expanded: boolean;
+  isEditing: boolean; 
   isSelected: boolean;
+  expanded: boolean;
   // UI-only date field - calendar date selected for the reminder
   date: string;
 };

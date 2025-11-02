@@ -100,6 +100,30 @@
                   style="min-width: 160px;"
                 />
               </template>
+              <template v-else-if="getReminder(node.id) && getReminder(node.id)!.isEditing">
+                <q-input dense
+                  :key="String(node.id)"
+                  v-model="getReminder(node.id)!.temporaryTitle"
+                  :error="(getReminder(node.id)!.titleMessageError) != ''"
+                  :error-message="getReminder(node.id)!.titleMessageError"
+                  @keyup.enter.prevent="saveReminder(getReminder(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getReminder(node.id)!)"
+                  placeholder="Reminder name"
+                  style="min-width: 160px;"
+                />
+              </template>
+              <template v-else-if="getNote(node.id) && getNote(node.id)!.isEditing">
+                <q-input dense
+                  :key="String(node.id)"
+                  v-model="getNote(node.id)!.temporaryTitle"
+                  :error="(getNote(node.id)!.titleMessageError) != ''"
+                  :error-message="getNote(node.id)!.titleMessageError"
+                  @keyup.enter.prevent="saveNote(getNote(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getNote(node.id)!)"
+                  placeholder="Note name"
+                  style="min-width: 160px;"
+                />
+              </template>
               <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
               <template v-else>
                 <div class="row items-center">
@@ -113,7 +137,7 @@
         <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" @click="deleteTreeNode()" />
-          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="edit"  label="Rename" @click="renameFolder(getFolder(selectedFolderID)!)" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="edit"  label="Rename" @click="renameTreeNode()" />
         </div>
       </div>
      
@@ -239,10 +263,8 @@
                 {{ item.timeMessageError }}
               </div>
                 <div class="row">
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
-                    @click="saveReminder(item)"></q-btn>
-                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
-                    label="Cancel"></q-btn>
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveReminder(item)"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel" @click="cancelReminder(item)"></q-btn>
                 </div>
               </q-card-section>
             </q-expansion-item>
@@ -284,10 +306,8 @@
                   placeholder="Write your note here..." />
                 <div class="row">
                   <!-- Pass in current note item from v-for to save that specific note -->
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
-                    @click="saveNote(item)"></q-btn>
-                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
-                    label="Cancel"></q-btn>
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveNote(item)"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel" @click="cancelNote(item)"></q-btn>
                 </div>
               </q-card-section>
             </q-expansion-item>
@@ -473,6 +493,28 @@ const folderDropdownOptions = computed(() => {
   }));
 });
 
+
+// Function to get reminder by its ID
+function getReminder(id?: bigint | null): UIReminder | null {
+  const reminderID = id ?? selectedFolderID.value;
+  // No tree node selected
+  if (reminderID === null) {
+    return null;
+  }
+  const treeReminderID = -reminderID;
+  return reminders.value.find(reminder => String(reminder.itemID) === String(treeReminderID)) ?? null;
+}
+
+// Function to get note by its ID
+function getNote(id?: bigint | null): UINote | null {
+  const noteID = id ?? selectedFolderID.value;
+  if (noteID === null) {
+    return null;
+  }
+  const treeNoteID = -noteID;
+  return notes.value.find(note => String(note.itemID) === String(treeNoteID)) ?? null;
+}
+
 // Function to get folder by its ID
 // getFolder() returns UI folder object for currently selected folder in tree
 // getFolder(ID) returns UI folder for a specific node ID
@@ -485,11 +527,13 @@ function getFolder(id?: bigint | null): UIFolder | null {
   return folders.value.find(folder => String(folder.folderID) === String(folderID)) ?? null;
 }
 
-// Function to handle selection changes in folder tree
-// Prevents changing selected folder while editing so input box stays focused
+// Function to handle selection changes in file explorer tree
+// Prevents changing selected node while editing so input box stays focused
 function handleTreeSelection(newlySelectedNode: bigint | null) {
-  // If any folder is being edited, do not change selected node until editing is done
-  const nodeBeingEdited = folders.value.some(folder => folder.isEditing);
+  // If any node is being edited, do not change selected node until editing is done
+  const nodeBeingEdited = folders.value.some(folder => folder.isEditing) ||
+                        reminders.value.some(reminder => reminder.isEditing) ||
+                        notes.value.some(note => note.isEditing);
   if (nodeBeingEdited) {
     return;
   }
@@ -499,20 +543,67 @@ function handleTreeSelection(newlySelectedNode: bigint | null) {
   }
 }
 
-// When rename button is clicked, set isEditing (q-input field) to appear for folder
+// When rename button is clicked, set isEditing (q-input field) to appear for tree node
 // On enter when editing, folder is renamed
-function renameFolder(folder: UIFolder) {
-  folder.isEditing = true;
-  folder.temporaryFolderName = folder.folderName;
-  // Have tree select this node when renaming
-  selectedFolderID.value = folder.folderID;
+function renameTreeNode() {
+  const selectedTreeNode  = selectedFolderID.value
+  if (selectedTreeNode === null) {
+    return;
+  }
+  // Positive ID, rename a folder
+  if (selectedTreeNode >= 0n) {
+    const folder = getFolder(selectedTreeNode);
+    if (folder) {
+        // Show input box
+        folder.isEditing = true;
+        // Set temporary name displayed in tree to written name
+        folder.temporaryFolderName = folder.folderName;
+        selectedFolderID.value = folder.folderID;
+    }
+  }
+  // Negative ID, rename a reminder or note
+  else {
+    const reminder = getReminder(selectedTreeNode);
+    if (reminder) {
+        reminder.isEditing = true;
+        reminder.temporaryTitle = reminder.title;
+        selectedFolderID.value = -reminder.itemID;
+    }
+    const note = getNote(selectedTreeNode);
+    if (note) {
+        note.isEditing = true;
+        note.temporaryTitle = note.title;
+        selectedFolderID.value = -note.itemID;
+    }
+  }
 }
 
 // On escape when editing, cancel rename and revert back to original name
-function cancelRename(folder: UIFolder) {
-  folder.isEditing = false;
-  folder.temporaryFolderName = folder.folderName ?? '';
-  folder.folderNameError = '';
+function cancelRename(item: UIReminder | UINote | UIFolder) {
+  if (!item) return;
+
+  // Distinguish between folder and reminder/note by checking for unique property
+  // Rename a folder
+  if ('temporaryFolderName' in item) {
+    item.isEditing = false;
+    item.temporaryFolderName = item.folderName;
+    item.folderNameError = '';
+    return;
+  } 
+  // Rename a reminder
+  else if ('temporaryEventStartTime' in item) {
+    item.isEditing = false;
+    item.temporaryTitle = item.title ?? '';
+    item.titleMessageError = '';
+    return;
+  }
+  // Rename a note
+  else if ('temporaryText' in item) {
+    item.isEditing = false;
+    item.temporaryTitle = item.title ?? '';
+    item.titleMessageError = '';
+    return;
+  }
 }
 
 // Create nested folder tree structure from flat folders array
@@ -557,8 +648,9 @@ function addReminder() {
     folderMessageError: '',
     timeMessageError: '',
     isSaved: false, // Draft - first time hitting add creates a draft reminder not yet saved
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UIReminder;
 
   // Add draft reminder to reminders array for UI rendering
@@ -767,8 +859,9 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
     folderMessageError: '',
     timeMessageError: '',
     isSaved: true,
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UIReminder;
 
   // Compute index for a reminder for card display, use itemID as unique index
@@ -835,8 +928,9 @@ async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
     titleMessageError: '',
     folderMessageError: '',
     isSaved: true,
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UINote;
 
   // Compute index for a note for card display, use itemID as unique index
@@ -944,7 +1038,6 @@ async function saveNote(note: UINote){
 
     // Give this new note the actual itemID assigned by the DB and mark it saved so future saves go to update
     note.itemID = itemID;
-    note.isSaved = true
 
     // Map DB row into UI and update notes.value array
     await mapDBToUINote(note.itemID);
@@ -1027,7 +1120,6 @@ try {
 
   // Give this new reminder the actual itemID assigned by the DB and mark it saved so future saves go to update
   reminder.itemID = itemID;
-  reminder.isSaved = true;
 
   // Map DB row into UI and update reminders.value array
   await mapDBToUIReminder(reminder.itemID);
@@ -1161,7 +1253,6 @@ async function deleteTreeNode() {
       return;
     }
 
-
     // Find reminder from reminders array that matches currently selected tree node
     const reminderToDelete = reminders.value.find(reminder => String(reminder.itemID) === String(itemID));
     if (reminderToDelete) {
@@ -1181,7 +1272,6 @@ async function deleteTreeNode() {
     }
   }
 }
-
 
 // Toggles behavior of add button. If on reminder tab, add a reminder to array. If on notes tab, add a note to array.
 async function addArrayItem() {
@@ -1209,6 +1299,34 @@ async function deleteArrayItem() {
   }
 }
 
+// Reverts fields back to stored values from DB for a reminder when cancel button is clicked or remove draft
+async function cancelReminder(reminder: UIReminder) {
+  // Reminder is a draft, remove from list
+  if (!reminder.isSaved) {
+    reminders.value = reminders.value.filter(r => String(r.itemID) !== String(reminder.itemID));
+    // Reload list for selected calendar date
+    await loadRemindersForCalendarDate(selectedDate.value);
+  // Reminder is saved, revert temporary fields back to saved database values
+  } else {
+    // Reload DB row of reminder and restore fields
+    await mapDBToUIReminder(reminder.itemID);
+  }
+}
+
+// Reverts fields back to stored values from DB for a reminder when cancel button is clicked or remove draft
+async function cancelNote(note: UINote) {
+  // Note is a draft, remove from list
+  if (!note.isSaved) {
+    notes.value = notes.value.filter(n => String(n.itemID) !== String(note.itemID));
+    // Reload list for selected calendar date
+    await loadAllNotes();
+  // Reminder is saved, revert temporary fields back to saved database values
+  } else {
+    // Reload DB row of reminder and restore fields
+    await mapDBToUINote(note.itemID);
+  }
+}
+
 // Watcher on the checkbox to select and deselect all reminders or notes when select all checkbox is toggled
 watch(selectAll, (selectionVal) => {
   if (tab.value === 'reminders') {
@@ -1229,7 +1347,6 @@ reminders.value.forEach(reminder => {
     reminder.timeMessageError = '';
   });
 });
-
 
 // template and script source code from slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
