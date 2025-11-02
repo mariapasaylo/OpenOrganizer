@@ -540,6 +540,31 @@ function handleTreeSelection(newlySelectedNode: bigint | null) {
   // Otherwise, allow selection to other nodes like normal
   else {
     selectedFolderID.value = newlySelectedNode;
+
+    // If individual reminder or note (negative ID) is selected, navigate to its expanded view in list
+    if (newlySelectedNode !== null && newlySelectedNode < 0n) {
+      const itemID = -newlySelectedNode;
+
+      const reminder = reminders.value.find(reminder => String(reminder.itemID) === String(itemID));
+      // Node is a reminder
+      if (reminder) {
+        // Switch to reminder tab
+        tab.value='reminders';
+        // Set date to reminder date on calendar
+        selectedDate.value = reminder.date;
+        // Expand the reminder card 
+        reminder.expanded = true;
+        return;
+      }
+      // Node is a note
+      const note = notes.value.find(note => String(note.itemID) === String(itemID));
+      if (note) {
+        tab.value='notes';
+        // Expand the note card
+        note.expanded = true;
+        return;
+      }
+    }
   }
 }
 
@@ -1313,16 +1338,16 @@ async function cancelReminder(reminder: UIReminder) {
   }
 }
 
-// Reverts fields back to stored values from DB for a reminder when cancel button is clicked or remove draft
+// Reverts fields back to stored values from DB for a note when cancel button is clicked or remove draft
 async function cancelNote(note: UINote) {
   // Note is a draft, remove from list
   if (!note.isSaved) {
     notes.value = notes.value.filter(n => String(n.itemID) !== String(note.itemID));
-    // Reload list for selected calendar date
+    // Reload note list
     await loadAllNotes();
-  // Reminder is saved, revert temporary fields back to saved database values
+  // Note is saved, revert temporary fields back to saved database values
   } else {
-    // Reload DB row of reminder and restore fields
+    // Reload DB row of note and restore fields
     await mapDBToUINote(note.itemID);
   }
 }
