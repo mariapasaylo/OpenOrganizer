@@ -1,10 +1,9 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-20
- * Updated: 2025-10-20
+ * Updated: 2025-10-29
  *
- * This file is the entry point to the server.
- * It handles the large scope of the order of operations for initialization and serving requests.
+ * This file has the test cases.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -14,28 +13,871 @@
 package test
 
 import (
-	"bytes"
-	"io"
-	"net/http"
+	"fmt"
+	"math"
+	"openorganizer/src/models"
 	"openorganizer/src/utils"
+	"slices"
+	"strconv"
+	"sync"
+	"time"
 )
 
 // test MAX_RECORD_COUNT retrieval from /
 func test1() bool {
-	payload := []byte{}
-	response, err := http.Post(url, "", bytes.NewBuffer(payload))
-	utils.PrintErrorLine(err)
-	defer response.Body.Close()
+	clearAllTables()
+	defer clearAllTables()
 
-	body, err := io.ReadAll(response.Body)
-	utils.PrintErrorLine(err)
+	requestBody := []byte{}
+	response, responseBody, err := send("", requestBody)
 
-	if len(body) != 4 {
+	if !expect("1", response, 200, responseBody, 4, err) {
 		return fail()
 	}
-	maxRecordCount := uint32(utils.BytesToInt(body))
+	maxRecordCount := uint32(utils.BytesToInt(responseBody))
 	if maxRecordCount == env.MAX_RECORD_COUNT {
 		return success()
 	}
+	fmt.Printf("test1: Expected response body does not match with received body of \"%s\".\n", responseBody)
 	return fail()
+}
+
+// register for an account and log in
+func test2() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	// register user
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+	response, responseBody, err := send("register", requestBody)
+	if !expect("2", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+	userID := utils.BytesToBigint(responseBody[0:8])
+
+	// login to registered account
+
+	requestBody = append(username, password...)
+	response, responseBody, err = send("login", requestBody)
+	userID2 := utils.BytesToBigint(responseBody[0:8])
+	key1Response := responseBody[40:72]
+	key2Response := responseBody[72:104]
+	if !expect("2", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+
+	// check retrieved values equal to original
+
+	var errs int = 0
+	if userID != userID2 {
+		fmt.Printf("test2: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
+		errs += 1
+	}
+	if !slices.Equal(key1, key1Response) {
+		fmt.Printf("test2: Expected key1 %s does not match with received key1 of %s.\n", key1, key1Response)
+		errs += 1
+	}
+	if !slices.Equal(key2, key2Response) {
+		fmt.Printf("test2: Expected key2 %s does not match with received key2 of %s.\n", key2, key2Response)
+		errs += 1
+	}
+
+	if errs > 0 {
+		return fail()
+	}
+	return success()
+}
+
+// register for an account, try to log in with bad usernames and bad passwords
+func test3() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	// register user
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+	response, responseBody, err := send("register", requestBody)
+	if !expect("3", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+
+	// try to log in with different, unregistered credential compilations
+
+	username2 := pad32([]byte("username2"))
+	password2 := pad32([]byte("password2"))
+
+	requestBody = append(username2, password...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	requestBody = append(username, password2...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	requestBody = append(username2, password2...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 401, responseBody, -1, err) {
+		fmt.Printf("test3: Login succeeded with bad credentials.\n")
+		return fail()
+	}
+
+	// login with correct credentials
+
+	requestBody = append(username, password...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("3", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// send username with any disallowed characters to register
+func test4() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, key1...)
+	requestBody = append(requestBody, key2...)
+
+	// test null in username, which should fail
+
+	requestBody[0] = '\x00'
+	response, responseBody, err := send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// register successfully
+	// null in password, key1, and key2 should not fail, as these are all raw fields
+
+	requestBody[32] = '\x00'
+	requestBody[64] = '\x00'
+	requestBody[96] = '\x00'
+	response, responseBody, err = send("register", requestBody)
+	if !expect("4", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// send username with any disallowed characters to login
+func test5() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("\x00assword"))
+	requestBody := append(username, password...)
+
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(requestBody, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("5", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+
+	// test null in username, which should fail
+
+	requestBody[0] = '\x00'
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// register successfully
+	// null in password, key1, and key2 should not fail, as these are all raw fields
+
+	response, responseBody, err = send("login", requestBody)
+	if !expect("5", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// send username with any disallowed characters to changelogin
+func test6() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("\x00assword"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(username, password...)
+	requestBodyReg = append(requestBodyReg, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("6", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+
+	usernameNew := pad32([]byte("usernameNew"))
+	passwordNew := pad32([]byte("passwordNew"))
+	key1New := pad32([]byte("key1New"))
+	key2New := pad32([]byte("key2New"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, usernameNew...)
+	requestBody = append(requestBody, passwordNew...)
+	requestBody = append(requestBody, key1New...)
+	requestBody = append(requestBody, key2New...)
+
+	// username null testing, should fail
+
+	requestBody[0] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[0] = 'u'
+
+	requestBody[8] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[8] = ' '
+
+	requestBody[31] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[31] = ' '
+
+	// usernameNew null testing, should fail
+
+	requestBody[64] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[64] = 'u'
+
+	requestBody[72] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[72] = ' '
+
+	requestBody[95] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 400, responseBody, -1, err) {
+		return fail()
+	}
+	requestBody[95] = ' '
+
+	// register successfully
+	// null in password, key1, and key2 should not fail, as these are all raw fields
+
+	requestBody[96] = '\x00'
+	requestBody[128] = '\x00'
+	requestBody[160] = '\x00'
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("6", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+
+	return success()
+}
+
+// test double register, changelogin, login on old info and login on new info, and registration of previously used username
+func test7() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	username := pad32([]byte("username"))
+	password := pad32([]byte("password"))
+	key1 := pad32([]byte("key1"))
+	key2 := pad32([]byte("key2"))
+	requestBodyReg := append(username, password...)
+	requestBodyReg = append(requestBodyReg, key1...)
+	requestBodyReg = append(requestBodyReg, key2...)
+
+	// register
+
+	response, responseBody, err := send("register", requestBodyReg)
+	if !expect("7", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+	userID := utils.BytesToBigint(responseBody[0:8])
+
+	// try to double register
+
+	response, responseBody, err = send("register", requestBodyReg)
+	if !expect("7", response, 401, responseBody, -1, err) {
+		return fail()
+	}
+
+	// change login to new credentials
+
+	usernameNew := pad32([]byte("usernameNew"))
+	passwordNew := pad32([]byte("passwordNew"))
+	key1New := pad32([]byte("key1New"))
+	key2New := pad32([]byte("key2New"))
+	requestBody := append(username, password...)
+	requestBody = append(requestBody, usernameNew...)
+	requestBody = append(requestBody, passwordNew...)
+	requestBody = append(requestBody, key1New...)
+	requestBody = append(requestBody, key2New...)
+	response, responseBody, err = send("changelogin", requestBody)
+	if !expect("7", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+	userID2 := utils.BytesToBigint(responseBody[0:8])
+
+	// try to login under previous credentials, should fail
+
+	response, responseBody, err = send("login", requestBodyReg[0:64])
+	if !expect("7", response, 401, responseBody, -1, err) {
+		return fail()
+	}
+
+	// login with new credentials
+
+	requestBody = append(usernameNew, passwordNew...)
+	response, responseBody, err = send("login", requestBody)
+	if !expect("7", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+	userID3 := utils.BytesToBigint(responseBody[0:8])
+	key1Response := responseBody[40:72]
+	key2Response := responseBody[72:104]
+
+	// ensure returned values are the same as original
+
+	var errs int = 0
+	if userID != userID2 {
+		fmt.Printf("test7: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
+		errs += 1
+	}
+	if userID != userID3 {
+		fmt.Printf("test7: Expected userID %v does not match with received userID of %v.\n", userID, userID2)
+		errs += 1
+	}
+	if !slices.Equal(key1New, key1Response) {
+		fmt.Printf("test7: Expected key1 %s does not match with received key1 of %s.\n", key1New, key1Response)
+		errs += 1
+	}
+	if !slices.Equal(key2New, key2Response) {
+		fmt.Printf("test7: Expected key2 %s does not match with received key2 of %s.\n", key2New, key2Response)
+		errs += 1
+	}
+
+	// register and login using original credentials that have been changed from
+
+	response, responseBody, err = send("register", requestBodyReg)
+	if !expect("7", response, 200, responseBody, 40, err) {
+		return fail()
+	}
+	response, responseBody, err = send("login", requestBodyReg[0:64])
+	if !expect("7", response, 200, responseBody, 104, err) {
+		return fail()
+	}
+
+	if errs > 0 {
+		return fail()
+	}
+	return success()
+}
+
+// retrieve lastUpdated and verify all returned values are equal
+func test8() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	// registers and fetch original lastUpdated list
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+	response, responseBody, err := send("lastupdated", authHeader)
+	if !expect("8", response, 200, responseBody, 80, err) {
+		return fail()
+	}
+
+	// check that all lastUpdated values are equal as they should be
+
+	var lastUpList []int64
+	for i := range len(responseBody) / 8 {
+		currentValue := utils.BytesToBigint(responseBody[i*8 : i*8+8])
+		lastUpList = append(lastUpList, currentValue)
+	}
+	for i := range len(lastUpList) - 1 {
+		if lastUpList[i] != lastUpList[i+1] {
+			return fail()
+		}
+	}
+	return success()
+}
+
+// note syncing
+func test9() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("9", 128, "notes", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// reminder syncing
+func test10() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("10", 96, "reminders", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// daily reminder syncing
+func test11() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("11", 96, "reminders/daily", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// weekly reminder syncing
+func test12() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("12", 96, "reminders/weekly", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// monthly reminder syncing
+func test13() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("13", 96, "reminders/monthly", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// yearly reminder syncing
+func test14() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("14", 96, "reminders/yearly", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// extensions syncing
+func test15() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("15", 4+64, "extensions", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// overrides syncing
+func test16() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("16", 8+64, "overrides", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// folders syncing
+func test17() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("17", 0+64, "folders", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// deleted syncing
+func test18() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	if !simpleSync("18", 2+0, "deleted", authHeader) {
+		return fail()
+	}
+	return success()
+}
+
+// upload deleted records, and check that they actually deleted items from the other tables
+func test19() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	authHeader, err := simpleAuthSetup()
+	if utils.PrintErrorLine(err) {
+		return fail()
+	}
+
+	delete1 := models.RowDeleted{
+		ItemID:       1,
+		LastModified: 11,
+		LastUpdated:  11,
+	}
+	delete2 := models.RowDeleted{
+		ItemID:       2,
+		LastModified: 12,
+		LastUpdated:  12,
+	}
+	delete3 := models.RowDeleted{
+		ItemID:       3,
+		LastModified: 13,
+		LastUpdated:  13,
+	}
+
+	syncRange := append(utils.BigintToBytes(math.MinInt64), utils.BigintToBytes(math.MaxInt64)...)
+
+	sendExtensionsAndDeleted := func() bool {
+		if !simpleSync("19", 4+64, "extensions", authHeader) {
+			return false
+		}
+		requestBody := append(authHeader, []byte{3, 0, 0, 0}...)
+		requestBody = append(requestBody, packDeleted(delete1)...)
+		requestBody = append(requestBody, packDeleted(delete2)...)
+		requestBody = append(requestBody, packDeleted(delete3)...)
+		response, responseBody, err := send("syncup/deleted", requestBody)
+		if !expect("19", response, 200, responseBody, 1, err) {
+			return false
+		}
+		// items 1-3 uploaded, item4 has itemID 4
+		return true
+	}
+
+	for i := range 8 {
+		clearDataTables()
+		switch i {
+		case 0:
+			if !simpleSync("19", 128, "notes", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 11, 11, 11
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/notes", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+128), err) {
+				return fail()
+			}
+		case 1:
+			if !simpleSync("19", 96, "reminders", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 12, 12, 12
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/reminders", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+96), err) {
+				return fail()
+			}
+		case 2:
+			if !simpleSync("19", 96, "reminders/daily", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 21, 21, 21
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/reminders/daily", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+96), err) {
+				return fail()
+			}
+		case 3:
+			if !simpleSync("19", 96, "reminders/weekly", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 22, 22, 22
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/reminders/weekly", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+96), err) {
+				return fail()
+			}
+		case 4:
+			if !simpleSync("19", 96, "reminders/monthly", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 23, 23, 23
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/reminders/monthly", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+96), err) {
+				return fail()
+			}
+		case 5:
+			if !simpleSync("19", 96, "reminders/yearly", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 24, 24, 24
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/reminders/yearly", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+96), err) {
+				return fail()
+			}
+		case 6:
+			if !simpleSync("19", 8+64, "overrides", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 31, 31, 31
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/overrides", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+8+64), err) {
+				return fail()
+			}
+		case 7:
+			if !simpleSync("19", 0+64, "folders", authHeader) {
+				return fail()
+			}
+			delete1.ItemTable, delete2.ItemTable, delete3.ItemTable = 32, 32, 32
+			if !sendExtensionsAndDeleted() {
+				return fail()
+			}
+			response, responseBody, err := send("syncdown/folders", append(authHeader, syncRange...))
+			if !expect("19", response, 200, responseBody, 4+(16+64), err) {
+				return fail()
+			}
+		}
+	}
+
+	return success()
+}
+
+// all endpoints trying too long and too short
+// also tests making content-length header too long / too short compared to the body and compared to what is expected
+func test20() bool {
+	clearAllTables()
+	defer clearAllTables()
+
+	var endpoints []string = []string{
+		"register", "login", "changelogin", "lastupdated",
+
+		"syncup/notes", "syncup/reminders",
+		"syncup/reminders/daily", "syncup/reminders/weekly", "syncup/reminders/monthly", "syncup/reminders/yearly",
+		"syncup/extensions", "syncup/overrides", "syncup/folders", "syncup/deleted",
+
+		"syncdown/notes", "syncdown/reminders",
+		"syncdown/reminders/daily", "syncdown/reminders/weekly", "syncdown/reminders/monthly", "syncdown/reminders/yearly",
+		"syncdown/extensions", "syncdown/overrides", "syncdown/folders", "syncdown/deleted"}
+	// sending 2 records per syncup for expected lengths
+	var expectedLengths []int = []int{
+		128, 64, 192, 40,
+		332, 268,
+		268, 268, 268, 268,
+		212, 220, 204, 80,
+		56, 56,
+		56, 56, 56, 56,
+		56, 56, 56, 56}
+
+	results := make([]bool, len(endpoints)*15)
+	var recordCount int32 = 2
+
+	setupPayload := func(expectedLength int) (payload []byte) {
+		payload = make([]byte, expectedLength)
+		for i := range payload {
+			payload[i] = '1'
+		}
+		if expectedLength > 44 {
+			copy(payload[40:44], utils.IntToBytes(int32(recordCount)))
+		}
+		return payload
+	}
+
+	var waitGroup sync.WaitGroup
+	for i := range endpoints {
+		// test content length header +-2 from actual body length
+		for j := -2; j <= 2; j++ {
+			// bodyLength = expectedLength - 1
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i] - 1)
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if expect("20", response, 400, nil, -1, err) {
+					results[15*i+2+j] = true
+				} else {
+					results[15*i+2+j] = false
+				}
+				utils.PrintErrorLine(err)
+			}()
+			time.Sleep(5 * time.Millisecond)
+			// bodyLength = expectedLength + 1
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i] + 1)
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if expect("20", response, 400, nil, -1, err) {
+					results[15*i+7+j] = true
+				} else {
+					results[15*i+7+j] = false
+				}
+				utils.PrintErrorLine(err)
+			}()
+			time.Sleep(5 * time.Millisecond)
+			// bodyLength = expectedLength
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				payload := setupPayload(expectedLengths[i])
+				response, _, err := send(endpoints[i], payload, "Content-Length", strconv.Itoa(expectedLengths[i]+j))
+				if response.StatusCode != 400 {
+					results[15*i+12+j] = true
+				} else {
+					fmt.Printf("%v,%v : %s | Expected anything but status 400\n", i, j, response.Status)
+					results[15*i+12+j] = false
+				}
+				utils.PrintErrorLine(err)
+			}()
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+
+	waitGroup.Wait()
+	for _, val := range results {
+		if !val {
+			return fail()
+		}
+	}
+
+	return success()
 }

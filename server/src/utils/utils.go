@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-10-11
- * Updated: 2025-10-20
+ * Updated: 2025-10-26
  *
  * This file declares general utilities that are useful helper functions across many areas.
  *
@@ -20,10 +20,11 @@ import (
 )
 
 // add non-nil error to chan of errors
-func AddError(err error, errs chan error) {
+func AddError(err error, errs []error) []error {
 	if err != nil {
-		errs <- err
+		errs = append(errs, err)
 	}
+	return errs
 }
 
 func PrintErrorLine(err error) (nonnil bool) {
