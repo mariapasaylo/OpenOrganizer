@@ -231,6 +231,9 @@ export async function createFolder(parentFolderID: bigint, colorCode: number, fo
     folderName: folderName
   };
   await window.sqliteAPI.createFolder(newFolder);
+
+  // Return the timestamp ID of the folder to use in frontend
+  return timeMs;
 }
 
 export async function createRootFolder(colorCode: number) { // -1 treated as no colorCode

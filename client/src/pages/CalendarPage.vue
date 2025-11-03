@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-28
+ * Updated: 2025-10-30
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -14,6 +14,8 @@
  * https://vuejs.org/guide/essentials/watchers and https://codepen.io/mamyraoby/pen/zYaKwzZ for how to implement select all with checkboxes
  * https://stackoverflow.com/questions/18017869/build-tree-array-from-flat-array-in-javascript for building a nested folder data structure
  * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
+ * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
+ * https://stackoverflow.com/questions/48351987/create-javascript-date-object-from-string-yyyy-mm-dd-in-local-timezone for constructing local date objects
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -40,20 +42,6 @@
               <q-toggle style="size:2px; font-size:18px" v-model="isCloudOn" label="Cloud Sync" />
             </div>
           </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-      <q-dialog v-model="showAddFolderName">
-      <q-card style="width: 500px" class="q-px-sm q-pb-md">
-        <q-card-section>
-        <!-- Error state will change to true if folderNameErrorMessage is set to true (in addFolder function)-->
-        <q-input
-          v-model="newFolderName"
-          :error="folderNameErrorMessage != ''"
-          :error-message="folderNameErrorMessage"
-          placeholder ="Enter name of new folder here..."
-        />
-        <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Add" @click="addFolder"/>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -92,14 +80,67 @@
           node-key="id"
           no-connectors
           default-expand-all
-          v-model:selected="selectedFolderID"
-        />
-        <div style="display: flex; align-items: center; margin-top: auto; gap: 4px;">
-          <!-- Clear folder error message when dialog first pops up -->
-          <q-btn style="font-size: 1rem; color: #474747;" flat  icon="add"  label="Add Folder" @click="showAddFolderName = true; folderNameErrorMessage = ''" />
+          :selected="selectedFolderID"
+          @update:selected="handleTreeSelection"
+        >
+          <!-- Render q-input box where node label (name) would be with custom slot -->
+          <!-- How to add custom node header: https://github.com/quasarframework/quasar/discussions/11048 -->
+          <template v-slot:default-header ="{ node }">
+            <div style="display: flex; align-items: center" @click.stop @keypress.stop>
+              <!-- find the UIFolder for this node and if that folder is editing, show it inline -->
+              <template v-if="getFolder(node.id) && getFolder(node.id)!.isEditing">
+                <q-input dense
+                  :key="String(node.id)"
+                  v-model="getFolder(node.id)!.temporaryFolderName"
+                  :error="(getFolder(node.id)!.folderNameError) != ''"
+                  :error-message="getFolder(node.id)!.folderNameError"
+                  @keyup.enter.prevent="saveFolder(getFolder(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
+                  placeholder="Folder name"
+                  style="min-width: 160px;"
+                />
+              </template>
+              <template v-else-if="getReminder(node.id) && getReminder(node.id)!.isEditing">
+                <q-input dense
+                  :key="String(node.id)"
+                  v-model="getReminder(node.id)!.temporaryTitle"
+                  :error="(getReminder(node.id)!.titleMessageError) != ''"
+                  :error-message="getReminder(node.id)!.titleMessageError"
+                  @keyup.enter.prevent="saveReminder(getReminder(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getReminder(node.id)!)"
+                  placeholder="Reminder name"
+                  style="min-width: 160px;"
+                />
+              </template>
+              <template v-else-if="getNote(node.id) && getNote(node.id)!.isEditing">
+                <q-input dense
+                  :key="String(node.id)"
+                  v-model="getNote(node.id)!.temporaryTitle"
+                  :error="(getNote(node.id)!.titleMessageError) != ''"
+                  :error-message="getNote(node.id)!.titleMessageError"
+                  @keyup.enter.prevent="saveNote(getNote(node.id)!)"
+                  @keyup.esc.prevent="cancelRename(getNote(node.id)!)"
+                  placeholder="Note name"
+                  style="min-width: 160px;"
+                />
+              </template>
+              <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
+              <template v-else>
+                <div class="row items-center">
+                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" class="q-mr-sm" />
+                  <span>{{ node.label }}</span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </q-tree>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" @click="deleteTreeNode()" />
+          <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="edit"  label="Rename" @click="renameTreeNode()" />
         </div>
       </div>
-      
+     
       <!-- Left column - File Explorer bottom row-->
       <div style="grid-area: file-explorer-cloud; padding: 20px 30px; display: flex; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;" data-area="file-explorer-cloud">
         <div style="color: #474747; font-size: 1.15rem;">Cloud Not Synced</div>
@@ -134,14 +175,14 @@
                       placeholder="Enter reminder title..."
                       borderless
                       dense
-                      style="max-width: 300px; padding-top: 20px"
+                      style="max-width: 450px; padding-top: 20px"
                       @click.stop
                       @focus.stop
                       />
                     </div>
               </template>
               <q-card-section>
-                 <q-select
+                <q-select
                 v-model="item.eventType"
                 :options="eventTypeOptions"
                 label="Event Type"
@@ -222,10 +263,8 @@
                 {{ item.timeMessageError }}
               </div>
                 <div class="row">
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
-                    @click="saveReminder(item)"></q-btn>
-                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
-                    label="Cancel"></q-btn>
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveReminder(item)"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel" @click="cancelReminder(item)"></q-btn>
                 </div>
               </q-card-section>
             </q-expansion-item>
@@ -267,10 +306,8 @@
                   placeholder="Write your note here..." />
                 <div class="row">
                   <!-- Pass in current note item from v-for to save that specific note -->
-                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save"
-                    @click="saveNote(item)"></q-btn>
-                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat
-                    label="Cancel"></q-btn>
+                  <q-btn class="login-register-button" style="font-size: 15px; margin-right: 10px" flat label="Save" @click="saveNote(item)"></q-btn>
+                  <q-btn class="login-register-button" style="background-color: grey; font-size: 15px" flat label="Cancel" @click="cancelNote(item)"></q-btn>
                 </div>
               </q-card-section>
             </q-expansion-item>
@@ -344,17 +381,15 @@
 </template>
 
 <script setup lang="ts">
-
 import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
 import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType} from '../frontend-utils/events';
-import {nest, buildBreadcrumbs, convertFolderTreetoQTree,} from '../frontend-utils/tree';
+import {nest, buildBreadcrumbs, convertFolderTreetoQTree, normalizeFolderID} from '../frontend-utils/tree';
 import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
-import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, readRemindersInRange, readNotesInRange} from '../utils/local-db'
-import { onMounted } from 'vue';
+import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -371,87 +406,8 @@ const notificationOptions = [
   { label: '1 hour before', value: 60 },
   { label: '2 hours before', value: 120 }
   ];
-
-  
 // Array of notes
 const notes = ref<UINote[]>([])
-/*
-// Object of event types
-const eventTypes: EventType[] = [
-   {
-       // Generic event type (no extra type fields)
-        id: 0,
-        name: 'General',
-        color: 'blue',
-        fields: [
-           { id: 'eventStartTime', name: 'Start Time', type: 'time' },
-           { id: 'eventEndTime', name: 'End Time', type: 'time' },
-        ]
-    },
-    {
-       // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
-        id: 1,
-        // Event type name 
-        name: 'Flight',
-        // Color-coded for display in reminder list
-        color: 'red',
-        // Fields for each event type
-        fields: [
-            {
-               // Essentially the unique ID/key of the field
-                id: 'flightNumber',
-               // Name of the field displayed to the user
-                name: "Flight Number",
-                // Type is helpful for rendering the frontend field inputs to match and input validation. 
-                type: 'number'
-            },
-            {
-                id: 'arrivalTime',
-                name: "Arrival Time",
-                type: 'time'
-            },
-            {
-                id: 'departureTime',
-                name: "Departure Time",
-                type: 'time'
-            },
-            {
-                id: 'airportLocation',
-                name: "Airport Location",
-                type: 'text'
-            },
-        ]
-    },
-    {
-        id: 2,
-        name: 'Hotel',
-        color: 'green',
-        fields: [
-            {
-                id: 'roomNumber',
-                name: "Room Number",
-                type: 'number'
-            },
-            {
-                id: 'checkInTime',
-                name: "Check-in Time",
-                type: 'time'
-            },
-            {
-                id: 'checkOutTime',
-                name: "Check-out Time",
-                type: 'time'
-            },
-            {
-                id: 'hotelLocationn',
-                name: "Hotel Location",
-                type: 'text'
-            },
-        ]
-    }
-    // can add any more event types here
-  ];
-*/
 
 // Object of event types
 // Every reminder has event start time, event end time fields so these are not extensions
@@ -519,13 +475,10 @@ const eventTypeOptions = computed(() => {
 });
 
 const showSettings = ref(false);
-const showAddFolderName = ref(false);
-const newFolderName = ref('');
-const folderNameErrorMessage = ref('');
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const searchQuery = ref('');
-// Specific folder currently selected in the file explorer tree, tracked for adding folder in that specific spot
+// Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<bigint | null>(null);
 const folders = ref<UIFolder[]>([]);
@@ -540,15 +493,150 @@ const folderDropdownOptions = computed(() => {
   }));
 });
 
+
+// Function to get reminder by its ID
+function getReminder(id?: bigint | null): UIReminder | null {
+  const reminderID = id ?? selectedFolderID.value;
+  // No tree node selected
+  if (reminderID === null) {
+    return null;
+  }
+  const treeReminderID = -reminderID;
+  return reminders.value.find(reminder => String(reminder.itemID) === String(treeReminderID)) ?? null;
+}
+
+// Function to get note by its ID
+function getNote(id?: bigint | null): UINote | null {
+  const noteID = id ?? selectedFolderID.value;
+  if (noteID === null) {
+    return null;
+  }
+  const treeNoteID = -noteID;
+  return notes.value.find(note => String(note.itemID) === String(treeNoteID)) ?? null;
+}
+
+// Function to get folder by its ID
+// getFolder() returns UI folder object for currently selected folder in tree
+// getFolder(ID) returns UI folder for a specific node ID
+// When rendering tree nodes, check isEditing property of the UIFolder to see if it should show q-input
+function getFolder(id?: bigint | null): UIFolder | null {
+  const folderID = id ?? selectedFolderID.value;
+  if (folderID === null) {
+    return null;
+  }
+  return folders.value.find(folder => String(folder.folderID) === String(folderID)) ?? null;
+}
+
+// Function to handle selection changes in file explorer tree
+// Prevents changing selected node while editing so input box stays focused
+function handleTreeSelection(newlySelectedNode: bigint | null) {
+  // If any node is being edited, do not change selected node until editing is done
+  const nodeBeingEdited = folders.value.some(folder => folder.isEditing) ||
+                        reminders.value.some(reminder => reminder.isEditing) ||
+                        notes.value.some(note => note.isEditing);
+  if (nodeBeingEdited) {
+    return;
+  }
+  // Otherwise, allow selection to other nodes like normal
+  else {
+    selectedFolderID.value = newlySelectedNode;
+
+    // If individual reminder or note (negative ID) is selected, navigate to its expanded view in list
+    if (newlySelectedNode !== null && newlySelectedNode < 0n) {
+      const itemID = -newlySelectedNode;
+
+      const reminder = reminders.value.find(reminder => String(reminder.itemID) === String(itemID));
+      // Node is a reminder
+      if (reminder) {
+        // Switch to reminder tab
+        tab.value='reminders';
+        // Set date to reminder date on calendar
+        selectedDate.value = reminder.date;
+        // Expand the reminder card 
+        reminder.expanded = true;
+        return;
+      }
+      // Node is a note
+      const note = notes.value.find(note => String(note.itemID) === String(itemID));
+      if (note) {
+        tab.value='notes';
+        // Expand the note card
+        note.expanded = true;
+        return;
+      }
+    }
+  }
+}
+
+// When rename button is clicked, set isEditing (q-input field) to appear for tree node
+// On enter when editing, folder is renamed
+function renameTreeNode() {
+  const selectedTreeNode  = selectedFolderID.value
+  if (selectedTreeNode === null) {
+    return;
+  }
+  // Positive ID, rename a folder
+  if (selectedTreeNode >= 0n) {
+    const folder = getFolder(selectedTreeNode);
+    if (folder) {
+        // Show input box
+        folder.isEditing = true;
+        // Set temporary name displayed in tree to written name
+        folder.temporaryFolderName = folder.folderName;
+        selectedFolderID.value = folder.folderID;
+    }
+  }
+  // Negative ID, rename a reminder or note
+  else {
+    const reminder = getReminder(selectedTreeNode);
+    if (reminder) {
+        reminder.isEditing = true;
+        reminder.temporaryTitle = reminder.title;
+        selectedFolderID.value = -reminder.itemID;
+    }
+    const note = getNote(selectedTreeNode);
+    if (note) {
+        note.isEditing = true;
+        note.temporaryTitle = note.title;
+        selectedFolderID.value = -note.itemID;
+    }
+  }
+}
+
+// On escape when editing, cancel rename and revert back to original name
+function cancelRename(item: UIReminder | UINote | UIFolder) {
+  if (!item) return;
+
+  // Distinguish between folder and reminder/note by checking for unique property
+  // Rename a folder
+  if ('temporaryFolderName' in item) {
+    item.isEditing = false;
+    item.temporaryFolderName = item.folderName;
+    item.folderNameError = '';
+    return;
+  } 
+  // Rename a reminder
+  else if ('temporaryEventStartTime' in item) {
+    item.isEditing = false;
+    item.temporaryTitle = item.title ?? '';
+    item.titleMessageError = '';
+    return;
+  }
+  // Rename a note
+  else if ('temporaryText' in item) {
+    item.isEditing = false;
+    item.temporaryTitle = item.title ?? '';
+    item.titleMessageError = '';
+    return;
+  }
+}
+
 // Create nested folder tree structure from flat folders array
 const nestedFolderTree = computed(() => nest(folders.value, -1n));
-console.log('nestedFolderTree:', JSON.stringify(nestedFolderTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Convert nested folder tree to Q-Tree format
 // Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
 const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value, notes.value, reminders.value));
-// Convert bigint to string for console display since bigint isnt JSON serializable by default
-console.log('qNestedTree:', JSON.stringify(qNestedTree.value, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
 
 // Computed breadcrumbs array that walks from the selected folder up to the root to build the path
 const breadcrumbs = computed(() => buildBreadcrumbs(selectedFolderID.value, folders.value, notes.value, reminders.value))
@@ -560,7 +648,7 @@ function selectBreadcrumbItem(folderID : bigint) {
 }
 
 // temp id generator for UI-only drafts (negative IDs)
-let tempIDCounter = -1n;
+let tempIDCounter = -2n;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
   // create a UI-only draft reminder with a temporary negative bigint ID
@@ -585,8 +673,9 @@ function addReminder() {
     folderMessageError: '',
     timeMessageError: '',
     isSaved: false, // Draft - first time hitting add creates a draft reminder not yet saved
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UIReminder;
 
   // Add draft reminder to reminders array for UI rendering
@@ -606,6 +695,8 @@ async function loadRemindersForCalendarDate(dateString: string) {
   const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
 
   try {
+    // Filter out any reminders already in list for that date to avoid duplicates
+    reminders.value = reminders.value.filter(reminder => reminder.date !== dateString);
     // Read reminders for currently selected date from local DB
     const rows = await readRemindersInRange(startOfDay, endOfDay);
     // Convert each reminder in range from response to UI reminder format 
@@ -615,6 +706,54 @@ async function loadRemindersForCalendarDate(dateString: string) {
     // console.log('Reminders for date loaded successfully:');
   } catch (error) {
     console.error('Error loading reminders for date:', error);
+  }
+}
+
+// Function to display all reminders (essentially a select ALL * from reminders table)
+async function loadAllReminders() {
+    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
+    // Far into past and far into future (100 years)
+    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
+    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
+
+  try {
+    // Clear list before reloading
+    reminders.value = [];
+    // Read all reminders from local DB
+    const rows = await readRemindersInRange(start, end);
+    // Convert each reminder in range from response to UI reminder format 
+    for (const reminder of rows) {
+      await mapDBToUIReminder(reminder.itemID);
+    }
+    // Sort reminders alphabetically by title for tree 
+    reminders.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
+    // console.log('All reminders loaded successfully:');
+  } catch (error) {
+    console.error('Error loading all reminders:', error);
+  }
+}
+
+// Function to display all notes (essentially a select ALL * from notes table)
+async function loadAllNotes() {
+    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
+    // Far into past and far into future (100 years)
+    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
+    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
+
+  try {
+    // Clear list before reloading
+    notes.value = [];
+    // Read all notes from local DB
+    const rows = await readNotesInRange(start, end);
+    // Convert each note in range from response to UI note format
+    for (const note of rows) {
+      await mapDBToUINote(note.itemID);
+    }
+    // Sort notes alphabetically by title for tree 
+    notes.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
+    // console.log('All notes loaded successfully:');
+  } catch (error) {
+    console.error('Error loading all notes:', error);
   }
 }
 
@@ -651,25 +790,6 @@ function addNote() {
   })
 }
 
-// Function to display notes for selected calendar date
-async function loadNotesForCalendarDate(dateString: string) {
-  // Compute timestamp for start and end of selected date/day, '' is treated as 00:00 in helper
-  const startOfDay = convertTimeAndDateToTimestamp(dateString, '');
-  const endOfDay = convertTimeAndDateToTimestamp(dateString, '23:59');
-
-  try {
-    // Read notes for currently selected date from local DB
-    const rows = await readNotesInRange(startOfDay, endOfDay);
-    // Convert each note in range from response to UI note format
-    for (const note of rows) {
-      await mapDBToUINote(note.itemID);
-    }
-    // console.log('Notes for date loaded successfully:');
-  } catch (error) {
-    console.error('Error loading notes for date:', error);
-  }
-}
-
 // Root folder should always exist
 async function addRootFolder() {
   try {
@@ -685,7 +805,7 @@ async function addRootFolder() {
     }
     else {
       // Root folder already exists
-      console.log('Root folder already exists.');
+      //console.log('Root folder already exists.');
     }
   }
   catch (error) {
@@ -705,10 +825,26 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
     console.error('Reminder not found in DB for itemID:', itemID);
     return null;
   }
-
-  // Derive a yyyy-mm-dd date string from DB row for UI so card appears under correct original event/calendar date
-  // Testing with selected date on calendar, replace later
-  const date = selectedDate.value;
+  // Create a date in local timezone from DB row for UI so filtered reminder/note list only shows entries whose event date match the calendar date
+  // Get minute of day, event day, and event year from DB row
+  const minuteOfDay = Number(row.eventStartMin);
+  const eventDay = Number(row.eventStartDay);
+  const eventYear = Number(row.eventStartYear);
+  // Start at january 1st of event year and add days to get the right month/day. 
+  const date = new Date(eventYear, 0, 1);
+  // Set date object to event day
+  date.setDate(date.getDate() + (eventDay - 1));
+  // Calculate hours: divide number of minutes by 60 to get hours
+  // Floor to return actual integer hour, no decimals
+  const eventHour = Math.floor(minuteOfDay / 60);
+  // Calculate remaining minutes: take minutes and modulo 60 (remainder is number of minutes)
+  const eventMinute = minuteOfDay % 60;
+  // Set hours and minutes of date object
+  date.setHours(eventHour, eventMinute, 0, 0);
+  // Convert date to YYYY-MM-DD string format compatible with qcalendar/selectedDate
+  // getMonth returns zero-based index add 1 to get actual month number
+  // Pad month and day so its always two digits - ex. day 5 becomes 05
+  const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
   // Add extension onto reminder row type at compile time
   const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
@@ -743,13 +879,14 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
     temporaryEventEndTime: endStr,
     // If theres a notification, temporary notification time is reminder notification minute of day 
     temporaryNotificationTime: minutesBeforeStartTime,
-    date,
+    date: dateString,
     titleMessageError: '',
     folderMessageError: '',
     timeMessageError: '',
     isSaved: true,
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UIReminder;
 
   // Compute index for a reminder for card display, use itemID as unique index
@@ -768,14 +905,25 @@ async function mapDBToUIReminder(itemID: number | bigint): Promise<UIReminder | 
 
 // Map a DB folder row into the UI folder shape
 function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
- return (rows ?? []).map(row => ({
+ const row = (rows ?? []).map(row => ({
     // Copy all fields for a folder from DB row
     ...row,
+    temporaryFolderName: row.folderName ?? '',
+    folderNameError: '',
     // If folderID is already a bigint, return it. Otherwise, cast value to a bigint
     folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID),
     parentFolderID: (typeof row.parentFolderID === 'bigint') ? row.parentFolderID : BigInt(row.parentFolderID),
     lastModified: (typeof row.lastModified === 'bigint') ? row.lastModified : BigInt(row.lastModified),
+    isSaved: true,
+    isEditing: false
   })) as UIFolder[];
+
+  // How to sort alphabetically: https://stackoverflow.com/questions/6712034/sort-array-by-firstname-alphabetically-in-javascript
+  // Sort folder names alphabetically in folder array
+  // Normalize to lowercase so the sorting is case-insensitive
+  row.sort((a, b) => String(a.folderName ?? '').toLowerCase().localeCompare(String(b.folderName ?? '').toLowerCase()));
+  return row;
+
 }
 
 async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
@@ -788,7 +936,7 @@ async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
     console.error('Note not found in DB for itemID:', itemID);
     return null;
   }
-
+  
   const date = selectedDate.value;
 
   // Need to add fields to the DB note row specific to the UI card
@@ -805,8 +953,9 @@ async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
     titleMessageError: '',
     folderMessageError: '',
     isSaved: true,
+    isEditing: false,
+    isSelected: false,
     expanded: true,
-    isSelected: false
   } as UINote;
 
   // Compute index for a note for card display, use itemID as unique index
@@ -828,42 +977,67 @@ onMounted(async () => {
   await addRootFolder();
   // Ensure folders array is populated from local DB on page load
   folders.value = mapDBToUIFolder(await readAllFolders());
-  // Load reminders for selected calendar date on startup
+  // Load all reminders and notese so tree shows every item
+  await loadAllReminders();
+  await loadAllNotes();
+  // Load reminders for selected calendar date on startup for tab list
   await loadRemindersForCalendarDate(selectedDate.value);
-  // Load notes for selected calendar date on startup
-  await loadNotesForCalendarDate(selectedDate.value);
 });
 
-
-// Function to add and name a new folder
-async function addFolder() {
-  // Trim removes whitespace from beginning and end of string so if user enters nothing but spaces it is an empty string still
-  // If folder name (with whitespace removed) is empty, show error message and disable add folder button 
-    if (!newFolderName.value.trim()) {
-    folderNameErrorMessage.value = 'Folder name cannot be empty.';
-    return;
-  }
-  // Otherwise, folder name is good and add folder to tree
+// Function to add a folder to the tree
+function addFolder() {
+   // create a UI-only draft folder with a temporary negative bigint ID
+  const tempID = tempIDCounter--;
   // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = -1)
-  const newFolderParentID: bigint = selectedFolderID.value ?? -1n;
-  try {
-    // Create new folder in local DB with folder name and parent folder ID
-    await createFolder(newFolderParentID, -1, newFolderName.value);
-    console.log('Folder created successfully.', folders);
-    // Refresh the folders list after creating the new folder to show it
-    folders.value = mapDBToUIFolder(await readAllFolders());
-    console.log('Folders loaded successfully:', folders.value);
-  }
-catch (error) {
-    console.error('Error adding folder:', error);
-  }
-  // After adding new folder, reset new folder name input, error message, and close popup
-  newFolderName.value = '';
-  folderNameErrorMessage.value = '';
-  showAddFolderName.value = false;
+  const newParentFolderID = normalizeFolderID(selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+
+  const draft: UIFolder = {
+    folderID: tempID,
+    parentFolderID: newParentFolderID,
+    folderName: 'New Folder',
+    folderNameError: '',
+    temporaryFolderName: 'New Folder',
+    isSaved: false,
+    isEditing: true, // When new draft is added, automatically in editing mode to name it
+    colorCode: -1
+  } as UIFolder;
+
+  
+  // Add draft folder to folders array for UI rendering
+  folders.value.push(draft);
+  // Select newly added folder
+  selectedFolderID.value = tempID;
 }
 
-// Function to save note text when save button is clicked
+// Function to save folder after user hits enter
+async function saveFolder(folder: UIFolder){
+  // If folder name (with whitespace removed) is empty, show error message and disable save button
+  if (!folder.temporaryFolderName.trim()) {
+    folder.folderNameError = 'Folder name cannot be empty.';
+    return;
+  }
+
+  try {
+    // First time is a draft folder, create new folder in local DB
+    if (!folder.isSaved) {
+      const newParentFolderID = normalizeFolderID(folder.parentFolderID ?? selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+      const folderID: bigint = await createFolder(newParentFolderID, -1, folder.temporaryFolderName);
+      folders.value = mapDBToUIFolder(await readAllFolders());
+      selectedFolderID.value = folderID;
+    }
+    // Anytime afterwards, update preexisting folder
+    else {
+      await updateFolder(folder.folderID, folder.parentFolderID, -1, folder.temporaryFolderName);
+      folders.value = mapDBToUIFolder(await readAllFolders());
+    }
+  }
+  catch (error) {
+    console.error('Error adding folder:', error);
+  }
+}
+
+
+// Function to save note fields when save button is clicked
 async function saveNote(note: UINote){
   // If note title (with whitespace removed) is empty, show error message and disable save button
     if (!note.temporaryTitle.trim()) {
@@ -889,14 +1063,13 @@ async function saveNote(note: UINote){
 
     // Give this new note the actual itemID assigned by the DB and mark it saved so future saves go to update
     note.itemID = itemID;
-    note.isSaved = true
 
     // Map DB row into UI and update notes.value array
     await mapDBToUINote(note.itemID);
     // Refresh folders to show newly added note in file explorer tree
     folders.value = mapDBToUIFolder(await readAllFolders());
-    // Reload notes for selected calendar date to include newly added note
-    await loadNotesForCalendarDate(selectedDate.value);
+    // Reload notes to include newly added note
+    await loadAllNotes();
   }
   else {
       await updateNote(note.itemID, note.temporaryFolderID, note.temporaryTitle, note.temporaryText);
@@ -906,8 +1079,8 @@ async function saveNote(note: UINote){
       await mapDBToUINote(note.itemID);
       // Reload folders to see updated note in file tree
       folders.value = mapDBToUIFolder(await readAllFolders());
-      // Reload notes for selected date to see updated note card
-      await loadNotesForCalendarDate(selectedDate.value);
+      // Reload notes to see updated note card
+      await loadAllNotes();
   }
  } catch (error) {
     console.error('Error saving note:', error);
@@ -972,7 +1145,6 @@ try {
 
   // Give this new reminder the actual itemID assigned by the DB and mark it saved so future saves go to update
   reminder.itemID = itemID;
-  reminder.isSaved = true;
 
   // Map DB row into UI and update reminders.value array
   await mapDBToUIReminder(reminder.itemID);
@@ -1046,14 +1218,84 @@ async function deleteNote(note: UINote) {
     console.log('Note deleted successfully from DB.');
     // Refresh folders for tree to remove deleted note
     folders.value = mapDBToUIFolder(await readAllFolders());
-    // Re-load notes for calendar date after deleted note
-    await loadNotesForCalendarDate(selectedDate.value);
+    // Re-load notes after deleted note
+    await loadAllNotes();
   } catch (error) {
     console.error('Error deleting note from DB:', error);
   }
   // Remove notes that have checkbox selected from notes array
   // Creates new filtered array to render that only includes notes that are not selected
   // notes.value = notes.value.filter(note => !note.isSelected);
+}
+
+// Function to delete a folder or note/reminder from tree and DB
+async function deleteTreeNode() {
+  const selectedNode = selectedFolderID.value;
+  // No tree node is selected, return
+  if (selectedNode == null) {
+    return;
+  }
+
+  // Tree node has a positive ID, a folder is selected
+  if (selectedNode >= 0n) {
+    // Find folder from folders array that matches currently selected tree node
+    const folderToDelete = folders.value.find(folder => String(folder.folderID) === String(selectedNode));
+    if (!folderToDelete) {
+      return;
+    }
+        try {
+          await deleteFolder(folderToDelete.folderID);
+          folders.value = mapDBToUIFolder(await readAllFolders());
+          await loadRemindersForCalendarDate(selectedDate.value);
+          await loadAllNotes();
+          // Clear tree node selection after deletion
+          selectedFolderID.value = null;
+        } catch (error) {
+          console.error('Error deleting folder from DB:', error);
+        }
+        return;
+    }
+
+  // Tree node has a negative ID, a note or reminder is selected
+  if (selectedNode < 0n) {
+    const itemID = -selectedNode;
+
+    // Find note from notes array that matches currently selected tree node
+    const noteToDelete = notes.value.find(note => String(note.itemID) === String(itemID));
+    if (noteToDelete) {
+      try {
+        // Delete specific selected note from DB and refresh UI
+        await deleteItem(noteToDelete.itemID, 11);
+        // Remove deleted note from notes array for UI rendering
+        notes.value = notes.value.filter(note => String(note.itemID) !== String(noteToDelete.itemID));
+        folders.value = mapDBToUIFolder(await readAllFolders());
+        await loadAllNotes();
+        // Clear tree node selection after deletion
+        selectedFolderID.value = null;
+      } catch (error) {
+        console.error('Error deleting note from DB:', error);
+      }
+      return;
+    }
+
+    // Find reminder from reminders array that matches currently selected tree node
+    const reminderToDelete = reminders.value.find(reminder => String(reminder.itemID) === String(itemID));
+    if (reminderToDelete) {
+      try {
+        // Delete specific selected reminder from DB and refresh UI
+        await deleteItem(reminderToDelete.itemID, 12);
+        // Remove deleted reminder from reminders array for UI rendering
+        reminders.value = reminders.value.filter(reminder => String(reminder.itemID) !== String(reminderToDelete.itemID));
+        folders.value = mapDBToUIFolder(await readAllFolders());
+        await loadRemindersForCalendarDate(selectedDate.value);
+        // Clear tree node selection after deletion
+        selectedFolderID.value = null;
+      } catch (error) {
+        console.error('Error deleting reminder from DB:', error);
+      }
+      return;
+    }
+  }
 }
 
 // Toggles behavior of add button. If on reminder tab, add a reminder to array. If on notes tab, add a note to array.
@@ -1082,6 +1324,34 @@ async function deleteArrayItem() {
   }
 }
 
+// Reverts fields back to stored values from DB for a reminder when cancel button is clicked or remove draft
+async function cancelReminder(reminder: UIReminder) {
+  // Reminder is a draft, remove from list
+  if (!reminder.isSaved) {
+    reminders.value = reminders.value.filter(r => String(r.itemID) !== String(reminder.itemID));
+    // Reload list for selected calendar date
+    await loadRemindersForCalendarDate(selectedDate.value);
+  // Reminder is saved, revert temporary fields back to saved database values
+  } else {
+    // Reload DB row of reminder and restore fields
+    await mapDBToUIReminder(reminder.itemID);
+  }
+}
+
+// Reverts fields back to stored values from DB for a note when cancel button is clicked or remove draft
+async function cancelNote(note: UINote) {
+  // Note is a draft, remove from list
+  if (!note.isSaved) {
+    notes.value = notes.value.filter(n => String(n.itemID) !== String(note.itemID));
+    // Reload note list
+    await loadAllNotes();
+  // Note is saved, revert temporary fields back to saved database values
+  } else {
+    // Reload DB row of note and restore fields
+    await mapDBToUINote(note.itemID);
+  }
+}
+
 // Watcher on the checkbox to select and deselect all reminders or notes when select all checkbox is toggled
 watch(selectAll, (selectionVal) => {
   if (tab.value === 'reminders') {
@@ -1102,7 +1372,6 @@ reminders.value.forEach(reminder => {
     reminder.timeMessageError = '';
   });
 });
-
 
 // template and script source code from slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
@@ -1126,8 +1395,6 @@ const filteredReminders = computed(() => {
 watch(selectedDate, async (newDate) => {
   // Load reminders for newly selected calendar date
   await loadRemindersForCalendarDate(newDate);
-  // Load notes for newly selected calendar date
-  await loadNotesForCalendarDate(newDate);
 });
 
 // Create events on calendar from reminders
@@ -1135,9 +1402,9 @@ const events = computed(() => buildCalendarEvents(reminders.value, eventTypes))
 // Group events by date
 const eventsMap = computed(() => groupEventsByDate(events.value))
 
-// Filtered note array for specific date
+// Notes not connected to calendar dates, so just show notes array as is
 const filteredNotes = computed(() => {
-  return notes.value.filter(note => note.date === selectedDate.value)
+  return notes.value
 });
 
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
