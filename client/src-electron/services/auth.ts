@@ -16,6 +16,9 @@ import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/sr
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
 import axios from 'axios';
+import fs from 'fs';
+import path from "path";
+import {app} from 'electron';
 
 interface Account{ 
   username: string;
@@ -106,6 +109,24 @@ function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
+function getServerURL():string {
+  //in dev file is in project /public folder
+  const devPath = path.join(app.getAppPath(), '..', '..', 'public', 'serveraddress.txt');
+
+  let filePath: string;
+  if (fs.existsSync(devPath)) 
+    {
+      filePath = devPath;
+    }
+  else
+    {
+      throw new Error("serveraddress.txt not found in dev path");
+    }
+  const url = fs.readFileSync(filePath, 'utf-8').trim();
+  return url;
+}
+
+
 export async function createAccount(username : string, password : string): Promise<boolean> {
   // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
   setUsername(username);
@@ -136,8 +157,8 @@ export async function createAccount(username : string, password : string): Promi
   // Sending in raw data via API request to /register
   try{
     //TO DO: use serverAdress text file 
-    //
-    const response = await axios.post<ArrayBuffer>('http://localhost:3001/register', userData, {
+    const serverURL = getServerURL();
+    const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
       'responseType': 'arraybuffer',
       headers:{'Content-Type': 'application/octet-stream'}
     })
@@ -147,7 +168,7 @@ export async function createAccount(username : string, password : string): Promi
     
     //Testing if we got the correct response
     // console.log('Response data', responseData);
-    // console.log(response.status);
+    console.log(response.status);
 
     // //userID [0:8], authToken[8:40]
     const userIdBytes = Buffer.from(responseData.slice(0, 8));
@@ -184,9 +205,11 @@ export async function createAccount(username : string, password : string): Promi
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
+     const serverURL = getServerURL();
+
     //Sending in raw data via API request to /login
     try {
-      const response = await fetch ("http://localhost:3001/login",{
+      const response = await fetch (`${serverURL}login`,{
         method: 'POST',
         headers: {'Content-Type': 'application/octet-stream'},
         body: userData
