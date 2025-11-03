@@ -156,12 +156,11 @@ export async function createAccount(username : string, password : string): Promi
 
   // Sending in raw data via API request to /register
   try{
-    //TO DO: use serverAdress text file 
     const serverURL = getServerURL();
     const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
       'responseType': 'arraybuffer',
       headers:{'Content-Type': 'application/octet-stream'}
-    })
+    });
 
     //Parse the reponse
     const responseData = response.data; 
@@ -205,30 +204,26 @@ export async function createAccount(username : string, password : string): Promi
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
-     const serverURL = getServerURL();
-
+    
     //Sending in raw data via API request to /login
     try {
-      const response = await fetch (`${serverURL}login`,{
-        method: 'POST',
-        headers: {'Content-Type': 'application/octet-stream'},
-        body: userData
+      const serverURL = getServerURL();
+      const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
+        'responseType': 'arraybuffer',
+        headers:{'Content-Type': 'application/octet-stream'}
       });
 
-
       // Parse and store the userID, authToken, decrypt encrypted private keys
-      const responseData = Buffer.from(await response.arrayBuffer());
+      const responseData = response.data; 
 
       //More testing
-      console.log('Response data', responseData.length);
-      console.log('Response data', responseData.toString('utf8'));
       console.log(response.status);
 
       //userID [0:8], authToken[8:40], privateKey1[40:72], privateKey2[72:104]
-      const userIdBytes = responseData.slice(0, 8);
-      const authTokenBytes = responseData.slice(8, 40);
-      const encrPrivateKey1 = responseData.slice(40,72);
-      const encrPrivateKey2 = responseData.slice(72,104);
+      const userIdBytes = Buffer.from(responseData.slice(0, 8));
+      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+      const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
+      const encrPrivateKey2 = Buffer.from(responseData.slice(72,104));
 
       setAuthToken(authTokenBytes);
       //read as little endian and need to convert to string because electron-store json does not support bigint
