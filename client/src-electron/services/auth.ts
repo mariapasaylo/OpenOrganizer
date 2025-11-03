@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Maria Pasaylo
  * Created: 2025-10-07
- * Updated: 2025-10-27
+ * Updated: 2025-11-03
  *
  * This file contains functions related to user authentication including getters 
  * and setters for privateKey, username, password, and authToken.
@@ -15,6 +15,7 @@
 import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
+import axios from 'axios';
 
 interface Account{ 
   username: string;
@@ -28,7 +29,7 @@ interface Account{
 const accountSchema: Schema<Account> ={
   username: {
     type: 'string',
-    default: 'AlGator'
+    default: ''
   },
   password:{
     type: 'string',
@@ -126,32 +127,31 @@ export async function createAccount(username : string, password : string): Promi
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
-  //Testing output
+  //Testing user data to send to server
   //console.log(getUserId(), getUserId());
-  console.log('REGISTER USER DATA', userData.toString('utf8'));
-  console.log('REGISTER USER DATA RAW', userData);
-  console.log('REGISTER USER DATA LENGTH', userData.length);
+  // console.log('REGISTER USER DATA', userData.toString('utf8'));
+  // console.log('REGISTER USER DATA RAW', userData);
+  // console.log('REGISTER USER DATA LENGTH', userData.length); 
 
   // Sending in raw data via API request to /register
   try{
     //TO DO: use serverAdress text file 
-    const response = await fetch("http://localhost:3001/register", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: userData
-    });
+    //
+    const response = await axios.post<ArrayBuffer>('http://localhost:3001/register', userData, {
+      'responseType': 'arraybuffer',
+      headers:{'Content-Type': 'application/octet-stream'}
+    })
 
     //Parse the reponse
-    const responseData = Buffer.from(await response.arrayBuffer());
+    const responseData = response.data; 
     
-    //More testing
-    console.log('Response data', responseData.length);
-    console.log('Response data', responseData.toString('utf8'));
-    console.log(response.status);
+    //Testing if we got the correct response
+    // console.log('Response data', responseData);
+    // console.log(response.status);
 
-    //userID [0:8], authToken[8:40]
-    const userIdBytes = responseData.slice(0, 8);
-    const authTokenBytes = responseData.slice(8, 40);
+    // //userID [0:8], authToken[8:40]
+    const userIdBytes = Buffer.from(responseData.slice(0, 8));
+    const authTokenBytes = Buffer.from(responseData.slice(8, 40));
     setAuthToken(authTokenBytes);
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
