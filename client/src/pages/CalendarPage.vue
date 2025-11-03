@@ -52,7 +52,7 @@
         v-model="searchQuery"
         dense
         outlined
-        placeholder="Search notes here..."
+        placeholder="Search notes and reminders by title here..."
         class="search-input"
       >
         <template v-slot:prepend>
@@ -182,6 +182,10 @@
                     </div>
               </template>
               <q-card-section>
+                    <div style="padding-bottom:10px">
+                      Event date: {{ item.date }}<br>
+                      Last modified: {{(item.date) }}
+                    </div>
                 <q-select
                 v-model="item.eventType"
                 :options="eventTypeOptions"
@@ -292,6 +296,9 @@
               </template>
               <!-- Emit-value makes it so the dropdown option only saves the value (ex. folder id = 1 rather than the whole object {folder: name, id, etc.}) -->
               <q-card-section>
+                      <div style="padding-bottom:10px">
+                      Last modified: {{(item.date) }}
+                    </div>
                 <q-select
                 v-model="item.temporaryFolderID"
                 :options="folderDropdownOptions"
@@ -1373,9 +1380,24 @@ const formattedMonth = computed(() => {
   return formatter ? formatter.format(date) : ''
 })
 
-// Filtered reminder array for specific date
+// Filtered reminder array for displaying only reminders that match the selected calendar date or search query
 const filteredReminders = computed(() => {
-  return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+  //return reminders.value.filter(reminder => reminder.date === selectedDate.value)
+  // Normalize search query: remove whitespace and convert to lowercase for case-insensitive matching
+  // Search functionality example: https://stackoverflow.com/questions/74670957/how-to-display-search-results-using-react-typescript
+  const query = (searchQuery.value ?? '').trim().toLowerCase();
+  if (!searchQuery.value) {
+    // If no search query, default show reminders for selected calendar date
+    return reminders.value.filter(reminder => reminder.date === selectedDate.value);
+  }
+
+  // Otherwise, filter reminders based on the search query (title)
+  return reminders.value.filter(reminder => {
+    // Check for reminders entries where the title is in the search query
+    const matchesQuery = String(reminder.temporaryTitle ?? '').toLowerCase().includes(query) || String(reminder.title ?? '').toLowerCase().includes(query);
+    // Return true if both date and query match
+    return matchesQuery;
+  });
 });
 
 // Reload list of reminders whenever the selected calendar date changes
@@ -1389,10 +1411,24 @@ const events = computed(() => buildCalendarEvents(reminders.value, eventTypes))
 // Group events by date
 const eventsMap = computed(() => groupEventsByDate(events.value))
 
-// Notes not connected to calendar dates, so just show notes array as is
+// Filtered notes array for displaying only notes that match the search query
 const filteredNotes = computed(() => {
-  return notes.value
-});
+  // Normalize search query: remove whitespace and convert to lowercase for case-insensitive matching
+  // Search functionality example: https://stackoverflow.com/questions/74670957/how-to-display-search-results-using-react-typescript
+  const query = (searchQuery.value ?? '').trim().toLowerCase();
+  if (!searchQuery.value) {
+    // If no search query, default show all the notes
+    return notes.value;
+  }
+
+  // Otherwise, filter notes based on the search query (title)
+  return notes.value.filter(note => {
+    // Check for note entries where the title is in the search query
+    const matchesQuery = String(note.temporaryTitle ?? '').toLowerCase().includes(query) || String(note.title ?? '').toLowerCase().includes(query);
+    return matchesQuery;
+  });
+  });
+
 
 // Watcher to unselect the select all checkbox if there are no reminders or notes in the array (ex. none made or after deletion)
 watch([filteredReminders, notes, tab], () => {
