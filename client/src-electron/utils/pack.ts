@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-28
- * Updated: 2025-10-30
+ * Updated: 2025-11-03
  *
  * This file defines functions for converting interface arrays into byte arrays for use in syncup.ts POST requests.
  *
@@ -289,7 +289,7 @@ export function packFolders(folders: Folder[]) {
     const encrData = Buffer.alloc(64);
     let encrBufPos = 0;
 
-    encrData.writeBigInt64LE(folders[i]!.folderID, encrBufPos);
+    encrData.writeBigInt64LE(folders[i]!.parentFolderID, encrBufPos);
     encrBufPos += 8;
     encrData.writeInt32LE(folders[i]!.colorCode , encrBufPos);
     encrBufPos += 4;
