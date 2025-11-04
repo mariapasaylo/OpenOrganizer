@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-10-28
+ * Updated: 2025-11-03
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -231,6 +231,9 @@ export async function createFolder(parentFolderID: bigint, colorCode: number, fo
     folderName: folderName
   };
   await window.sqliteAPI.createFolder(newFolder);
+
+  // Return the timestamp ID of the folder to use in frontend
+  return timeMs;
 }
 
 export async function createRootFolder(colorCode: number) { // -1 treated as no colorCode
@@ -604,26 +607,26 @@ export async function deleteExtension(itemID: bigint, sequenceNum: number) {
 export async function deleteFolder(folderID: bigint) {
   if (folderID === 0n) return // root folder cannot be deleted
 
-  let items = await window.sqliteAPI.readNotesInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, notesTable); // delete all items in the folder
+  let itemIDs = await window.sqliteAPI.readNotesInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, notesTable); // delete all items in the folder
 
-  items = await window.sqliteAPI.readRemindersInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, remindersTable);
+  itemIDs = await window.sqliteAPI.readRemindersInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, remindersTable);
 
-  items = await window.sqliteAPI.readDailyRemindersInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, dailyTable);
+  itemIDs = await window.sqliteAPI.readDailyRemindersInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, dailyTable);
 
-  items = await window.sqliteAPI.readWeeklyRemindersInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, weeklyTable);
+  itemIDs = await window.sqliteAPI.readWeeklyRemindersInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, weeklyTable);
 
-  items = await window.sqliteAPI.readMonthlyRemindersInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, monthlyTable);
+  itemIDs = await window.sqliteAPI.readMonthlyRemindersInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, monthlyTable);
 
-  items = await window.sqliteAPI.readYearlyRemindersInFolder(folderID);
-  for (const item of items) await deleteItem(item.itemID, yearlyTable);
+  itemIDs = await window.sqliteAPI.readYearlyRemindersInFolder(folderID);
+  for (const itemID of itemIDs) await deleteItem(itemID, yearlyTable);
 
-  const subFolders = await window.sqliteAPI.readFoldersInFolder(folderID);
-  for (const subFolder of subFolders) await deleteFolder(subFolder.folderID); // recursively delete subfolders
+  const subFolderIDs = await window.sqliteAPI.readFoldersInFolder(folderID);
+  for (const subFolderID of subFolderIDs) await deleteFolder(subFolderID); // recursively delete subfolders
 
   if (await window.sqliteAPI.deleteFolder(folderID)) await createDeleted(folderID, foldersTable); // finally, delete the folder and create deleted entry
 }

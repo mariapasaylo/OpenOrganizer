@@ -2,7 +2,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-21
- * Updated: 2025-10-28
+ * Updated: 2025-10-29
  *
  * This file contains interfaces that extend the shared-types with UI-specific fields.
  *
@@ -27,8 +27,9 @@ export type UINote = Note & {
   titleMessageError?: string;
   folderMessageError?: string;
   isSaved: boolean;
-  expanded: boolean; // open or closed carat
+  isEditing: boolean; 
   isSelected: boolean; // checkbox selection
+  expanded: boolean; // open or closed carat
   date: string; 
 };
 
@@ -47,14 +48,19 @@ export type UIReminder = Reminder & {
   // useful for adding on custom event type fields/extensions that we may not know the types to yet
   // Need to parse and store this text data in the separate extensions table in the backend
   isSaved: boolean;
-  expanded: boolean;
+  isEditing: boolean; 
   isSelected: boolean;
+  expanded: boolean;
   // UI-only date field - calendar date selected for the reminder
   date: string;
 };
 
 // Shared-types folder has folderID, lastModified, parentFolderID, colorCode, folderName
 export type UIFolder = Folder & {
+  temporaryFolderName: string;
+  isSaved: boolean;
+  isEditing: boolean; // flag if folder is currently being edited/renamed in UI
+  folderNameError?: string;
   children?: UIFolder[];
 };
 

@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-28
+ * Updated: 2025-11-03
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -86,13 +86,13 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
 
   readAllFolders: (): Promise<Folder[]> => ipcRenderer.invoke('readAllFolders'),
 
-  readNotesInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readNotesInFolder', folderID),
-  readRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readRemindersInFolder', folderID),
-  readDailyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),
-  readWeeklyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readWeeklyRemindersInFolder', folderID),
-  readMonthlyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
-  readYearlyRemindersInFolder: (folderID: bigint): Promise<{ itemID: bigint }[]> => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
-  readFoldersInFolder: (parentFolderID: bigint): Promise<{ folderID: bigint }[]> => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
+  readNotesInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readNotesInFolder', folderID),
+  readRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readRemindersInFolder', folderID),
+  readDailyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readDailyRemindersInFolder', folderID),
+  readWeeklyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readWeeklyRemindersInFolder', folderID),
+  readMonthlyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
+  readYearlyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
+  readFoldersInFolder: (parentFolderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
 
   // update
   updateNote: (modNote: Note): Promise<void> => ipcRenderer.invoke('updateNote', modNote),

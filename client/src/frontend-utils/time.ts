@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-23
+ * Updated: 2025-10-30
  *
  * This file contains helper functions to handle time and date conversions on the client
  *
@@ -17,18 +17,27 @@ import {
 
 // Helper function to convert inputted date YYYY-MM-DD and time HH:MM strings into a qcalendar TimeStamp to store in DB
 // If timeString is empty, it defaults to 00:00:00
-// Used to convert event start and end times into timestamps
+// Used to convert event start and end times into local timestamps
 export function convertTimeAndDateToTimestamp(dateString: string, timeString: string): Timestamp {
   const date = dateString.trim();
   const time = timeString.trim();
   // Pad seconds :00 onto time field since only HH:MM is provided
   const formatTime = time === '' ? '00:00:00' : (time.length === 5 ? `${time}:00` : time);
-  // Combine date and time parts
-  const dateTime = new Date(`${date}T${formatTime}`);
-  // console.log('Combined DateTime:', dateTime);
-  // Parse date object into a qcalendar timestamp. Timestamp has year, month, day, hour, minute, second, etc.
+  // Split date/time strings into numeric components to pass to construct a local date
+  const [yearString, monthString, dayString] = date.split('-');
+  const [hourString, minuteString, secondString] = formatTime.split(':');
+  const year = Number(yearString);
+  const month = Number(monthString);
+  const day = Number(dayString);
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+  const second = Number(secondString);
+  // Javascript date month is 0-based (Jan = 0) so subtract 1 from month
+  const dateTime = new Date(year, month - 1, day, hour, minute, second, 0);
+  //console.log("Constructed dateTime object:", dateTime);
+  // Parse date object into a qcalendar timestamp
   const timeStamp = parseDate(dateTime);
-  // console.log('Converted Timestamp:', timeStamp);
+ // console.log("Converted Timestamp:", timeStamp);
   // Return object that has all timestamp fields plus original date for UI rendering
   return {
   ...timeStamp,
@@ -42,21 +51,28 @@ export function convertNotificationTimestamp(dateString: string, timeString: str
   const date = dateString.trim();
   const time = timeString.trim();
   const formatTime = time === '' ? '00:00:00' : (time.length === 5 ? `${time}:00` : time);
-  // User input into date and time of event start
-  const dateTime = new Date(`${date}T${formatTime}`);
-  // console.log('Combined DateTime:', dateTime);
+  // Split date/time strings into numeric components to pass to construct a local date
+  const [yearString, monthString, dayString] = date.split('-');
+  const [hourString, minuteString, secondString] = formatTime.split(':');
+  const year = Number(yearString);
+  const month = Number(monthString);
+  const day = Number(dayString);
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+  const second = Number(secondString);
+  // Javascript date month is 0-based (Jan = 0) so subtract 1 from month
+  const dateTime = new Date(year, month - 1, day, hour, minute, second, 0);
+  // console.log("Constructed dateTime object:", dateTime);
   // Compute notification time (ex. remind me 30 mins before event start) into a usable date object for scheduling
   // Subtracts the epoch of the event start time (in ms) by the minutes before event converted to ms (* 60000)
   const notifyTime = new Date(dateTime.getTime() - Number(minutesBeforeEvent) * 60000);
-  // console.log('Notification time:', notifyTime);
   // Convert notification date object into a qcalendar timestamp
   const notifyTimestamp = parseDate(notifyTime);
-  // console.log('Notification Timestamp:', notifyTimestamp);
+  // console.log("Notification Timestamp:", notifyTimestamp);
   return notifyTimestamp as Timestamp;
 }
 
 // Function to convert a QCalendar timestamp back into a local date and epoch time for scheduling
-// Javascript dateTime: YYYY-MM-DDTHH:mm:ss.sssZ
 export function timeStamptoEpoch(timestamp: Timestamp): number {
   // Q-calendar month is 1-based (Jan = 1), Javascript date month is 0-based (Jan = 0) so subtract 1 from month
   // Set seconds to 0 since notification will go off at exact minute change
@@ -92,6 +108,7 @@ export function minutesToHHMM(minOfDay: number): string {
     // Ex. Hour = 9 -> 09 or minute =5 -> 05
     return `${hourString}:${minuteString}`;
   }
+
 
 
 
