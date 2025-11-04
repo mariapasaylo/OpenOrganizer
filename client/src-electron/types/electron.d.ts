@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-10-28
+ * Updated: 2025-11-03
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -58,13 +58,13 @@ declare global {
 
       readAllFolders: () => Promise<Folder[]>;
 
-      readNotesInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readDailyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readYearlyRemindersInFolder: (folderID: bigint) => Promise<{ itemID: bigint }[]>;
-      readFoldersInFolder: (parentFolderID: bigint) => Promise<{ folderID: bigint }[]>;
+      readNotesInFolder: (folderID: bigint) => Promise<bigint[]>
+      readRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
+      readDailyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
+      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
+      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
+      readYearlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
+      readFoldersInFolder: (parentFolderID: bigint) => Promise<bigint[]>
 
       // update
       updateNote: (modNote: Note) => Promise<void>;
