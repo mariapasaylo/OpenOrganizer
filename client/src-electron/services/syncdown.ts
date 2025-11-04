@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-30
- * Updated: 2025-10-30
+ * Updated: 2025-11-03
  *
  * This file defines functions for sending syncdown requests.
  *
@@ -14,6 +14,7 @@ import * as unpack from "../utils/unpack";
 import {serverAddress} from "app/src-electron/electron-main";
 import {getAuthToken, getUserId} from "app/src-electron/services/auth";
 import {sendRequest, logResponse} from "../utils/sync-utils";
+import {lastUpdated} from "app/src-electron/services/store";
 import type {
   Note,
   Extension,
@@ -31,16 +32,26 @@ export async function syncdown() {
   const serverLastUp = await lastUp();
   if (serverLastUp === undefined) return undefined;
 
+  const localLastUpFolders = Buffer.from(lastUpdated.get('lastUpFolders')).readBigInt64LE(0);
+  const localLastUpNotes = Buffer.from(lastUpdated.get('lastUpNotes')).readBigInt64LE(0);
+  const localLastUpReminders = Buffer.from(lastUpdated.get('lastUpReminders')).readBigInt64LE(0);
+  const localLastUpDaily = Buffer.from(lastUpdated.get('lastUpDaily')).readBigInt64LE(0);
+  const localLastUpWeekly = Buffer.from(lastUpdated.get('lastUpWeekly')).readBigInt64LE(0);
+  const localLastUpMonthly = Buffer.from(lastUpdated.get('lastUpMonthly')).readBigInt64LE(0);
+  const localLastUpYearly = Buffer.from(lastUpdated.get('lastUpYearly')).readBigInt64LE(0);
+  const localLastUpExtensions = Buffer.from(lastUpdated.get('lastUpExtensions')).readBigInt64LE(0);
+  const localLastUpDeleted = Buffer.from(lastUpdated.get('lastUpDeleted')).readBigInt64LE(0);
+
   return {
-    folders: await downFolders(serverLastUp.lastUpFolders),
-    notes: await downNotes(serverLastUp.lastUpNotes),
-    reminders: await downReminders(serverLastUp.lastUpReminders),
-    dailyReminders: await downRemindersDaily(serverLastUp.lastUpDaily),
-    weeklyReminders: await downRemindersWeekly(serverLastUp.lastUpWeekly),
-    monthlyReminders: await downRemindersMonthly(serverLastUp.lastUpMonthly),
-    yearlyReminders: await downRemindersYearly(serverLastUp.lastUpYearly),
-    extensions: await downExtensions(serverLastUp.lastUpExtensions),
-    deletes: await downDeleted(serverLastUp.lastUpDeleted)
+    folders: (localLastUpFolders < serverLastUp.lastUpFolders) ? await downFolders(localLastUpFolders) : undefined,
+    notes: (localLastUpNotes < serverLastUp.lastUpNotes) ? await downNotes(localLastUpNotes) : undefined,
+    reminders: (localLastUpReminders < serverLastUp.lastUpReminders) ? await downReminders(localLastUpReminders) : undefined,
+    dailyReminders: (localLastUpDaily < serverLastUp.lastUpDaily) ? await downRemindersDaily(localLastUpDaily) : undefined,
+    weeklyReminders: (localLastUpWeekly < serverLastUp.lastUpWeekly) ? await downRemindersWeekly(localLastUpWeekly) : undefined,
+    monthlyReminders: (localLastUpMonthly < serverLastUp.lastUpMonthly) ? await downRemindersMonthly(localLastUpMonthly) : undefined,
+    yearlyReminders: (localLastUpYearly < serverLastUp.lastUpYearly) ? await downRemindersYearly(localLastUpYearly) : undefined,
+    extensions: (localLastUpExtensions < serverLastUp.lastUpExtensions) ? await downExtensions(localLastUpExtensions) : undefined,
+    deletes: (localLastUpDeleted < serverLastUp.lastUpDeleted) ? await downDeleted(localLastUpDeleted) : undefined,
   } as RetrievedItems;
 }
 
@@ -169,7 +180,7 @@ interface RequestDetails {
   repeatedData: Buffer
 }
 
-interface RetrievedItems {
+export interface RetrievedItems {
   folders: Folder[],
   notes: Note[],
   reminders: Reminder[],
