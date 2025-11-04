@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-10-30
+ * Updated: 2025-11-02
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -81,6 +81,16 @@ const readWeeklyRemindersInFolderStmt = db.prepare(sql.readWeeklyRemindersInFold
 const readMonthlyRemindersInFolderStmt = db.prepare(sql.readMonthlyRemindersInFolderStmt);
 const readYearlyRemindersInFolderStmt = db.prepare(sql.readYearlyRemindersInFolderStmt);
 const readFoldersInFolderStmt = db.prepare(sql.readFoldersInFolderStmt);
+
+const readNoteLmStmt = db.prepare(sql.readNoteLmStmt);
+const readReminderLmStmt = db.prepare(sql.readReminderLmStmt);
+const readDailyReminderLmStmt = db.prepare(sql.readDailyReminderLmStmt);
+const readWeeklyReminderLmStmt = db.prepare(sql.readWeeklyReminderLmStmt);
+const readMonthlyReminderLmStmt = db.prepare(sql.readMonthlyReminderLmStmt);
+const readYearlyReminderLmStmt = db.prepare(sql.readYearlyReminderLmStmt);
+const readExtensionLmStmt = db.prepare(sql.readExtensionLmStmt);
+const readFolderLmStmt = db.prepare(sql.readFolderLmStmt);
+const readDeletedLmStmt = db.prepare(sql.readDeletedLmStmt);
 
 // update
 const updateNoteStmt = db.prepare(sql.updateNoteStmt);
@@ -300,38 +310,38 @@ export function readAllFolders() {
 
 // get IDs based on folderID
 export function readNotesInFolder(folderID: bigint) {
-  const itemIDs = readNotesInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readNotesInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map(itemID => BigInt(itemID.itemID));
 }
 
 export function readRemindersInFolder(folderID: bigint) {
-  const itemIDs = readRemindersInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readRemindersInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map((itemID) => BigInt(itemID.itemID));
 }
 
 export function readDailyRemindersInFolder(folderID: bigint) {
-  const itemIDs = readDailyRemindersInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readDailyRemindersInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map((itemID) => BigInt(itemID.itemID));
 }
 
 export function readWeeklyRemindersInFolder(folderID: bigint) {
-  const itemIDs = readWeeklyRemindersInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readWeeklyRemindersInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map((itemID) => BigInt(itemID.itemID));
 }
 
 export function readMonthlyRemindersInFolder(folderID: bigint) {
-  const itemIDs = readMonthlyRemindersInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readMonthlyRemindersInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map((itemID) => BigInt(itemID.itemID));
 }
 
 export function readYearlyRemindersInFolder(folderID: bigint) {
-  const itemIDs = readYearlyRemindersInFolderStmt.all(folderID) as bigint[];
-  return itemIDs.map((itemID) => BigInt(itemID));
+  const itemIDs = readYearlyRemindersInFolderStmt.all(folderID) as { itemID: bigint }[];
+  return itemIDs.map((itemID) => BigInt(itemID.itemID));
 }
 
 export function readFoldersInFolder(parentFolderID: bigint) {
-  const folderIDs = readFoldersInFolderStmt.all(parentFolderID) as bigint[];
-  return folderIDs.map((folderID) => BigInt(folderID));
+  const folderIDs = readFoldersInFolderStmt.all(parentFolderID) as { folderID: bigint }[];
+  return folderIDs.map((folderID) => BigInt(folderID.folderID));
 }
 
 // read all modified after a given timestamp
@@ -396,6 +406,61 @@ export function readDeletesAfter(lastUpdated: bigint) {
   if (deletes === undefined) return undefined;
   castDeletesBigInts(deletes);
   return deletes;
+}
+
+// read lastModified based on itemID (used in syncing)
+export function readNoteLm(itemID: bigint) {
+  const note = readNoteLmStmt.get(itemID) as bigint;
+  if (note === undefined) return undefined;
+  return BigInt(note);
+}
+
+export function readReminderLm(itemID: bigint) {
+  const lastModified = readReminderLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readDailyReminderLm(itemID: bigint) {
+  const lastModified = readDailyReminderLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readWeeklyReminderLm(itemID: bigint) {
+  const lastModified = readWeeklyReminderLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readMonthlyReminderLm(itemID: bigint) {
+  const lastModified = readMonthlyReminderLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readYearlyReminderLm(itemID: bigint) {
+  const lastModified = readYearlyReminderLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readExtensionLm(itemID: bigint, sequenceNum: number) {
+  const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readFolderLm(folderID: bigint) {
+  const lastModified = readFolderLmStmt.get(folderID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
+}
+
+export function readDeletedLm(itemID: bigint) {
+  const lastModified = readDeletedLmStmt.get(itemID) as bigint;
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified);
 }
 
 // update
@@ -498,44 +563,6 @@ export function clearAllTables() {
 }
 
 
-// Example db
-// test.db located in ..\AppData\Roaming\Electron
-const exDBPath = path.join(app.getPath('userData'), 'test.db');
-const exDB = new Database(exDBPath);
-
-// Create example table if not exists
-exDB.exec(sql.createExTable);
-
-// prepare all sql queries once
-const createExEntry = exDB.prepare(sql.createExEntry);
-const readExEntry = exDB.prepare(sql.readExEntry);
-const updateExEntry = exDB.prepare(sql.updateExEntry);
-const deleteExEntry = exDB.prepare(sql.deleteExEntry);
-
-// Create entry in example table
-export function create(key: string, value: string) {
-  createExEntry.run(key, value);
-}
-
-// Read entry from example table
-export function read(key: string) {
-  const row = readExEntry.get(key) as { value: string } | undefined;
-
-  if (!row) return 'Not found';
-  return row.value;
-}
-
-// Update entry in example table
-export function update(key: string, value: string) {
-  updateExEntry.run(value, key);
-}
-
-// Delete entry from example table
-export function deleteEntry(key: string) {
-  deleteExEntry.run(key);
-}
-
-
 // helpers
 function createTables() {
   db.exec(sql.createNotesTable);
@@ -601,4 +628,44 @@ function castDeleteBigInts(deleted: Deleted) {
 
 function castDeletesBigInts(deletes: Deleted[]) {
   for (const deleted of deletes) castDeleteBigInts(deleted);
+}
+
+
+
+
+// Example db
+// test.db located in ..\AppData\Roaming\Electron
+const exDBPath = path.join(app.getPath('userData'), 'test.db');
+const exDB = new Database(exDBPath);
+
+// Create example table if not exists
+exDB.exec(sql.createExTable);
+
+// prepare all sql queries once
+const createExEntry = exDB.prepare(sql.createExEntry);
+const readExEntry = exDB.prepare(sql.readExEntry);
+const updateExEntry = exDB.prepare(sql.updateExEntry);
+const deleteExEntry = exDB.prepare(sql.deleteExEntry);
+
+// Create entry in example table
+export function create(key: string, value: string) {
+  createExEntry.run(key, value);
+}
+
+// Read entry from example table
+export function read(key: string) {
+  const row = readExEntry.get(key) as { value: string } | undefined;
+
+  if (!row) return 'Not found';
+  return row.value;
+}
+
+// Update entry in example table
+export function update(key: string, value: string) {
+  updateExEntry.run(value, key);
+}
+
+// Delete entry from example table
+export function deleteEntry(key: string) {
+  deleteExEntry.run(key);
 }

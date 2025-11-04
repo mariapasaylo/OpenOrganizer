@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-29
+ * Updated: 2025-11-02
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -448,6 +448,43 @@ WHERE folderID = ?`;
 export const readFoldersInFolderStmt = `
 SELECT folderID FROM folders
 WHERE parentFolderID = ?`;
+
+// read lastModified based on itemID (used in syncing)
+export const readNoteLmStmt = `
+SELECT lastModified FROM notes
+WHERE itemID = ?`;
+
+export const readReminderLmStmt = `
+SELECT lastModified FROM reminders
+WHERE itemID = ?`;
+
+export const readDailyReminderLmStmt = `
+SELECT lastModified FROM daily_reminders
+WHERE itemID = ?`;
+
+export const readWeeklyReminderLmStmt = `
+SELECT lastModified FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const readMonthlyReminderLmStmt = `
+SELECT lastModified FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const readYearlyReminderLmStmt = `
+SELECT lastModified FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const readExtensionLmStmt = `
+SELECT lastModified FROM extensions
+WHERE itemID = ? AND sequenceNum = ?`;
+
+export const readFolderLmStmt = `
+SELECT lastModified FROM folders
+WHERE folderID = ?`;
+
+export const readDeletedLmStmt = `
+SELECT lastModified FROM deleted
+WHERE itemID = ?`;
 
 
 // update entry SQL statements

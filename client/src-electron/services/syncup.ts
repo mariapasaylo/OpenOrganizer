@@ -33,7 +33,6 @@ export async function syncUp() {
 export async function upNotes() {
   const lastUpNotes = Buffer.from(lastUpdated.get('lastUpNotes')).readBigInt64LE(0);
   const notes = db.readNotesAfter(lastUpNotes);
-  lastUpdated.set('lastUpNotes', getDateNowBuffer()); // set new lastUpdated time
   if (notes === undefined || notes.length === 0) return;
 
   const url = serverAddress + "syncup/notes";
@@ -46,7 +45,6 @@ export async function upNotes() {
 export async function upReminders() {
   const lastUpReminders = Buffer.from(lastUpdated.get('lastUpReminders')).readBigInt64LE(0);
   const rems = db.readRemindersAfter(lastUpReminders);
-  lastUpdated.set('lastUpReminders', getDateNowBuffer()); // set new lastUpdated time
   if (rems === undefined || rems.length === 0) return;
 
   const url = serverAddress + "syncup/reminders";
@@ -59,7 +57,6 @@ export async function upReminders() {
 export async function upRemindersDaily() {
   const lastUpDaily = Buffer.from(lastUpdated.get('lastUpDaily')).readBigInt64LE(0);
   const dailyRems = db.readDailyRemindersAfter(lastUpDaily);
-  lastUpdated.set('lastUpDaily', getDateNowBuffer()); // set new lastUpdated time
   if (dailyRems === undefined || dailyRems.length === 0) return;
 
   const url = serverAddress + "syncup/reminders/daily";
@@ -72,7 +69,6 @@ export async function upRemindersDaily() {
 export async function upRemindersWeekly() {
   const lastUpWeekly = Buffer.from(lastUpdated.get('lastUpWeekly')).readBigInt64LE(0);
   const weeklyRems = db.readWeeklyRemindersAfter(lastUpWeekly);
-  lastUpdated.set('lastUpWeekly', getDateNowBuffer()); // set new lastUpdated time
   if (weeklyRems === undefined || weeklyRems.length === 0) return;
 
   const url = serverAddress + "syncup/reminders/weekly";
@@ -85,7 +81,6 @@ export async function upRemindersWeekly() {
 export async function upRemindersMonthly() {
   const lastUpMonthly = Buffer.from(lastUpdated.get('lastUpMonthly')).readBigInt64LE(0);
   const monthlyRems = db.readMonthlyRemindersAfter(lastUpMonthly);
-  lastUpdated.set('lastUpMonthly', getDateNowBuffer()); // set new lastUpdated time
   if (monthlyRems === undefined || monthlyRems.length === 0) return;
 
   const url = serverAddress + "syncup/reminders/monthly";
@@ -98,7 +93,6 @@ export async function upRemindersMonthly() {
 export async function upRemindersYearly() {
   const lastUpYearly = Buffer.from(lastUpdated.get('lastUpYearly')).readBigInt64LE(0);
   const yearlyRems = db.readYearlyRemindersAfter(lastUpYearly);
-  lastUpdated.set('lastUpYearly', getDateNowBuffer()); // set new lastUpdated time
   if (yearlyRems === undefined || yearlyRems.length === 0) return;
 
   const url = serverAddress + "syncup/reminders/yearly";
@@ -111,7 +105,6 @@ export async function upRemindersYearly() {
 export async function upExtensions() {
   const lastUpExtensions = Buffer.from(lastUpdated.get('lastUpExtensions')).readBigInt64LE(0);
   const extensions = db.readExtensionsAfter(lastUpExtensions);
-  lastUpdated.set('lastUpExtensions', getDateNowBuffer()); // set new lastUpdated time
   if (extensions === undefined || extensions.length === 0) return;
 
   const url = serverAddress + "syncup/extensions";
@@ -126,7 +119,6 @@ export async function upExtensions() {
 export async function upFolders() {
   const lastUpFolders = Buffer.from(lastUpdated.get('lastUpFolders')).readBigInt64LE(0);
   const folders = db.readFoldersAfter(lastUpFolders);
-  lastUpdated.set('lastUpFolders', getDateNowBuffer()); // set new lastUpdated time
   if (folders === undefined || folders.length === 0) return;
 
   const url = serverAddress + "syncup/folders";
@@ -139,7 +131,6 @@ export async function upFolders() {
 export async function upDeleted() {
   const lastUpDeleted = Buffer.from(lastUpdated.get('lastUpDeleted')).readBigInt64LE(0);
   const deletes = db.readDeletesAfter(lastUpDeleted);
-  lastUpdated.set('lastUpDeleted', getDateNowBuffer()); // set new lastUpdated time
   if (deletes === undefined || deletes.length === 0) return;
 
   const url = serverAddress + "syncup/deleted";
