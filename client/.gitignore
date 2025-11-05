@@ -36,4 +36,5 @@ yarn-error.log*
 # manual
 
 public/serveraddress.txt
+public/testing.txt
 .vscode/
