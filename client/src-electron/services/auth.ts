@@ -20,10 +20,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
-import axios from 'axios';
-import fs from 'fs';
-import path from "path";
-import {app} from 'electron';
+
 
 interface Account{
   username: string;
@@ -37,7 +34,6 @@ interface Account{
 const accountSchema: Schema<Account> ={
   username: {
     type: 'string',
-    default: ''
     default: ''
   },
   password:{
@@ -57,7 +53,6 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'string',
     type: 'string',
     default: ''
   }
@@ -85,7 +80,6 @@ function setPassword(password : string) {
 }
 
 export function getAuthToken() {
-export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
@@ -93,7 +87,6 @@ function setAuthToken(authToken : Buffer) {
   accountStore.set('authToken', authToken);
 }
 
-export function getPrivateKey1() {
 export function getPrivateKey1() {
   return Buffer.from(accountStore.get('privateKey1'));
 }
@@ -118,22 +111,6 @@ function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
-function getServerURL():string {
-  //in dev file is in project /public folder
-  const devPath = path.join(app.getAppPath(), '..', '..', 'public', 'serveraddress.txt');
-
-  let filePath: string;
-  if (fs.existsSync(devPath)) 
-    {
-      filePath = devPath;
-    }
-  else
-    {
-      throw new Error("serveraddress.txt not found in dev path");
-    }
-  const url = fs.readFileSync(filePath, 'utf-8').trim();
-  return url;
-}
 
 
 function getServerURL():string {
@@ -166,7 +143,6 @@ export async function createAccount(username : string, password : string): Promi
 
   //Note do not send 0 for username
   const userData = Buffer.alloc(128,20);
-  const userData = Buffer.alloc(128,20);
 
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
@@ -193,10 +169,6 @@ export async function createAccount(username : string, password : string): Promi
     const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
       'responseType': 'arraybuffer',
       headers:{'Content-Type': 'application/octet-stream'}
-    const serverURL = getServerURL();
-    const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
-      'responseType': 'arraybuffer',
-      headers:{'Content-Type': 'application/octet-stream'}
     });
 
     //Parse the reponse
@@ -206,9 +178,6 @@ export async function createAccount(username : string, password : string): Promi
     // console.log('Response data', responseData);
     console.log(response.status);
 
-    // //userID [0:8], authToken[8:40]
-    const userIdBytes = Buffer.from(responseData.slice(0, 8));
-    const authTokenBytes = Buffer.from(responseData.slice(8, 40));
     // //userID [0:8], authToken[8:40]
     const userIdBytes = Buffer.from(responseData.slice(0, 8));
     const authTokenBytes = Buffer.from(responseData.slice(8, 40));
@@ -256,11 +225,7 @@ export async function createAccount(username : string, password : string): Promi
       const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
         'responseType': 'arraybuffer',
         headers:{'Content-Type': 'application/octet-stream'}
-      const serverURL = getServerURL();
-      const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
-        'responseType': 'arraybuffer',
-        headers:{'Content-Type': 'application/octet-stream'}
-      });
+      }); 
 
       // Parse and store the userID, authToken, decrypt encrypted private keys
       const responseData = response.data; 
@@ -269,10 +234,6 @@ export async function createAccount(username : string, password : string): Promi
       console.log(response.status);
 
       //userID [0:8], authToken[8:40], privateKey1[40:72], privateKey2[72:104]
-      const userIdBytes = Buffer.from(responseData.slice(0, 8));
-      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
-      const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
-      const encrPrivateKey2 = Buffer.from(responseData.slice(72,104));
       const userIdBytes = Buffer.from(responseData.slice(0, 8));
       const authTokenBytes = Buffer.from(responseData.slice(8, 40));
       const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
