@@ -16,5 +16,6 @@
 
 <script setup lang="ts">
 import { init } from 'src/services/init';
-await init();
+// eslint-disable-next-line
+init();
 </script>

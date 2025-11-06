@@ -1,5 +1,5 @@
 /*
- * Authors: Kevin Sirantoine
+ * Authors: Kevin Sirantoine, Michael Jagiello
  * Created: 2025-10-29
  * Updated: 2025-11-05
  *
@@ -290,7 +290,7 @@ export function unpackFlight(data: Extension[]) {
   const ext4 = data[3]!.data;
   const ext5 = data[4]!.data;
   const ext6 = data[5]!.data;
-  let flight: Flight = {
+  const flight: Flight = {
     itemID: data[0]!.itemID,
     lastModified: data[0]!.lastModified,
     depAirportName: ext1,
@@ -334,7 +334,7 @@ export function unpackHotel(data: Extension[]) {
   const ext2 = data[1]!.data;
   const ext3 = data[2]!.data;
   const ext4 = data[3]!.data;
-  let hotel: Hotel = {
+  const hotel: Hotel = {
     itemID: data[0]!.itemID,
     lastModified: data[0]!.lastModified,
     name: ext1,
