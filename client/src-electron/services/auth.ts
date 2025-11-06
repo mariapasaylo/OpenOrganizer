@@ -1,5 +1,10 @@
 /*
+<<<<<<< HEAD
  * Authors: Maria Pasaylo, Kevin Sirantoine
+=======
+ * Authors: Maria Pasaylo
+ * Authors: Maria Pasaylo
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
  * Created: 2025-10-07
  * Updated: 2025-11-05
  *
@@ -20,6 +25,7 @@ import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
 import {clearAllTables} from "app/src-electron/db/sqlite-db";
+
 
 interface Account{
   username: string;
@@ -115,6 +121,7 @@ function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
+<<<<<<< HEAD
 export function getAutoSyncEnabled() {
   return accountStore.get('autoSyncEnabled');
 }
@@ -122,6 +129,9 @@ export function getAutoSyncEnabled() {
 export function setAutoSyncEnabled(autoSync : boolean) {
   accountStore.set('autoSyncEnabled', autoSync);
 }
+=======
+
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
 function getServerURL():string {
   //in dev file is in project /public folder
@@ -150,6 +160,7 @@ export async function createAccount(username : string, password : string): Promi
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
 
+
   //Note do not send 0 for username
   const userData = Buffer.alloc(128,20);
 
@@ -163,10 +174,18 @@ export async function createAccount(username : string, password : string): Promi
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
   //Testing user data to send to server
+  //Testing user data to send to server
   //console.log(getUserId(), getUserId());
   // console.log('REGISTER USER DATA', userData.toString('utf8'));
   // console.log('REGISTER USER DATA RAW', userData);
+<<<<<<< HEAD
   // console.log('REGISTER USER DATA LENGTH', userData.length);
+=======
+  // console.log('REGISTER USER DATA LENGTH', userData.length); 
+  // console.log('REGISTER USER DATA', userData.toString('utf8'));
+  // console.log('REGISTER USER DATA RAW', userData);
+  // console.log('REGISTER USER DATA LENGTH', userData.length); 
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
   // Sending in raw data via API request to /register
   try{
@@ -177,7 +196,11 @@ export async function createAccount(username : string, password : string): Promi
     });
 
     //Parse the reponse
+<<<<<<< HEAD
     const responseData = response.data;
+=======
+    const responseData = response.data; 
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
     //Testing if we got the correct response
     // console.log('Response data', responseData);
@@ -190,6 +213,8 @@ export async function createAccount(username : string, password : string): Promi
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
     setAutoSyncEnabled(true);
+
+
 
 
   } catch (error) {
@@ -225,19 +250,26 @@ export async function createAccount(username : string, password : string): Promi
     usernameBuffer.copy(userData, 0);
     hashServerPassword.copy(userData, 32);
 
+
     //testing output
     console.log('LOG IN USER DATA', userData.toString('utf8'));
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
+<<<<<<< HEAD
 
+=======
+    
+
+    
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
     //Sending in raw data via API request to /login
     try {
       const serverURL = getServerURL();
       const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
         'responseType': 'arraybuffer',
         headers:{'Content-Type': 'application/octet-stream'}
-      });
+      }); 
 
       // Parse and store the userID, authToken, decrypt encrypted private keys
       const responseData = response.data;
@@ -267,7 +299,10 @@ export async function createAccount(username : string, password : string): Promi
     return true;
   }
 
+<<<<<<< HEAD
   export function clearLocalData() { // WARNING: clears account data and drops local tables
     accountStore.clear();
     clearAllTables();
   }
+=======
+>>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
