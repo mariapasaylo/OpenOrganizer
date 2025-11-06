@@ -1,5 +1,6 @@
 /*
  * Authors: Maria Pasaylo
+ * Authors: Maria Pasaylo
  * Created: 2025-10-07
  * Updated: 2025-11-03
  *
@@ -19,6 +20,10 @@ import axios from 'axios';
 import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
+import axios from 'axios';
+import fs from 'fs';
+import path from "path";
+import {app} from 'electron';
 
 interface Account{
   username: string;
@@ -32,6 +37,7 @@ interface Account{
 const accountSchema: Schema<Account> ={
   username: {
     type: 'string',
+    default: ''
     default: ''
   },
   password:{
@@ -51,6 +57,7 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
+    type: 'string',
     type: 'string',
     default: ''
   }
@@ -78,6 +85,7 @@ function setPassword(password : string) {
 }
 
 export function getAuthToken() {
+export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
@@ -85,6 +93,7 @@ function setAuthToken(authToken : Buffer) {
   accountStore.set('authToken', authToken);
 }
 
+export function getPrivateKey1() {
 export function getPrivateKey1() {
   return Buffer.from(accountStore.get('privateKey1'));
 }
@@ -127,6 +136,24 @@ function getServerURL():string {
 }
 
 
+function getServerURL():string {
+  //in dev file is in project /public folder
+  const devPath = path.join(app.getAppPath(), '..', '..', 'public', 'serveraddress.txt');
+
+  let filePath: string;
+  if (fs.existsSync(devPath)) 
+    {
+      filePath = devPath;
+    }
+  else
+    {
+      throw new Error("serveraddress.txt not found in dev path");
+    }
+  const url = fs.readFileSync(filePath, 'utf-8').trim();
+  return url;
+}
+
+
 export async function createAccount(username : string, password : string): Promise<boolean> {
   // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
   setUsername(username);
@@ -136,7 +163,9 @@ export async function createAccount(username : string, password : string): Promi
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
 
+
   //Note do not send 0 for username
+  const userData = Buffer.alloc(128,20);
   const userData = Buffer.alloc(128,20);
 
   //Ensure username is max 32 bytes
@@ -149,13 +178,21 @@ export async function createAccount(username : string, password : string): Promi
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
   //Testing user data to send to server
+  //Testing user data to send to server
   //console.log(getUserId(), getUserId());
+  // console.log('REGISTER USER DATA', userData.toString('utf8'));
+  // console.log('REGISTER USER DATA RAW', userData);
+  // console.log('REGISTER USER DATA LENGTH', userData.length); 
   // console.log('REGISTER USER DATA', userData.toString('utf8'));
   // console.log('REGISTER USER DATA RAW', userData);
   // console.log('REGISTER USER DATA LENGTH', userData.length); 
 
   // Sending in raw data via API request to /register
   try{
+    const serverURL = getServerURL();
+    const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
+      'responseType': 'arraybuffer',
+      headers:{'Content-Type': 'application/octet-stream'}
     const serverURL = getServerURL();
     const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
       'responseType': 'arraybuffer',
@@ -172,9 +209,14 @@ export async function createAccount(username : string, password : string): Promi
     // //userID [0:8], authToken[8:40]
     const userIdBytes = Buffer.from(responseData.slice(0, 8));
     const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+    // //userID [0:8], authToken[8:40]
+    const userIdBytes = Buffer.from(responseData.slice(0, 8));
+    const authTokenBytes = Buffer.from(responseData.slice(8, 40));
     setAuthToken(authTokenBytes);
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
+
+
 
 
   } catch (error) {
@@ -199,14 +241,21 @@ export async function createAccount(username : string, password : string): Promi
     usernameBuffer.copy(userData, 0);
     hashServerPassword.copy(userData, 32);
 
+
     //testing output
     console.log('LOG IN USER DATA', userData.toString('utf8'));
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
     
+
+    
     //Sending in raw data via API request to /login
     try {
+      const serverURL = getServerURL();
+      const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
+        'responseType': 'arraybuffer',
+        headers:{'Content-Type': 'application/octet-stream'}
       const serverURL = getServerURL();
       const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
         'responseType': 'arraybuffer',
@@ -220,6 +269,10 @@ export async function createAccount(username : string, password : string): Promi
       console.log(response.status);
 
       //userID [0:8], authToken[8:40], privateKey1[40:72], privateKey2[72:104]
+      const userIdBytes = Buffer.from(responseData.slice(0, 8));
+      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+      const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
+      const encrPrivateKey2 = Buffer.from(responseData.slice(72,104));
       const userIdBytes = Buffer.from(responseData.slice(0, 8));
       const authTokenBytes = Buffer.from(responseData.slice(8, 40));
       const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
@@ -240,3 +293,4 @@ export async function createAccount(username : string, password : string): Promi
 
     return true;
   }
+
