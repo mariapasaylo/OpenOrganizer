@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Michael Jagiello
  * Created: 2025-10-13
- * Updated: 2025-11-04
+ * Updated: 2025-11-05
  *
  * This file contains interfaces that are shared between the main and renderer processes to easily pass database entries and other values.
  *
@@ -146,6 +146,8 @@ export interface Deleted {
 // event types
 
 export interface Flight {
+  itemID: bigint;
+  lastModified: bigint;
   depAirportName: string; // 64
   depAirportAddress: string; // 64
   arrAirportName: string; // 64
@@ -179,6 +181,8 @@ export interface Flight {
 }
 
 export interface Hotel {
+  itemID: bigint;
+  lastModified: bigint;
   name: string; // 64
   address: string; // 128
   checkinTimeYear: number;
