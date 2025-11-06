@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-30
- * Updated: 2025-11-03
+ * Updated: 2025-11-05
  *
  * This file defines functions for sending syncdown requests.
  *
@@ -12,7 +12,7 @@
  */
 import * as unpack from "../utils/unpack";
 import {serverAddress} from "app/src-electron/electron-main";
-import {getAuthToken, getUserId} from "app/src-electron/services/auth";
+import {getAuthToken, getUserId, loginAccount} from "app/src-electron/services/auth";
 import {sendRequest, logResponse} from "../utils/sync-utils";
 import {lastUpdated} from "app/src-electron/services/store";
 import type {
@@ -29,8 +29,11 @@ import type {
 
 // todo: write function that runs all syncdown functions
 export async function syncdown() {
-  const serverLastUp = await lastUp();
-  if (serverLastUp === undefined) return undefined;
+  let serverLastUp = await lastUp();
+  if (serverLastUp === undefined) { // If lastUp fails, attempt login, try again, return undefined if login or lastup fails
+    if (await loginAccount()) serverLastUp = await lastUp();
+    if (serverLastUp === undefined) return undefined;
+  }
 
   const localLastUpFolders = Buffer.from(lastUpdated.get('lastUpFolders')).readBigInt64LE(0);
   const localLastUpNotes = Buffer.from(lastUpdated.get('lastUpNotes')).readBigInt64LE(0);

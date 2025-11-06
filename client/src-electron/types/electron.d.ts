@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-03
+ * Updated: 2025-11-05
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -94,6 +94,10 @@ declare global {
       sqliteDelete: (key: string) => Promise<boolean>;
     };
 
+    syncAPI: {
+      sync: () => Promise<void>;
+    };
+
     electronStoreAPI: {
       getStoreName: () => Promise<string>;
       setStoreName: (name: string) => Promise<boolean>;
@@ -102,6 +106,7 @@ declare global {
     electronAuthAPI: {
       createAccount: (username: string, password: string) => Promise<{ success: boolean}>;
       loginAccount: (username: string, password: string) => Promise<{ success: boolean}>;
+      clearLocalData: () => Promise<void>;
     }
 
     reminderNotificationAPI: {
