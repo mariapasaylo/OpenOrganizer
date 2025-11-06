@@ -1,7 +1,7 @@
 /*
- * Authors: Maria Pasaylo
+ * Authors: Maria Pasaylo, Kevin Sirantoine
  * Created: 2025-10-07
- * Updated: 2025-11-03
+ * Updated: 2025-11-05
  *
  * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
@@ -19,6 +19,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
+import {clearAllTables} from "app/src-electron/db/sqlite-db";
 
 interface Account{
   username: string;
@@ -27,6 +28,7 @@ interface Account{
   privateKey2: Buffer;
   authToken: Buffer;
   userId: string;
+  autoSyncEnabled: boolean
 }
 
 const accountSchema: Schema<Account> ={
@@ -53,6 +55,10 @@ const accountSchema: Schema<Account> ={
   userId:{
     type: 'string',
     default: ''
+  },
+  autoSyncEnabled:{
+    type: 'boolean',
+    default: false
   }
 }
 
@@ -109,12 +115,20 @@ function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
+export function getAutoSyncEnabled() {
+  return accountStore.get('autoSyncEnabled');
+}
+
+export function setAutoSyncEnabled(autoSync : boolean) {
+  accountStore.set('autoSyncEnabled', autoSync);
+}
+
 function getServerURL():string {
   //in dev file is in project /public folder
   const devPath = path.join(app.getAppPath(), '..', '..', 'public', 'serveraddress.txt');
 
   let filePath: string;
-  if (fs.existsSync(devPath)) 
+  if (fs.existsSync(devPath))
     {
       filePath = devPath;
     }
@@ -152,7 +166,7 @@ export async function createAccount(username : string, password : string): Promi
   //console.log(getUserId(), getUserId());
   // console.log('REGISTER USER DATA', userData.toString('utf8'));
   // console.log('REGISTER USER DATA RAW', userData);
-  // console.log('REGISTER USER DATA LENGTH', userData.length); 
+  // console.log('REGISTER USER DATA LENGTH', userData.length);
 
   // Sending in raw data via API request to /register
   try{
@@ -163,8 +177,8 @@ export async function createAccount(username : string, password : string): Promi
     });
 
     //Parse the reponse
-    const responseData = response.data; 
-    
+    const responseData = response.data;
+
     //Testing if we got the correct response
     // console.log('Response data', responseData);
     console.log(response.status);
@@ -175,6 +189,7 @@ export async function createAccount(username : string, password : string): Promi
     setAuthToken(authTokenBytes);
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
+    setAutoSyncEnabled(true);
 
 
   } catch (error) {
@@ -186,7 +201,18 @@ export async function createAccount(username : string, password : string): Promi
   }
 
 
-  export async function loginAccount(username : string, password : string): Promise<boolean> {
+  export async function loginAccount(username? : string, password? : string): Promise<boolean> {
+    if (username === undefined && password === undefined) {
+      username = getUsername();
+      password = getPassword();
+    }
+    else if (username !== undefined && password !== undefined) {
+      setUsername(username);
+      setPassword(password);
+    }
+    else return false;
+
+
     //hash the passwords
     const hashServerPassword: Buffer = hash512_256(password);
     const hashKeyPassword: Buffer = hash256(password);
@@ -204,7 +230,7 @@ export async function createAccount(username : string, password : string): Promi
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
-    
+
     //Sending in raw data via API request to /login
     try {
       const serverURL = getServerURL();
@@ -214,7 +240,7 @@ export async function createAccount(username : string, password : string): Promi
       });
 
       // Parse and store the userID, authToken, decrypt encrypted private keys
-      const responseData = response.data; 
+      const responseData = response.data;
 
       //More testing
       console.log(response.status);
@@ -231,12 +257,17 @@ export async function createAccount(username : string, password : string): Promi
       // Decrypt private keys and store them
       setPrivateKey1(decrypt(encrPrivateKey1, hashKeyPassword, hashKeyPassword));
       setPrivateKey2(decrypt(encrPrivateKey2, hashKeyPassword, hashKeyPassword));
+      setAutoSyncEnabled(true);
 
     } catch (error){
       console.error("Error logging into account: ", error);
       return false;
     }
 
-
     return true;
+  }
+
+  export function clearLocalData() { // WARNING: clears account data and drops local tables
+    accountStore.clear();
+    clearAllTables();
   }
