@@ -1,10 +1,5 @@
 /*
-<<<<<<< HEAD
  * Authors: Maria Pasaylo, Kevin Sirantoine
-=======
- * Authors: Maria Pasaylo
- * Authors: Maria Pasaylo
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
  * Created: 2025-10-07
  * Updated: 2025-11-05
  *
@@ -121,7 +116,6 @@ function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
 
-<<<<<<< HEAD
 export function getAutoSyncEnabled() {
   return accountStore.get('autoSyncEnabled');
 }
@@ -129,9 +123,6 @@ export function getAutoSyncEnabled() {
 export function setAutoSyncEnabled(autoSync : boolean) {
   accountStore.set('autoSyncEnabled', autoSync);
 }
-=======
-
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
 function getServerURL():string {
   //in dev file is in project /public folder
@@ -178,14 +169,7 @@ export async function createAccount(username : string, password : string): Promi
   //console.log(getUserId(), getUserId());
   // console.log('REGISTER USER DATA', userData.toString('utf8'));
   // console.log('REGISTER USER DATA RAW', userData);
-<<<<<<< HEAD
   // console.log('REGISTER USER DATA LENGTH', userData.length);
-=======
-  // console.log('REGISTER USER DATA LENGTH', userData.length); 
-  // console.log('REGISTER USER DATA', userData.toString('utf8'));
-  // console.log('REGISTER USER DATA RAW', userData);
-  // console.log('REGISTER USER DATA LENGTH', userData.length); 
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
   // Sending in raw data via API request to /register
   try{
@@ -196,11 +180,7 @@ export async function createAccount(username : string, password : string): Promi
     });
 
     //Parse the reponse
-<<<<<<< HEAD
     const responseData = response.data;
-=======
-    const responseData = response.data; 
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
 
     //Testing if we got the correct response
     // console.log('Response data', responseData);
@@ -256,13 +236,6 @@ export async function createAccount(username : string, password : string): Promi
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
-<<<<<<< HEAD
-
-=======
-    
-
-    
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
     //Sending in raw data via API request to /login
     try {
       const serverURL = getServerURL();
@@ -299,10 +272,7 @@ export async function createAccount(username : string, password : string): Promi
     return true;
   }
 
-<<<<<<< HEAD
   export function clearLocalData() { // WARNING: clears account data and drops local tables
     accountStore.clear();
     clearAllTables();
   }
-=======
->>>>>>> 45fc3072422b6928f84e1d88444cdc68b48d3f6b
