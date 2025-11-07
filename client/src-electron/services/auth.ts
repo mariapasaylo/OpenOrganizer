@@ -15,7 +15,7 @@
 import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
-import axios from 'axios';
+import axios, { get } from 'axios';
 import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
@@ -266,6 +266,83 @@ export async function createAccount(username : string, password : string): Promi
 
     return true;
   }
+
+
+   export async function changeLogin(username?: string, password? : string): Promise<boolean> {
+    if (username === undefined && password === undefined) {
+      username = getUsername();
+      password = getPassword();
+    }
+    else if (username !== undefined && password !== undefined) {
+      setUsername(username);
+      setPassword(password);
+    }
+    else return false;
+
+    const oldUsername = getUsername();
+    const oldPassword = getPassword();
+
+    
+    //Ensure username is max 32 bytes
+    const usernameBuffer = Buffer.from(username).slice(0,32);
+    const oldUsernameBuffer = Buffer.from(oldUsername).slice(0,32);
+
+    //hash the passwords
+    const hashNewPassword: Buffer = hash512_256(password);
+    const hashOldPassword: Buffer = hash512_256(oldPassword);
+
+    //get the private keys
+    const encrPrivateKey1: Buffer = getPrivateKey1();
+    const encrPrivateKey2: Buffer = getPrivateKey2();
+
+    //Store username[0:32], passwordHash[32:64], newUsername[64:96], newPasswordHash[96:128], 
+    //privateKey1[128:160], privateKey2[160:192] to send to server
+    const userData = Buffer.alloc(192,20);
+    oldUsernameBuffer.copy(userData, 0);
+    hashOldPassword.copy(userData, 32);
+    usernameBuffer.copy(userData, 64);
+    hashNewPassword.copy(userData, 96);
+    encrPrivateKey1.copy(userData, 128);
+    encrPrivateKey2.copy(userData, 160);  
+
+    //testing output
+    console.log('CHANGE LOGIN USER DATA', userData.toString('utf8'));
+    console.log('CHANGE LOGIN USER DATA RAW', userData);
+    console.log('CHANGE LOGIN USER DATA LENGTH', userData.length);
+
+    //Sending in raw data via API request to /login
+    try {
+      const serverURL = getServerURL();
+      const response = await axios.post<ArrayBuffer>(`${serverURL}changelogin`, userData, {
+        'responseType': 'arraybuffer',
+        headers:{'Content-Type': 'application/octet-stream'}
+      }); 
+
+      // Parse and store the userID, authToken, decrypt encrypted private keys
+      const responseData = response.data;
+
+      //More testing
+      console.log(response.status);
+
+      //userID [0:8], authToken[8:40]
+      const userIdBytes = Buffer.from(responseData.slice(0, 8));
+      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+
+
+      //read as little endian and need to convert to string because electron-store json does not support bigint
+      setUserId(userIdBytes.readBigInt64LE(0).toString());
+      setAuthToken(authTokenBytes);
+      setAutoSyncEnabled(true);
+
+     
+    } catch (error){
+      console.error("Error changing password: ", error);
+      return false;
+    }
+
+    return true;
+  }
+
 
   export function clearLocalData() { // WARNING: clears account data and drops local tables
     accountStore.clear();
