@@ -1,9 +1,9 @@
 /*
- * Authors: Kevin Sirantoine, Maria Pasaylo
+ * Authors: Maria Pasaylo, Kevin Sirantoine
  * Created: 2025-10-07
- * Updated: 2025-10-27
+ * Updated: 2025-11-05
  *
- * This file contains functions related to user authentication including getters 
+ * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
  * This file will eventually contain login and account creation functions.
  *
@@ -15,20 +15,26 @@
 import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
+import axios from 'axios';
+import fs from 'fs';
+import path from "path";
+import {app} from 'electron';
+import {clearAllTables} from "app/src-electron/db/sqlite-db";
 
-interface Account{ 
+interface Account{
   username: string;
   password: string;
   privateKey1: Buffer;
   privateKey2: Buffer;
   authToken: Buffer;
   userId: string;
+  autoSyncEnabled: boolean
 }
 
 const accountSchema: Schema<Account> ={
   username: {
     type: 'string',
-    default: 'AlGator'
+    default: ''
   },
   password:{
     type: 'string',
@@ -47,8 +53,12 @@ const accountSchema: Schema<Account> ={
     default: Buffer.alloc(32)
   },
   userId:{
-    type: 'string', 
+    type: 'string',
     default: ''
+  },
+  autoSyncEnabled:{
+    type: 'boolean',
+    default: false
   }
 }
 
@@ -73,7 +83,7 @@ function setPassword(password : string) {
   accountStore.set('password', password);
 }
 
-function getAuthToken() {
+export function getAuthToken() {
   return accountStore.get('authToken');
 }
 
@@ -81,7 +91,7 @@ function setAuthToken(authToken : Buffer) {
   accountStore.set('authToken', authToken);
 }
 
-function getPrivateKey1() {
+export function getPrivateKey1() {
   return Buffer.from(accountStore.get('privateKey1'));
 }
 
@@ -97,13 +107,39 @@ function setPrivateKey2(privateKey : Buffer) {
   accountStore.set('privateKey2', privateKey);
 }
 
-function getUserId() {
+export function getUserId() {
   return BigInt(accountStore.get('userId'));
-} 
+}
 
 function setUserId(userId : string) {
   accountStore.set('userId', userId);
 }
+
+export function getAutoSyncEnabled() {
+  return accountStore.get('autoSyncEnabled');
+}
+
+export function setAutoSyncEnabled(autoSync : boolean) {
+  accountStore.set('autoSyncEnabled', autoSync);
+}
+
+function getServerURL():string {
+  //in dev file is in project /public folder
+  const devPath = path.join(app.getAppPath(), '..', '..', 'public', 'serveraddress.txt');
+
+  let filePath: string;
+  if (fs.existsSync(devPath))
+    {
+      filePath = devPath;
+    }
+  else
+    {
+      throw new Error("serveraddress.txt not found in dev path");
+    }
+  const url = fs.readFileSync(filePath, 'utf-8').trim();
+  return url;
+}
+
 
 export async function createAccount(username : string, password : string): Promise<boolean> {
   // hash password, generate and store privateKey, encrypt privateKey with SHA256(password)
@@ -113,50 +149,49 @@ export async function createAccount(username : string, password : string): Promi
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
   const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
-  
+
   //Note do not send 0 for username
-  const userData = Buffer.alloc(128,20); 
+  const userData = Buffer.alloc(128,20);
 
   //Ensure username is max 32 bytes
   const usernameBuffer = Buffer.from(username).slice(0,32);
-  
+
   //Store username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to send to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
   encryptedPrivateKey.copy(userData, 64);
   encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
 
-  //Testing output
+  //Testing user data to send to server
   //console.log(getUserId(), getUserId());
-  console.log('REGISTER USER DATA', userData.toString('utf8'));
-  console.log('REGISTER USER DATA RAW', userData);
-  console.log('REGISTER USER DATA LENGTH', userData.length);
+  // console.log('REGISTER USER DATA', userData.toString('utf8'));
+  // console.log('REGISTER USER DATA RAW', userData);
+  // console.log('REGISTER USER DATA LENGTH', userData.length);
 
   // Sending in raw data via API request to /register
   try{
-    //TO DO: use serverAdress text file 
-    const response = await fetch("http://localhost:3001/register", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: userData
+    const serverURL = getServerURL();
+    const response = await axios.post<ArrayBuffer>(`${serverURL}register`, userData, {
+      'responseType': 'arraybuffer',
+      headers:{'Content-Type': 'application/octet-stream'}
     });
 
     //Parse the reponse
-    const responseData = Buffer.from(await response.arrayBuffer());
-    
-    //More testing
-    console.log('Response data', responseData.length);
-    console.log('Response data', responseData.toString('utf8'));
+    const responseData = response.data;
+
+    //Testing if we got the correct response
+    // console.log('Response data', responseData);
     console.log(response.status);
 
-    //userID [0:8], authToken[8:40]
-    const userIdBytes = responseData.slice(0, 8);
-    const authTokenBytes = responseData.slice(8, 40);
+    // //userID [0:8], authToken[8:40]
+    const userIdBytes = Buffer.from(responseData.slice(0, 8));
+    const authTokenBytes = Buffer.from(responseData.slice(8, 40));
     setAuthToken(authTokenBytes);
     //read as little endian and need to convert to string because electron-store json does not support bigint
     setUserId(userIdBytes.readBigInt64LE(0).toString());
-    
-    
+    setAutoSyncEnabled(true);
+
+
   } catch (error) {
     console.error("Error registering account: ", error);
     return false;
@@ -166,7 +201,18 @@ export async function createAccount(username : string, password : string): Promi
   }
 
 
-  export async function loginAccount(username : string, password : string): Promise<boolean> {
+  export async function loginAccount(username? : string, password? : string): Promise<boolean> {
+    if (username === undefined && password === undefined) {
+      username = getUsername();
+      password = getPassword();
+    }
+    else if (username !== undefined && password !== undefined) {
+      setUsername(username);
+      setPassword(password);
+    }
+    else return false;
+
+
     //hash the passwords
     const hashServerPassword: Buffer = hash512_256(password);
     const hashKeyPassword: Buffer = hash256(password);
@@ -178,34 +224,32 @@ export async function createAccount(username : string, password : string): Promi
     const userData = Buffer.alloc(64,20);
     usernameBuffer.copy(userData, 0);
     hashServerPassword.copy(userData, 32);
-    
+
     //testing output
     console.log('LOG IN USER DATA', userData.toString('utf8'));
     console.log('LOG IN USER DATA RAW', userData);
     console.log('LOG IN USER DATA LENGTH', userData.length);
 
+
     //Sending in raw data via API request to /login
     try {
-      const response = await fetch ("http://localhost:3001/login",{
-        method: 'POST',
-        headers: {'Content-Type': 'application/octet-stream'},
-        body: userData
+      const serverURL = getServerURL();
+      const response = await axios.post<ArrayBuffer>(`${serverURL}login`, userData, {
+        'responseType': 'arraybuffer',
+        headers:{'Content-Type': 'application/octet-stream'}
       });
 
-
       // Parse and store the userID, authToken, decrypt encrypted private keys
-      const responseData = Buffer.from(await response.arrayBuffer());
+      const responseData = response.data;
 
       //More testing
-      console.log('Response data', responseData.length);
-      console.log('Response data', responseData.toString('utf8'));
       console.log(response.status);
 
       //userID [0:8], authToken[8:40], privateKey1[40:72], privateKey2[72:104]
-      const userIdBytes = responseData.slice(0, 8);
-      const authTokenBytes = responseData.slice(8, 40);
-      const encrPrivateKey1 = responseData.slice(40,72);
-      const encrPrivateKey2 = responseData.slice(72,104);
+      const userIdBytes = Buffer.from(responseData.slice(0, 8));
+      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+      const encrPrivateKey1 = Buffer.from(responseData.slice(40,72));
+      const encrPrivateKey2 = Buffer.from(responseData.slice(72,104));
 
       setAuthToken(authTokenBytes);
       //read as little endian and need to convert to string because electron-store json does not support bigint
@@ -213,12 +257,17 @@ export async function createAccount(username : string, password : string): Promi
       // Decrypt private keys and store them
       setPrivateKey1(decrypt(encrPrivateKey1, hashKeyPassword, hashKeyPassword));
       setPrivateKey2(decrypt(encrPrivateKey2, hashKeyPassword, hashKeyPassword));
+      setAutoSyncEnabled(true);
 
     } catch (error){
       console.error("Error logging into account: ", error);
       return false;
     }
 
-
     return true;
+  }
+
+  export function clearLocalData() { // WARNING: clears account data and drops local tables
+    accountStore.clear();
+    clearAllTables();
   }

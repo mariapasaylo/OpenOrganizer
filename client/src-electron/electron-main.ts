@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello, Kevin Sirantoine, Maria Pasaylo, Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-09-25
+ * Updated: 2025-11-05
  *
  * This file is the Electron main process entry point that creates the application window,
  * manages the system tray icon, and handles communication between the user
@@ -20,12 +20,16 @@ import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url'
 import { registerHandlers } from "./services/handlers";
+import { sync } from "./services/sync";
+import * as fs from "node:fs";
+import {getAutoSyncEnabled} from "app/src-electron/services/auth";
 
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
 
 const currentDir = fileURLToPath(new URL('.', import.meta.url));
+export let serverAddress = "";
 
 let mainWindow: BrowserWindow | undefined;
 let appIcon: Tray | undefined;
@@ -69,15 +73,11 @@ async function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = undefined;
   });
-
-  await app.whenReady().then(() => { // Based on: https://www.electronjs.org/docs/latest/tutorial/ipc
-    // Registers all ipcMain handlers for APIs exposed in electron-preload
-    registerHandlers();
-  })
 }
 
 void app.whenReady().then(async () => {
   await createWindow();
+  init();
   let trayIcon = nativeImage.createFromPath(path.join(process.cwd(), 'src-electron', 'icons', 'cal.ico'));
   trayIcon = trayIcon.resize({ width: 16, height: 16 });
   appIcon = new Tray(trayIcon);
@@ -108,3 +108,9 @@ app.on('activate', () => {
     void createWindow();
   }
 });
+
+function init() {
+  registerHandlers(); // Registers all ipcMain handlers for APIs exposed in electron-preload
+  serverAddress = fs.readFileSync(path.join(app.getAppPath(), '../../public/serveraddress.txt'), 'utf8');
+  if (getAutoSyncEnabled()) void sync(); // sync on startup if autoSyncEnabled is true
+}

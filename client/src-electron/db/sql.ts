@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-10-28
+ * Updated: 2025-11-02
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -374,6 +374,52 @@ ORDER BY itemID ASC`;
 export const readAllFoldersStmt = `
 SELECT * FROM folders`;
 
+// read all modified after a given timestamp
+export const readNotesAfterStmt = `
+SELECT * FROM notes
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readRemindersAfterStmt = `
+SELECT * FROM reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readDailyRemindersAfterStmt = `
+SELECT * FROM daily_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readWeeklyRemindersAfterStmt = `
+SELECT * FROM weekly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readMonthlyRemindersAfterStmt = `
+SELECT * FROM monthly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readYearlyRemindersAfterStmt = `
+SELECT * FROM yearly_reminders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readExtensionsAfterStmt = `
+SELECT * FROM extensions
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readFoldersAfterStmt = `
+SELECT * FROM folders
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
+export const readDeletesAfterStmt = `
+SELECT * FROM deleted
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
 // get IDs based on folderID
 export const readNotesInFolderStmt = `
 SELECT itemID FROM notes
@@ -402,6 +448,43 @@ WHERE folderID = ?`;
 export const readFoldersInFolderStmt = `
 SELECT folderID FROM folders
 WHERE parentFolderID = ?`;
+
+// read lastModified based on itemID (used in syncing)
+export const readNoteLmStmt = `
+SELECT lastModified FROM notes
+WHERE itemID = ?`;
+
+export const readReminderLmStmt = `
+SELECT lastModified FROM reminders
+WHERE itemID = ?`;
+
+export const readDailyReminderLmStmt = `
+SELECT lastModified FROM daily_reminders
+WHERE itemID = ?`;
+
+export const readWeeklyReminderLmStmt = `
+SELECT lastModified FROM weekly_reminders
+WHERE itemID = ?`;
+
+export const readMonthlyReminderLmStmt = `
+SELECT lastModified FROM monthly_reminders
+WHERE itemID = ?`;
+
+export const readYearlyReminderLmStmt = `
+SELECT lastModified FROM yearly_reminders
+WHERE itemID = ?`;
+
+export const readExtensionLmStmt = `
+SELECT lastModified FROM extensions
+WHERE itemID = ? AND sequenceNum = ?`;
+
+export const readFolderLmStmt = `
+SELECT lastModified FROM folders
+WHERE folderID = ?`;
+
+export const readDeletedLmStmt = `
+SELECT lastModified FROM deleted
+WHERE itemID = ?`;
 
 
 // update entry SQL statements
