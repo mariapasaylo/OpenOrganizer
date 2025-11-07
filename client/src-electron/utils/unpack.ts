@@ -1,7 +1,7 @@
 /*
- * Authors: Kevin Sirantoine, Michael Jagiello
+ * Authors: Kevin Sirantoine
  * Created: 2025-10-29
- * Updated: 2025-11-05
+ * Updated: 2025-11-06
  *
  * This file defines functions for converting byte arrays into interface arrays for use in parsing syncdown.ts responses.
  *
@@ -18,9 +18,7 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted,
-  Flight,
-  Hotel
+  Deleted
 } from "app/src-electron/types/shared-types";
 import {decrypt} from "app/src-electron/services/crypto";
 import {getPrivateKey1} from "app/src-electron/services/auth";
@@ -279,77 +277,6 @@ export function unpackDeleted(repeatedData: Buffer, recordCount: number) {
     bufPos += 18;
   }
   return deletes;
-}
-
-// convert 6 Extensions into a single Flight
-export function unpackFlight(data: Extension[]) {
-  if (data.length != 6) return undefined;
-  const ext1 = data[0]!.data;
-  const ext2 = data[1]!.data;
-  const ext3 = data[2]!.data;
-  const ext4 = data[3]!.data;
-  const ext5 = data[4]!.data;
-  const ext6 = data[5]!.data;
-  const flight: Flight = {
-    itemID: data[0]!.itemID,
-    lastModified: data[0]!.lastModified,
-    depAirportName: ext1,
-    depAirportAddress: ext2,
-    arrAirportName: ext3,
-    arrAirportAddress: ext4,
-    airlineCode: ext5.substring(0, 8),
-    flightNumber: ext5.substring(8, 16),
-    airlineName: ext5.substring(16, 64),
-    depAirportIATA: ext6.substring(0, 3),
-    depTimezoneAbbr: ext6.substring(3, 8),
-    depTimeYear: Number(Buffer.from(ext6.substring(8, 12)).readInt32LE(0)),
-    depTimeDay: Number(Buffer.from(ext6.substring(12, 14)).readInt16LE(0)),
-    depTimeMin: Number(Buffer.from(ext6.substring(14, 16)).readInt16LE(0)),
-    depTimeDestZoneYear: Number(Buffer.from(ext6.substring(16, 20)).readInt32LE(0)),
-    depTimeDestZoneDay: Number(Buffer.from(ext6.substring(20, 22)).readInt16LE(0)),
-    depTimeDestZoneMin: Number(Buffer.from(ext6.substring(22, 24)).readInt16LE(0)),
-    boardingTimeYear: Number(Buffer.from(ext6.substring(24, 28)).readInt32LE(0)),
-    boardingTimeDay: Number(Buffer.from(ext6.substring(28, 30)).readInt16LE(0)),
-    boardingTimeMin: Number(Buffer.from(ext6.substring(30, 32)).readInt16LE(0)),
-    boardingGroup: ext6.substring(32, 34),
-    gate: ext6.substring(34, 38),
-    depTimezoneOffset: ext6.substring(38, 39),
-    arrTimezoneOffset: ext6.substring(39, 40),
-    arrAirportIATA: ext6.substring(40, 43),
-    arrTimezoneAbbr: ext6.substring(43, 48),
-    arrTimeYear: Number(Buffer.from(ext6.substring(48, 52)).readInt32LE(0)),
-    arrTimeDay: Number(Buffer.from(ext6.substring(52, 54)).readInt16LE(0)),
-    arrTimeMin: Number(Buffer.from(ext6.substring(54, 56)).readInt16LE(0)),
-    arrTimeDestZoneYear: Number(Buffer.from(ext6.substring(56, 60)).readInt32LE(0)),
-    arrTimeDestZoneDay: Number(Buffer.from(ext6.substring(60, 62)).readInt16LE(0)),
-    arrTimeDestZoneMin: Number(Buffer.from(ext6.substring(62, 64)).readInt16LE(0))
-  };
-  return flight;
-}
-
-// convert 4 Extensions to a single Hotel
-export function unpackHotel(data: Extension[]) {
-  if (data.length != 4) return undefined;
-  const ext1 = data[0]!.data;
-  const ext2 = data[1]!.data;
-  const ext3 = data[2]!.data;
-  const ext4 = data[3]!.data;
-  const hotel: Hotel = {
-    itemID: data[0]!.itemID,
-    lastModified: data[0]!.lastModified,
-    name: ext1,
-    address: ext2 + ext3,
-    checkinTimeYear: Number(Buffer.from(ext4.substring(0, 4)).readInt32LE(0)),
-    checkinTimeDay: Number(Buffer.from(ext4.substring(4, 6)).readInt16LE(0)),
-    checkinTimeMin: Number(Buffer.from(ext4.substring(6, 8)).readInt16LE(0)),
-    checkoutTimeYear: Number(Buffer.from(ext4.substring(8, 12)).readInt32LE(0)),
-    checkoutTimeDay: Number(Buffer.from(ext4.substring(12, 14)).readInt16LE(0)),
-    checkoutTimeMin: Number(Buffer.from(ext4.substring(14, 16)).readInt16LE(0)),
-    timezoneAbbrev: ext4.substring(16, 21),
-    timezoneOffset: ext4.substring(21, 22),
-    roomNumber: ext4.substring(22, 32)
-  };
-  return hotel;
 }
 
 // helpers

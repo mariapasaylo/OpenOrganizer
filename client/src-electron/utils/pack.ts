@@ -1,7 +1,7 @@
 /*
- * Authors: Kevin Sirantoine, Michael Jagiello
+ * Authors: Kevin Sirantoine
  * Created: 2025-10-28
- * Updated: 2025-11-05
+ * Updated: 2025-11-06
  *
  * This file defines functions for converting interface arrays into byte arrays for use in syncup.ts POST requests.
  *
@@ -18,9 +18,7 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
-  Deleted,
-  Flight,
-  Hotel
+  Deleted
 } from "app/src-electron/types/shared-types";
 import {encrypt} from "app/src-electron/services/crypto";
 import {getPrivateKey1} from "app/src-electron/services/auth";
@@ -317,104 +315,6 @@ export function packDeleted(deletes: Deleted[]) {
   return repeatedData;
 }
 
-// takes a Flight and packs into 6 Extensions
-// assumes all fields are of proper size
-export function packFlight(flight: Flight) {
-  const extensions: Extension[] = [
-    {
-      itemID: flight.itemID,
-      sequenceNum: 1,
-      lastModified: flight.lastModified,
-      data: flight.depAirportName
-    },
-    {
-      itemID: flight.itemID,
-      sequenceNum: 2,
-      lastModified: flight.lastModified,
-      data: flight.depAirportAddress
-    },
-    {
-      itemID: flight.itemID,
-      sequenceNum: 3,
-      lastModified: flight.lastModified,
-      data: flight.arrAirportName
-    },
-    {
-      itemID: flight.itemID,
-      sequenceNum: 4,
-      lastModified: flight.lastModified,
-      data: flight.arrAirportAddress
-    },
-    {
-      itemID: flight.itemID,
-      sequenceNum: 5,
-      lastModified: flight.lastModified,
-      data: 
-        flight.airlineCode +
-        flight.flightNumber +
-        flight.airlineName
-    },
-    {
-      itemID: flight.itemID,
-      sequenceNum: 6,
-      lastModified: flight.lastModified,
-      data:
-        flight.depAirportIATA +
-        flight.depTimezoneAbbr +
-        packTime(flight.depTimeYear, flight.depTimeDay, flight.depTimeMin) +
-        packTime(flight.depTimeDestZoneYear, flight.depTimeDestZoneDay, flight.depTimeDestZoneMin) +
-        packTime(flight.boardingTimeYear, flight.boardingTimeDay, flight.boardingTimeMin) +
-        flight.boardingGroup +
-        flight.gate +
-        flight.depTimezoneOffset +
-        flight.arrTimezoneOffset +
-        flight.arrAirportIATA +
-        flight.arrTimezoneAbbr +
-        packTime(flight.arrTimeYear, flight.arrTimeDay, flight.arrTimeMin) +
-        packTime(flight.arrTimeDestZoneYear, flight.arrTimeDestZoneDay, flight.arrTimeDestZoneMin)
-    }
-  ];
-  return extensions;
-}
-
-// takes a Hotel and packs into 4 Extensions
-// assumes all fields are of proper size
-export function packHotel(hotel: Hotel) {
-  const extensions: Extension[] = [
-    {
-      itemID: hotel.itemID,
-      sequenceNum: 1,
-      lastModified: hotel.lastModified,
-      data: hotel.name
-    },
-    {
-      itemID: hotel.itemID,
-      sequenceNum: 2,
-      lastModified: hotel.lastModified,
-      data: hotel.address.substring(0, 64)
-    },
-    {
-      itemID: hotel.itemID,
-      sequenceNum: 3,
-      lastModified: hotel.lastModified,
-      data: hotel.address.substring(64, 128)
-    },
-    {
-      itemID: hotel.itemID,
-      sequenceNum: 4,
-      lastModified: hotel.lastModified,
-      data:
-        packTime(hotel.checkinTimeYear, hotel.checkinTimeDay, hotel.checkinTimeMin) +
-        packTime(hotel.checkoutTimeYear, hotel.checkoutTimeDay, hotel.checkoutTimeMin) +
-        hotel.timezoneAbbrev +
-        hotel.timezoneOffset +
-        hotel.roomNumber +
-        "\0".repeat(32)
-    }
-  ];
-  return extensions;
-}
-
 // helpers
 
 function packEventTimes(encrData: Buffer, reminder : Reminder, encrBufPos: number) {
@@ -469,11 +369,4 @@ function packDaysOfMonth(daysOfMonth: string) { // uses big-endian to store bits
   return packedDoM;
 }
 
-// converts year+day+minute into an 8-byte string
-function packTime(year: number, day: number, minute: number) {
-  const result = Buffer.alloc(8);
-  result.writeUint32LE(year, 0);
-  result.writeUint16LE(day, 4);
-  result.writeUint16LE(minute, 6);
-  return result.toString();
-}
+
