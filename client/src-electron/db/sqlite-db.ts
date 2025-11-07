@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-06
+ * Updated: 2025-11-07
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -186,6 +186,10 @@ export function createDeleted(newDeleted: Deleted) {
 export function readNote(itemID: bigint) {
   const note = readNoteStmt.get(itemID) as Note;
   if (note === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) note.extensions = extensions;
+
   castItemBigInts(note);
   return note;
 }
@@ -193,6 +197,10 @@ export function readNote(itemID: bigint) {
 export function readReminder(itemID: bigint) {
   const rem = readReminderStmt.get(itemID) as Reminder;
   if (rem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) rem.extensions = extensions;
+
   castItemBigInts(rem);
   return rem;
 }
@@ -200,6 +208,10 @@ export function readReminder(itemID: bigint) {
 export function readDailyReminder(itemID: bigint) {
   const dailyRem = readDailyReminderStmt.get(itemID) as DailyReminder;
   if (dailyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) dailyRem.extensions = extensions;
+
   castItemBigInts(dailyRem);
   return dailyRem;
 }
@@ -207,6 +219,10 @@ export function readDailyReminder(itemID: bigint) {
 export function readWeeklyReminder(itemID: bigint) {
   const weeklyRem = readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
   if (weeklyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) weeklyRem.extensions = extensions;
+
   castItemBigInts(weeklyRem);
   return weeklyRem;
 }
@@ -214,6 +230,10 @@ export function readWeeklyReminder(itemID: bigint) {
 export function readMonthlyReminder(itemID: bigint) {
   const monthlyRem = readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
   if (monthlyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) monthlyRem.extensions = extensions;
+
   castItemBigInts(monthlyRem);
   return monthlyRem;
 }
@@ -221,6 +241,10 @@ export function readMonthlyReminder(itemID: bigint) {
 export function readYearlyReminder(itemID: bigint) {
   const yearlyRem = readYearlyReminderStmt.get(itemID) as YearlyReminder;
   if (yearlyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) yearlyRem.extensions = extensions;
+
   castItemBigInts(yearlyRem);
   return yearlyRem;
 }
@@ -243,6 +267,12 @@ export function readFolder(folderID: bigint) {
 export function readNotesInRange(windowStartMs: bigint, windowEndMs: bigint) {
   const notes = readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
   if (notes === undefined) return undefined;
+
+  for (const note of notes) {
+    const extensions = readExtensions(note.itemID);
+    if (extensions !== undefined) note.extensions = extensions;
+  }
+
   castItemsBigInts(notes);
   return notes;
 }
@@ -254,6 +284,12 @@ export function readRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as Reminder[];
   if (rems === undefined) return undefined;
+
+  for (const rem of rems) {
+    const extensions = readExtensions(rem.itemID);
+    if (extensions !== undefined) rem.extensions = extensions;
+  }
+
   castItemsBigInts(rems);
   return rems;
 }
@@ -266,6 +302,12 @@ export function readDailyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as DailyReminder[];
   if (dailyRems === undefined) return undefined;
+
+  for (const dailyRem of dailyRems) {
+    const extensions = readExtensions(dailyRem.itemID);
+    if (extensions !== undefined) dailyRem.extensions = extensions;
+  }
+
   castItemsBigInts(dailyRems);
   return dailyRems;
 }
@@ -278,6 +320,12 @@ export function readWeeklyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as WeeklyReminder[];
   if (weeklyRems === undefined) return undefined;
+
+  for (const weeklyRem of weeklyRems) {
+    const extensions = readExtensions(weeklyRem.itemID);
+    if (extensions !== undefined) weeklyRem.extensions = extensions;
+  }
+
   castItemsBigInts(weeklyRems);
   return weeklyRems;
 }
@@ -290,6 +338,12 @@ export function readMonthlyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as MonthlyReminder[];
   if (monthlyRems === undefined) return undefined;
+
+  for (const monthlyRem of monthlyRems) {
+    const extensions = readExtensions(monthlyRem.itemID);
+    if (extensions !== undefined) monthlyRem.extensions = extensions;
+  }
+
   castItemsBigInts(monthlyRems);
   return monthlyRems;
 }
@@ -302,6 +356,12 @@ export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as YearlyReminder[];
   if (yearlyRems === undefined) return undefined;
+
+  for (const yearlyRem of yearlyRems) {
+    const extensions = readExtensions(yearlyRem.itemID);
+    if (extensions !== undefined) yearlyRem.extensions = extensions;
+  }
+
   castItemsBigInts(yearlyRems);
   return yearlyRems;
 }
@@ -350,7 +410,7 @@ export function readFoldersInFolder(parentFolderID: bigint) {
   return folderIDs.map((folderID) => BigInt(folderID.folderID));
 }
 
-// read all modified after a given timestamp
+// read all modified after a given timestamp (for use in sync-up)
 export function readNotesAfter(lastUpdated: bigint) {
   const notes = readNotesAfterStmt.all(lastUpdated) as Note[];
   if (notes === undefined) return undefined;
@@ -414,7 +474,7 @@ export function readDeletesAfter(lastUpdated: bigint) {
   return deletes;
 }
 
-// read lastModified based on itemID (used in syncing)
+// read lastModified based on itemID (used in storing items retrieved in sync-down)
 export function readNoteLm(itemID: bigint) {
   const note = readNoteLmStmt.get(itemID) as bigint;
   if (note === undefined) return undefined;

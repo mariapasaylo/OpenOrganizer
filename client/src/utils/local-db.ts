@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-11-06
+ * Updated: 2025-11-07
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -281,10 +281,9 @@ export async function createDeleted(itemID: bigint, itemTable: number) {
 // read
 export async function readNote(itemID: bigint) {
   const note = await window.sqliteAPI.readNote(itemID);
-  const extensions = await window.sqliteAPI.readExtensions(itemID);
 
   const fullText = [note.text];
-  for (const extension of extensions) fullText.push(extension.data);
+  if (note.extensions !== undefined) for (const ext of note.extensions) fullText.push(ext.data);
   note.text = fullText.join("");
 
   return note;
@@ -314,8 +313,6 @@ export async function readFolder(folderID: bigint) {
   return await window.sqliteAPI.readFolder(folderID);
 }
 
-// todo: write individual functions to extract meaningful data from reminder extensions based on eventType using window.sqliteAPI.readExtensions()
-
 export async function readNotesInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) { // Range is in UTC
   const windowStartMs = BigInt(makeDateTime(windowStartTime).getTime());
   const windowEndMs = BigInt(makeDateTime(windowEndTime).getTime());
@@ -324,10 +321,8 @@ export async function readNotesInRange(windowStartTime: Timestamp, windowEndTime
   const notes = await window.sqliteAPI.readNotesInRange(windowStartMs, windowEndMs);
 
   for (const note of notes) {
-    const extensions = await window.sqliteAPI.readExtensions(note.itemID);
-
     const fullText = [note.text];
-    for (const extension of extensions) fullText.push(extension.data);
+    if (note.extensions !== undefined) for (const ext of note.extensions) fullText.push(ext.data);
     note.text = fullText.join("");
   }
   return notes;
