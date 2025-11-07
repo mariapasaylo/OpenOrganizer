@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-05
+ * Updated: 2025-11-07
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -35,7 +35,6 @@ declare global {
       createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
       createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
       createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
-      createExtension: (newExt: Extension) => Promise<void>;
       createFolder: (newFolder: Folder) => Promise<void>;
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
@@ -46,7 +45,6 @@ declare global {
       readWeeklyReminder: (itemID: bigint) => Promise<WeeklyReminder>;
       readMonthlyReminder: (itemID: bigint) => Promise<MonthlyReminder>;
       readYearlyReminder: (itemID: bigint) => Promise<YearlyReminder>;
-      readExtensions: (itemID: bigint) => Promise<Extension[]>;
       readFolder: (folderID: bigint) => Promise<Folder>;
 
       readNotesInRange: (windowStartMs: bigint, windowEndMs: bigint) => Promise<Note[]>;
