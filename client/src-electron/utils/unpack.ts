@@ -1,10 +1,9 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-29
- * Updated: 2025-10-29
+ * Updated: 2025-11-06
  *
  * This file defines functions for converting byte arrays into interface arrays for use in parsing syncdown.ts responses.
- *
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -280,12 +279,25 @@ export function unpackDeleted(repeatedData: Buffer, recordCount: number) {
   return deletes;
 }
 
-
 // helpers
+
 interface ItemDetails{
   itemID: bigint,
   lastModified: bigint,
   decrData: Buffer
+}
+
+interface ServerLastUp {
+  lastUpNotes: bigint;
+  lastUpReminders: bigint;
+  lastUpDaily: bigint;
+  lastUpWeekly: bigint;
+  lastUpMonthly: bigint;
+  lastUpYearly: bigint;
+  lastUpExtensions: bigint;
+  lastUpOverrides: bigint;
+  lastUpFolders: bigint;
+  lastUpDeleted: bigint;
 }
 
 function getItemDetailsFromBuf(repeatedData: Buffer, bufPos: number, encrSize: number) {
@@ -311,17 +323,4 @@ function unpackDaysOfWeek(buffer: Buffer) {
 function unpackDaysOfMonth(buffer: Buffer) {
   const bytes = buffer.readUint32BE(0);
   return bytes.toString(2).padStart(31, '0');
-}
-
-interface ServerLastUp {
-  lastUpNotes: bigint;
-  lastUpReminders: bigint;
-  lastUpDaily: bigint;
-  lastUpWeekly: bigint;
-  lastUpMonthly: bigint;
-  lastUpYearly: bigint;
-  lastUpExtensions: bigint;
-  lastUpOverrides: bigint;
-  lastUpFolders: bigint;
-  lastUpDeleted: bigint;
 }
