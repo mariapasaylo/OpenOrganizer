@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
- * Updated: 2025-10-28
+ * Updated: 2025-11-07
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -25,7 +25,8 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
-import { createAccount, loginAccount } from "./auth";
+import { createAccount, loginAccount, clearLocalData} from "./auth";
+import { sync } from "./sync";
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -54,10 +55,6 @@ export function registerHandlers()
 
   ipcMain.handle('createYearlyReminder', (event, newYearlyRem: YearlyReminder) => {
     db.createYearlyReminder(newYearlyRem);
-  });
-
-  ipcMain.handle('createExtension', (event, newExt: Extension) => {
-    db.createExtension(newExt);
   });
 
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
@@ -92,10 +89,6 @@ export function registerHandlers()
 
   ipcMain.handle('readYearlyReminder', (event, itemID: bigint) => {
     return db.readYearlyReminder(itemID);
-  });
-
-  ipcMain.handle('readExtensions', (event, itemID: bigint) => {
-    return db.readExtensions(itemID);
   });
 
   ipcMain.handle('readFolder', (event, folderID: bigint) => {
@@ -232,6 +225,11 @@ export function registerHandlers()
     db.clearAllTables();
   });
 
+  // sync
+  ipcMain.handle('sync', async (event) => {
+    await sync();
+  });
+
   // Example Handlers
   ipcMain.handle('sqliteRead', (event, key: string) => {
     return db.read(key);
@@ -317,4 +315,8 @@ ipcMain.handle('createAccount', async (event, username: string, password:string)
 
 ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
   return await loginAccount(username, password);
+});
+
+ipcMain.handle('clearLocalData', (event) => {
+  clearLocalData();
 });

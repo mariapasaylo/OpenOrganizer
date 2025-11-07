@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Michael Jagiello
  * Created: 2025-10-13
- * Updated: 2025-11-05
+ * Updated: 2025-11-06
  *
  * This file contains interfaces that are shared between the main and renderer processes to easily pass database entries and other values.
  *
@@ -19,6 +19,7 @@ export interface Note {
   isExtended: number;
   title: string;
   text: string;
+  extensions?: Extension[];
 }
 
 export interface Extension {
@@ -53,6 +54,7 @@ export interface Reminder {
   isExtended: number;
   hasNotif: number;
   title: string;
+  extensions?: Extension[];
 }
 
 export interface DailyReminder {
@@ -73,6 +75,7 @@ export interface DailyReminder {
   isExtended: number;
   everyNDays: number;
   title: string;
+  extensions?: Extension[];
 }
 
 export interface WeeklyReminder {
@@ -94,6 +97,7 @@ export interface WeeklyReminder {
   everyNWeeks: number;
   daysOfWeek: string;
   title: string;
+  extensions?: Extension[];
 }
 
 export interface MonthlyReminder {
@@ -115,6 +119,7 @@ export interface MonthlyReminder {
   lastDayOfMonth: number;
   daysOfMonth: string;
   title: string;
+  extensions?: Extension[];
 }
 
 export interface YearlyReminder {
@@ -135,6 +140,7 @@ export interface YearlyReminder {
   isExtended: number;
   dayOfYear: number;
   title: string;
+  extensions?: Extension[];
 }
 
 export interface Deleted {

@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello, Kevin Sirantoine, Maria Pasaylo, Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-11-02
+ * Updated: 2025-11-05
  *
  * This file is the Electron main process entry point that creates the application window,
  * manages the system tray icon, and handles communication between the user
@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url'
 import { registerHandlers } from "./services/handlers";
 import { sync } from "./services/sync";
 import * as fs from "node:fs";
+import {getAutoSyncEnabled} from "app/src-electron/services/auth";
 
 
 // needed in case process is undefined under Linux
@@ -111,5 +112,5 @@ app.on('activate', () => {
 function init() {
   registerHandlers(); // Registers all ipcMain handlers for APIs exposed in electron-preload
   serverAddress = fs.readFileSync(path.join(app.getAppPath(), '../../public/serveraddress.txt'), 'utf8');
-  // void sync() // sync on startup todo: check if user has an account and is logged in before sync is called
+  if (getAutoSyncEnabled()) void sync(); // sync on startup if autoSyncEnabled is true
 }

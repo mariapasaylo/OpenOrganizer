@@ -30,10 +30,10 @@ import type {
 } from "app/src-electron/types/shared-types";
 
 export async function sync() {
+  const dateNowBuffer = getDateNowBuffer(); // ensures no data is missed in next syncdown if 2 devices sync concurrently
   const retrievedItems = await syncdown();
   await syncUp();
 
-  const dateNowBuffer = getDateNowBuffer()
   lastUpdated.set('lastUpNotes', dateNowBuffer);
   lastUpdated.set('lastUpReminders', dateNowBuffer);
   lastUpdated.set('lastUpDaily', dateNowBuffer);
