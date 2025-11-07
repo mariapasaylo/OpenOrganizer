@@ -249,7 +249,7 @@ export function readYearlyReminder(itemID: bigint) {
   return yearlyRem;
 }
 
-export function readExtensions(itemID: bigint) {
+function readExtensions(itemID: bigint) {
   const extensions = readExtensionsStmt.all(itemID) as Extension[];
   if (extensions === undefined) return undefined;
   castExtensionsBigInts(extensions);
