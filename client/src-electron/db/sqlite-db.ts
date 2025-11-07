@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-02
+ * Updated: 2025-11-06
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -117,6 +117,7 @@ const deleteFolderStmt = db.prepare(sql.deleteFolderStmt);
 // create
 export function createNote(newNote: Note) {
   createNoteStmt.run(newNote.itemID, newNote.lastModified, newNote.folderID, newNote.isExtended, newNote.title, newNote.text);
+  if (newNote.extensions !== undefined) for (const ext of newNote.extensions) createExtension(ext);
 }
 
 export function createReminder(newRem: Reminder) {
@@ -125,6 +126,7 @@ export function createReminder(newRem: Reminder) {
     newRem.eventStartMin, newRem.eventEndYear, newRem.eventEndDay, newRem.eventEndMin, newRem.notifYear,
     newRem.notifDay, newRem.notifMin, newRem.isExtended, newRem.hasNotif, newRem.title
   );
+  if (newRem.extensions !== undefined) for (const ext of newRem.extensions) createExtension(ext);
 }
 
 export function createDailyReminder(newDailyRem: DailyReminder) {
@@ -134,6 +136,7 @@ export function createDailyReminder(newDailyRem: DailyReminder) {
     newDailyRem.seriesEndMin, newDailyRem.timeOfDayMin, newDailyRem.eventDurationMin, newDailyRem.notifOffsetTimeMin,
     newDailyRem.hasNotifs, newDailyRem.isExtended, newDailyRem.everyNDays, newDailyRem.title
   );
+  if (newDailyRem.extensions !== undefined) for (const ext of newDailyRem.extensions) createExtension(ext);
 }
 
 export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
@@ -143,6 +146,7 @@ export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
     newWeeklyRem.seriesEndMin, newWeeklyRem.timeOfDayMin, newWeeklyRem.eventDurationMin, newWeeklyRem.notifOffsetTimeMin,
     newWeeklyRem.hasNotifs, newWeeklyRem.isExtended, newWeeklyRem.everyNWeeks, newWeeklyRem.daysOfWeek, newWeeklyRem.title
   );
+  if (newWeeklyRem.extensions !== undefined) for (const ext of newWeeklyRem.extensions) createExtension(ext);
 }
 
 export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
@@ -152,6 +156,7 @@ export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
     newMonthlyRem.seriesEndMin, newMonthlyRem.timeOfDayMin, newMonthlyRem.eventDurationMin, newMonthlyRem.notifOffsetTimeMin,
     newMonthlyRem.hasNotifs, newMonthlyRem.isExtended, newMonthlyRem.lastDayOfMonth, newMonthlyRem.daysOfMonth, newMonthlyRem.title
   );
+  if (newMonthlyRem.extensions !== undefined) for (const ext of newMonthlyRem.extensions) createExtension(ext);
 }
 
 export function createYearlyReminder(newYearlyRem: YearlyReminder) {
@@ -161,6 +166,7 @@ export function createYearlyReminder(newYearlyRem: YearlyReminder) {
     newYearlyRem.seriesEndMin, newYearlyRem.timeOfDayMin, newYearlyRem.eventDurationMin, newYearlyRem.notifOffsetTimeMin,
     newYearlyRem.hasNotifs, newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title
   );
+  if (newYearlyRem.extensions !== undefined) for (const ext of newYearlyRem.extensions) createExtension(ext);
 }
 
 export function createExtension(newExt: Extension) {
@@ -465,8 +471,8 @@ export function readDeletedLm(itemID: bigint) {
 
 // update
 export function updateNote(modNote: Note) {
-  updateNoteStmt.run(
-    modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
+  updateNoteStmt.run(modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
+  if (modNote.extensions !== undefined) for (const ext of modNote.extensions) createExtension(ext);
 }
 
 export function updateReminder(modRem: Reminder) {
@@ -475,6 +481,7 @@ export function updateReminder(modRem: Reminder) {
     modRem.eventStartMin, modRem.eventEndYear, modRem.eventEndDay, modRem.eventEndMin, modRem.notifYear,
     modRem.notifDay, modRem.notifMin, modRem.isExtended, modRem.hasNotif, modRem.title, modRem.itemID
   ); // itemID last
+  if (modRem.extensions !== undefined) for (const ext of modRem.extensions) createExtension(ext);
 }
 
 export function updateDailyReminder(modDailyRem: DailyReminder) {
@@ -484,6 +491,7 @@ export function updateDailyReminder(modDailyRem: DailyReminder) {
     modDailyRem.seriesEndMin, modDailyRem.timeOfDayMin, modDailyRem.eventDurationMin, modDailyRem.notifOffsetTimeMin,
     modDailyRem.hasNotifs, modDailyRem.isExtended, modDailyRem.everyNDays, modDailyRem.title, modDailyRem.itemID
   ); // itemID last
+  if (modDailyRem.extensions !== undefined) for (const ext of modDailyRem.extensions) createExtension(ext);
 }
 
 export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
@@ -494,6 +502,7 @@ export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
     modWeeklyRem.hasNotifs, modWeeklyRem.isExtended, modWeeklyRem.everyNWeeks, modWeeklyRem.daysOfWeek, modWeeklyRem.title,
     modWeeklyRem.itemID
   ); // itemID last
+  if (modWeeklyRem.extensions !== undefined) for (const ext of modWeeklyRem.extensions) createExtension(ext);
 }
 
 export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
@@ -504,6 +513,7 @@ export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
     modMonthlyRem.hasNotifs, modMonthlyRem.isExtended, modMonthlyRem.lastDayOfMonth, modMonthlyRem.daysOfMonth, modMonthlyRem.title,
     modMonthlyRem.itemID
   ); // itemID last
+  if (modMonthlyRem.extensions !== undefined) for (const ext of modMonthlyRem.extensions) createExtension(ext);
 }
 
 export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
@@ -513,6 +523,7 @@ export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
     modYearlyRem.seriesEndMin, modYearlyRem.timeOfDayMin, modYearlyRem.eventDurationMin, modYearlyRem.notifOffsetTimeMin,
     modYearlyRem.hasNotifs, modYearlyRem.isExtended, modYearlyRem.dayOfYear, modYearlyRem.title, modYearlyRem.itemID
   ); // itemID last
+  if (modYearlyRem.extensions !== undefined) for (const ext of modYearlyRem.extensions) createExtension(ext);
 }
 
 export function updateFolder(modFolder: Folder) {
