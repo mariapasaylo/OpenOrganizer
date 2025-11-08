@@ -46,6 +46,23 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="showLoginOptions">
+      <q-card style="width: 400px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="row justify-around q-mt-md"> 
+            <div class="text-h6">Account Options</div>
+            <q-btn icon="close" flat round dense v-close-popup />
+          </div>
+          <div class="row justify-around q-mt-md">
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Change Login" @click="showChangeLogin = true" />
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Log out" @click="$router.push('/calendar')" />
+          </div>  
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+
+
     <!-- Left column - File Explorer top row-->
     <div style="grid-area: file-explorer-search; padding: 20px" data-area="file-explorer-search">
       <q-input
@@ -373,7 +390,7 @@
     <!-- Right column - Settings/Account Buttons (bottom row) -->
     <div style="grid-area: account-settings; padding: 20px 30px; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;"  data-area="account-settings">
       <div class="row justify-between items-center">
-        <q-btn class="account-and-settings-button" flat icon="account_circle" @click="$router.push('/register')" />
+        <q-btn class="account-and-settings-button" flat icon="account_circle" @click="showLoginOptions = true" />
         <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
       </div>
     </div>
@@ -475,9 +492,13 @@ const eventTypeOptions = computed(() => {
 });
 
 const showSettings = ref(false);
+const showLoginOptions = ref(false);
+const showChangeLogin = ref(false);
 const isCloudOn = ref(false);
 const selectAll = ref(false)
 const searchQuery = ref('');
+const newUsername = ref<string>('');
+const newPassword = ref<string>('');
 // Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<bigint | null>(null);
