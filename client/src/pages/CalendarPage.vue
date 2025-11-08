@@ -61,6 +61,30 @@
       </q-card>
     </q-dialog>
 
+        <q-dialog v-model="showChangeLogin">
+      <q-card style="width: 400px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="text-h6">Enter New Username</div>
+          <q-input v-model="newUsername" type="text"  square filled  placeholder="New Username" />
+        </q-card-section>
+        <q-card-section>
+          <div class="text-h6">Enter New Password</div>
+          <q-input v-model="newPassword" filled :type="isPwd ? 'password' : 'text'" placeholder="New Password">
+                <template v-slot:append>
+                <q-icon
+                :name="isPwd ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"/>
+                </template>
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Save Changes" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
 
 
     <!-- Left column - File Explorer top row-->
@@ -499,6 +523,8 @@ const selectAll = ref(false)
 const searchQuery = ref('');
 const newUsername = ref<string>('');
 const newPassword = ref<string>('');
+const isPwd = ref(true);
+
 // Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<bigint | null>(null);
