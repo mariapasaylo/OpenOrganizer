@@ -360,6 +360,7 @@
                 <div
                   :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
                   style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
+                  @click="onClickCalendarEvent(event)"
                 >
                   <div class="event-title" style="width: 100%; max-width: 100%;">
                   {{ event.title }}
@@ -390,12 +391,12 @@
 <script setup lang="ts">
 import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/index.css';
-import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType} from '../frontend-utils/events';
-import {nest, buildBreadcrumbs, convertFolderTreetoQTree, normalizeFolderID} from '../frontend-utils/tree';
+import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType, type CalendarEvent} from '../frontend-utils/events';
+import { buildBreadcrumbs, normalizeFolderID, buildRootNodes} from '../frontend-utils/tree';
 import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
 import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
-import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
+import type { Reminder, Folder } from '../../src-electron/types/shared-types';
 import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
 
 // Initialize active tab to reminder by default
@@ -559,7 +560,9 @@ function handleTreeSelection(newlySelectedNode: bigint | null) {
         tab.value='reminders';
         // Set date to reminder date on calendar
         selectedDate.value = reminder.date;
-        // Expand the reminder card 
+        // Collapse all other reminders except the selected entry
+        reminders.value.forEach(reminder =>  {reminder.expanded = false; })
+        // Expand the selected reminder card 
         reminder.expanded = true;
         return;
       }
@@ -567,7 +570,9 @@ function handleTreeSelection(newlySelectedNode: bigint | null) {
       const note = notes.value.find(note => String(note.itemID) === String(itemID));
       if (note) {
         tab.value='notes';
-        // Expand the note card
+        // Collapse all other notes except the selected entry
+        notes.value.forEach(note =>  {note.expanded = false; })
+        // Expand the selected note card
         note.expanded = true;
         return;
       }
@@ -639,11 +644,11 @@ function cancelRename(item: UIReminder | UINote | UIFolder) {
 }
 
 // Create nested folder tree structure from flat folders array
-const nestedFolderTree = computed(() => nest(folders.value, -1n));
+//const nestedFolderTree = computed(() => nest(folders.value, 0n));
 
 // Convert nested folder tree to Q-Tree format
 // Computed since it relies on nestedFolderTree, so it automatically updates whenever the nested folder tree updates
-const qNestedTree = computed(() => convertFolderTreetoQTree(nestedFolderTree.value, notes.value, reminders.value));
+const qNestedTree = computed(() => buildRootNodes(folders.value, notes.value, reminders.value));
 
 // Computed breadcrumbs array that walks from the selected folder up to the root to build the path
 const breadcrumbs = computed(() => buildBreadcrumbs(selectedFolderID.value, folders.value, notes.value, reminders.value))
@@ -933,7 +938,6 @@ function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
   // Normalize to lowercase so the sorting is case-insensitive
   row.sort((a, b) => String(a.folderName ?? '').toLowerCase().localeCompare(String(b.folderName ?? '').toLowerCase()));
   return row;
-
 }
 
 async function mapDBToUINote(itemID: number | bigint): Promise<UINote | null> {
@@ -998,8 +1002,8 @@ onMounted(async () => {
 function addFolder() {
    // create a UI-only draft folder with a temporary negative bigint ID
   const tempID = tempIDCounter--;
-  // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = -1)
-  const newParentFolderID = normalizeFolderID(selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+  // Sets parentFolderID of new folder to currently selected folder in file explorer tree. If no folder is selected, add new folder to root (parentFolderID = 0)
+  const newParentFolderID = normalizeFolderID(selectedFolderID.value, notes.value, reminders.value, folders.value) ?? 0n;
 
   const draft: UIFolder = {
     folderID: tempID,
@@ -1030,7 +1034,7 @@ async function saveFolder(folder: UIFolder){
   try {
     // First time is a draft folder, create new folder in local DB
     if (!folder.isSaved) {
-      const newParentFolderID = normalizeFolderID(folder.parentFolderID ?? selectedFolderID.value, notes.value, reminders.value, folders.value) ?? -1n;
+      const newParentFolderID = normalizeFolderID(folder.parentFolderID ?? selectedFolderID.value, notes.value, reminders.value, folders.value) ?? 0n;
       const folderID: bigint = await createFolder(newParentFolderID, -1, folder.temporaryFolderName);
       folders.value = mapDBToUIFolder(await readAllFolders());
       selectedFolderID.value = folderID;
@@ -1410,6 +1414,19 @@ watch(selectedDate, async (newDate) => {
 const events = computed(() => buildCalendarEvents(reminders.value, eventTypes))
 // Group events by date
 const eventsMap = computed(() => groupEventsByDate(events.value))
+
+// If user clicks calendar event, route to that reminder entry
+function onClickCalendarEvent(event: CalendarEvent) {
+  // Find reminder that matches event
+  const reminder = reminders.value.find(reminder => String(reminder.itemID) === String(event.id));
+  if (!reminder) {
+    return;
+  } 
+  tab.value = 'reminders';
+  selectedDate.value = reminder.date;
+  reminders.value.forEach(reminder => { reminder.expanded = false; })
+  reminder.expanded = true;
+}
 
 // Filtered notes array for displaying only notes that match the search query
 const filteredNotes = computed(() => {
