@@ -1,9 +1,9 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-11-08
- * Updated: 2025-11-08
+ * Updated: 2025-11-09
  *
- * This file defines all main functionality for keeping track of current notifications.
+ * This file defines all main functionality for creating, maintaining, and executing notifcations based on reminders and generated reminders.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -24,7 +24,7 @@ interface Notif {
   body: string
 }
 
-// all notifcations of today and tomorrow that are loaded (this should never be large enough for a full iteration to matter)
+// all loaded reminders and generated reminders are loaded as notifs (this should never be large enough for a full iteration to matter)
 // key is (itemID << 64) | (origEventStartTime | itemID)
 const notifications = new Map<bigint, Notif>();
 
@@ -33,7 +33,7 @@ export function InitNotifications() {
   cron.schedule("* * * * *", () => { CheckNotifications() });
 }
 
-// adds or updates reminder for notification time
+// adds or updates reminder for notification details
 // only adds if hasNotif == true, else deletes
 export function SetNotifReminder(reminder: Reminder) {
   if (!reminder.hasNotif) {
@@ -50,7 +50,9 @@ export function SetNotifReminder(reminder: Reminder) {
   return true;
 }
 
-//export function AddNotifGenerated() {}
+// adds or updates generated reminder for notification details
+// only adds if hasNotif == true, else deletes
+//export function SetNotifGenerated() {}
 
 // deletes notification
 // origEventStartTime is required for generated reminders
@@ -86,7 +88,7 @@ function GetNowTime() {
   return TimestampToBigint(time);
 }
 
-// converts year+day+minute into a bigint
+// converts Timestamp into a bigint
 function TimestampToBigint(time: Timestamp) {
   const buf = Buffer.alloc(8);
   buf.writeUint32LE(time.year, 0);
@@ -95,6 +97,7 @@ function TimestampToBigint(time: Timestamp) {
   return buf.readBigInt64LE();
 }
 
+// converts year+day+minute into a bigint
 function TimeToBigint(year: number, day: number, minute: number) {
   const buf = Buffer.alloc(8);
   buf.writeUint32LE(year, 0);
@@ -103,6 +106,7 @@ function TimeToBigint(year: number, day: number, minute: number) {
   return buf.readBigInt64LE();
 }
 
+// concatenates two 64-bit bigints
 function CombineBigints64(a: bigint, b: bigint) {
   return (a << 64n) | b;
 }
