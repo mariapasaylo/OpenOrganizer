@@ -1154,14 +1154,6 @@ try {
 
   folders.value = mapDBToUIFolder(await readAllFolders());
   await loadRemindersForCalendarDate(selectedDate.value);
-
-  if (hasNotification) {
-    // Convert notification to epoch for scheduling
-    const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
-    // Schedule notification
-    await window.reminderNotificationAPI.scheduleReminderNotification({itemID: itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
-    });
-  }
 }
   // Reminder is saved, just updating a preexisting reminder
   else {
@@ -1174,14 +1166,6 @@ try {
       folders.value = mapDBToUIFolder(await readAllFolders());
       // Reload reminders for selected calendar date to include newly added reminder
       await loadRemindersForCalendarDate(selectedDate.value);
-
-      if (hasNotification) {
-        // Convert notification to epoch for scheduling
-        const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
-        // Schedule notification
-        await window.reminderNotificationAPI.scheduleReminderNotification({itemID: reminder.itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
-        });
-      }
   }
   } catch (error) {
     console.error('Error adding reminder:', error);
