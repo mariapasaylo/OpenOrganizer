@@ -1,7 +1,7 @@
 <!--
- * Authors: Rachel Patella, Maria Pasaylo
+ * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-10-30
+ * Updated: 2025-11-08
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -709,51 +709,54 @@ async function loadRemindersForCalendarDate(dateString: string) {
   }
 }
 
-// Function to display all reminders (essentially a select ALL * from reminders table)
-async function loadAllReminders() {
-    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
-    // Far into past and far into future (100 years)
-    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
-    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
-
+// grabs all notes created from the provided year, the previous and the next year
+// if no year is provided, uses the current year
+async function loadNotes(year?: number) {
+  if (year == undefined) year = new Date().getFullYear();
+  const currentYear = year;
+  const lastYear = (currentYear == 1) ? -1 : currentYear - 1;
+  const nextYear = (currentYear == -1) ? 1 : currentYear + 1;
+  const start = convertTimeAndDateToTimestamp(lastYear.toString() + '-01-01', '');
+  const end = convertTimeAndDateToTimestamp(nextYear.toString() + '-12-31', '23:59');
   try {
-    // Clear list before reloading
-    reminders.value = [];
-    // Read all reminders from local DB
-    const rows = await readRemindersInRange(start, end);
-    // Convert each reminder in range from response to UI reminder format 
-    for (const reminder of rows) {
-      await mapDBToUIReminder(reminder.itemID);
-    }
-    // Sort reminders alphabetically by title for tree 
-    reminders.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
-    // console.log('All reminders loaded successfully:');
-  } catch (error) {
-    console.error('Error loading all reminders:', error);
-  }
-}
-
-// Function to display all notes (essentially a select ALL * from notes table)
-async function loadAllNotes() {
-    // Compute timestamp for minimum and maximum dates (wide range to cover all DB entries)
-    // Far into past and far into future (100 years)
-    const start = convertTimeAndDateToTimestamp('1900-01-01', '')
-    const end = convertTimeAndDateToTimestamp('2125-12-31', '23:59')
-
-  try {
-    // Clear list before reloading
+    // clear list before reloading
     notes.value = [];
-    // Read all notes from local DB
     const rows = await readNotesInRange(start, end);
-    // Convert each note in range from response to UI note format
+    // convert each note in range from response to UI note format
     for (const note of rows) {
       await mapDBToUINote(note.itemID);
     }
-    // Sort notes alphabetically by title for tree 
-    notes.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
-    // console.log('All notes loaded successfully:');
+    // sort notes alphabetically by title for tree
+    notes.value.sort((a, b) => {
+      return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());
+    });
   } catch (error) {
-    console.error('Error loading all notes:', error);
+    console.error('Error loading notes:', error);
+  }
+}
+
+// grabs all reminders created from the provided year, the previous and the next year
+// if no year is provided, uses the current year
+async function loadReminders(year?: number) {
+  if (year == undefined) year = new Date().getFullYear();
+  const currentYear = year;
+  const lastYear = (currentYear == 1) ? -1 : currentYear - 1;
+  const nextYear = (currentYear == -1) ? 1 : currentYear + 1;
+  const start = convertTimeAndDateToTimestamp(lastYear.toString() + '-01-01', '');
+  const end = convertTimeAndDateToTimestamp(nextYear.toString() + '-12-31', '23:59');
+  try {
+    // clear list before reloading
+    reminders.value = [];
+    const rows = await readRemindersInRange(start, end);
+    // convert each note in range from response to UI note format
+    for (const reminder of rows) {
+      await mapDBToUIReminder(reminder.itemID);
+    }
+    // sort reminders alphabetically by title for tree 
+    reminders.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
+    // console.log('All reminders loaded successfully:');
+  } catch (error) {
+    console.error('Error loading reminders:', error);
   }
 }
 
@@ -978,8 +981,8 @@ onMounted(async () => {
   // Ensure folders array is populated from local DB on page load
   folders.value = mapDBToUIFolder(await readAllFolders());
   // Load all reminders and notese so tree shows every item
-  await loadAllReminders();
-  await loadAllNotes();
+  await loadReminders();
+  await loadNotes();
   // Load reminders for selected calendar date on startup for tab list
   await loadRemindersForCalendarDate(selectedDate.value);
 });
@@ -1069,7 +1072,7 @@ async function saveNote(note: UINote){
     // Refresh folders to show newly added note in file explorer tree
     folders.value = mapDBToUIFolder(await readAllFolders());
     // Reload notes to include newly added note
-    await loadAllNotes();
+    await loadNotes();
   }
   else {
       await updateNote(note.itemID, note.temporaryFolderID, note.temporaryTitle, note.temporaryText);
@@ -1080,7 +1083,7 @@ async function saveNote(note: UINote){
       // Reload folders to see updated note in file tree
       folders.value = mapDBToUIFolder(await readAllFolders());
       // Reload notes to see updated note card
-      await loadAllNotes();
+      await loadNotes();
   }
  } catch (error) {
     console.error('Error saving note:', error);
@@ -1151,14 +1154,6 @@ try {
 
   folders.value = mapDBToUIFolder(await readAllFolders());
   await loadRemindersForCalendarDate(selectedDate.value);
-
-  if (hasNotification) {
-    // Convert notification to epoch for scheduling
-    const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
-    // Schedule notification
-    await window.reminderNotificationAPI.scheduleReminderNotification({itemID: itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
-    });
-  }
 }
   // Reminder is saved, just updating a preexisting reminder
   else {
@@ -1171,14 +1166,6 @@ try {
       folders.value = mapDBToUIFolder(await readAllFolders());
       // Reload reminders for selected calendar date to include newly added reminder
       await loadRemindersForCalendarDate(selectedDate.value);
-
-      if (hasNotification) {
-        // Convert notification to epoch for scheduling
-        const unixNotifTime = timeStamptoEpoch(notificationTimestampToSend);
-        // Schedule notification
-        await window.reminderNotificationAPI.scheduleReminderNotification({itemID: reminder.itemID, date: reminder.date, title: reminder.temporaryTitle, time: notifToDisplay, unixMilliseconds: unixNotifTime,
-        });
-      }
   }
   } catch (error) {
     console.error('Error adding reminder:', error);
@@ -1219,7 +1206,7 @@ async function deleteNote(note: UINote) {
     // Refresh folders for tree to remove deleted note
     folders.value = mapDBToUIFolder(await readAllFolders());
     // Re-load notes after deleted note
-    await loadAllNotes();
+    await loadNotes();
   } catch (error) {
     console.error('Error deleting note from DB:', error);
   }
@@ -1247,7 +1234,7 @@ async function deleteTreeNode() {
           await deleteFolder(folderToDelete.folderID);
           folders.value = mapDBToUIFolder(await readAllFolders());
           await loadRemindersForCalendarDate(selectedDate.value);
-          await loadAllNotes();
+          await loadNotes();
           // Clear tree node selection after deletion
           selectedFolderID.value = null;
         } catch (error) {
@@ -1269,7 +1256,7 @@ async function deleteTreeNode() {
         // Remove deleted note from notes array for UI rendering
         notes.value = notes.value.filter(note => String(note.itemID) !== String(noteToDelete.itemID));
         folders.value = mapDBToUIFolder(await readAllFolders());
-        await loadAllNotes();
+        await loadNotes();
         // Clear tree node selection after deletion
         selectedFolderID.value = null;
       } catch (error) {
@@ -1344,7 +1331,7 @@ async function cancelNote(note: UINote) {
   if (!note.isSaved) {
     notes.value = notes.value.filter(n => String(n.itemID) !== String(note.itemID));
     // Reload note list
-    await loadAllNotes();
+    await loadNotes();
   // Note is saved, revert temporary fields back to saved database values
   } else {
     // Reload DB row of note and restore fields
