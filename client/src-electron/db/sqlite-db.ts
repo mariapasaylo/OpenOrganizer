@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-07
+ * Updated: 2025-11-09
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -476,57 +476,57 @@ export function readDeletesAfter(lastUpdated: bigint) {
 
 // read lastModified based on itemID (used in storing items retrieved in sync-down)
 export function readNoteLm(itemID: bigint) {
-  const note = readNoteLmStmt.get(itemID) as bigint;
-  if (note === undefined) return undefined;
-  return BigInt(note);
+  const lastModified = readNoteLmStmt.get(itemID) as { lastModified: bigint };
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified.lastModified);
 }
 
 export function readReminderLm(itemID: bigint) {
-  const lastModified = readReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readDailyReminderLm(itemID: bigint) {
-  const lastModified = readDailyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readDailyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readWeeklyReminderLm(itemID: bigint) {
-  const lastModified = readWeeklyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readWeeklyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readMonthlyReminderLm(itemID: bigint) {
-  const lastModified = readMonthlyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readMonthlyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readYearlyReminderLm(itemID: bigint) {
-  const lastModified = readYearlyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readYearlyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readExtensionLm(itemID: bigint, sequenceNum: number) {
-  const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as bigint;
+  const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readFolderLm(folderID: bigint) {
-  const lastModified = readFolderLmStmt.get(folderID) as bigint;
+  const lastModified = readFolderLmStmt.get(folderID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readDeletedLm(itemID: bigint) {
-  const lastModified = readDeletedLmStmt.get(itemID) as bigint;
+  const lastModified = readDeletedLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 // update
