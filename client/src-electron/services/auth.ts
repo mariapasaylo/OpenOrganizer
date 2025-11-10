@@ -1,7 +1,7 @@
 /*
  * Authors: Maria Pasaylo, Kevin Sirantoine
  * Created: 2025-10-07
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
  * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
@@ -287,51 +287,30 @@ export async function createAccount(username : string, password : string): Promi
 
     //Ensure username is max 32 bytes
     const usernameBuffer = Buffer.from(newUsername).slice(0,32);
-    console.log('CHANGE LOGIN NEW USERNAME', usernameBuffer.toString('utf8'));
-    console.log('CHANGE LOGIN NEW USERNAME LENGTH', usernameBuffer.length);
-
     const oldUsernameBuffer = Buffer.from(oldUsername).slice(0,32);
-    console.log('CHANGE LOGIN OLD USERNAME', oldUsernameBuffer.toString('utf8'));
-    console.log('CHANGE LOGIN OLD USERNAME LENGTH', oldUsernameBuffer.length);
 
     //hash the passwords
     const hashNewPassword: Buffer = hash512_256(newPassword);
-    console.log('CHANGE LOGIN NEW PASSWORD HASH', hashNewPassword.toString('utf8'));
-    console.log('CHANGE LOGIN NEW PASSWORD HASH LENGTH', hashNewPassword.length);
     const hashOldPassword: Buffer = hash512_256(oldPassword);
-    console.log('CHANGE LOGIN OLD PASSWORD HASH', hashOldPassword.toString('utf8'));
-    console.log('CHANGE LOGIN OLD PASSWORD HASH LENGTH', hashOldPassword.length);
 
     //get the private keys
     const encrPrivateKey1: Buffer = getPrivateKey1();
-    console.log('CHANGE LOGIN PRIVATE KEY 1', encrPrivateKey1);
     const encrPrivateKey2: Buffer = getPrivateKey2();
-    console.log('CHANGE LOGIN PRIVATE KEY 2', encrPrivateKey2);
 
     //Store username[0:32], passwordHash[32:64], newUsername[64:96], newPasswordHash[96:128], 
     //privateKey1[128:160], privateKey2[160:192] to send to server
     const userData = Buffer.alloc(192,20);
     oldUsernameBuffer.copy(userData, 0);
-    console.log('CHANGE LOGIN USER DATA ADD OLDUSERNAME', userData.toString('utf8'));
-    console.log('CHANGE LOGIN USER DATA OLDUSERNAME RAW', usernameBuffer);
     hashOldPassword.copy(userData, 32);
-    console.log('CHANGE LOGIN USER DATA ADD OLDPASSWORD', userData.toString('utf8'));
-    console.log('CHANGE LOGIN USER DATA OLDPASSWORD RAW', hashOldPassword);
     usernameBuffer.copy(userData, 64);
-    console.log('CHANGE LOGIN USER DATA ADD NEWUSERNAME', userData.toString('utf8'));
-    console.log('CHANGE LOGIN USER DATA NEWUSERNAME RAW', usernameBuffer);
     hashNewPassword.copy(userData, 96);
-    console.log('CHANGE LOGIN USER DATA ADD NEWPASSWORD', userData.toString('utf8'));
-    console.log('CHANGE LOGIN USER DATA NEWPASSWORD RAW', hashNewPassword);
     encrPrivateKey1.copy(userData, 128);
-    console.log('CHANGE LOGIN USER DATA ADD PRIVATEKEY1', userData);
     encrPrivateKey2.copy(userData, 160);
-    console.log('CHANGE LOGIN USER DATA ADD PRIVATEKEY2', userData);
 
     //testing output
-    console.log('CHANGE LOGIN USER DATA', userData.toString('utf8'));
-    console.log('CHANGE LOGIN USER DATA RAW', userData);
-    console.log('CHANGE LOGIN USER DATA LENGTH', userData.length);
+    // console.log('CHANGE LOGIN USER DATA', userData.toString('utf8'));
+    // console.log('CHANGE LOGIN USER DATA RAW', userData);
+    // console.log('CHANGE LOGIN USER DATA LENGTH', userData.length);
 
     //Sending in raw data via API request to /changelogin
     try {
@@ -345,13 +324,12 @@ export async function createAccount(username : string, password : string): Promi
       const responseData = response.data;
 
       //More testing
-      console.log('CHANGE LOGIN RESPONSE DATA!!!!!!!', Buffer.from(responseData).toString('utf8'));
-      console.log('CHANGE LOGIN RESPONSE STATUS!!!!!!!',response.status);
+      // console.log('CHANGE LOGIN RESPONSE DATA!!!!!!!', Buffer.from(responseData).toString('utf8'));
+      // console.log('CHANGE LOGIN RESPONSE STATUS!!!!!!!',response.status);
 
       //userID [0:8], authToken[8:40]
       const userIdBytes = Buffer.from(responseData.slice(0, 8));
       const authTokenBytes = Buffer.from(responseData.slice(8, 40));
-
 
       //read as little endian and need to convert to string because electron-store json does not support bigint
       setUserId(userIdBytes.readBigInt64LE(0).toString());
