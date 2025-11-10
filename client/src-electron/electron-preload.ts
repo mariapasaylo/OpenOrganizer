@@ -130,5 +130,6 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
 contextBridge.exposeInMainWorld('electronAuthAPI', {
   createAccount: (username: string, password: string) => ipcRenderer.invoke('createAccount', username, password),
   loginAccount: (username: string, password: string) => ipcRenderer.invoke('loginAccount', username, password),
-  clearLocalData: () => ipcRenderer.invoke('clearLocalData')
+  clearLocalData: () => ipcRenderer.invoke('clearLocalData'),
+  isUserLoggedIn: () => ipcRenderer.invoke('isUserLoggedIn')
 });

@@ -24,7 +24,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
-import { createAccount, loginAccount, clearLocalData} from "./auth";
+import { createAccount, loginAccount, clearLocalData, isUserLoggedIn} from "./auth";
 import { sync } from "./sync";
 import * as notifs from "./notifs"
 // import schedule from 'node-schedule';
@@ -278,6 +278,10 @@ ipcMain.handle('createAccount', async (event, username: string, password:string)
 
 ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
   return await loginAccount(username, password);
+});
+
+ipcMain.handle('isUserLoggedIn', async (event) => {
+  return await isUserLoggedIn();
 });
 
 ipcMain.handle('clearLocalData', async (event) => {

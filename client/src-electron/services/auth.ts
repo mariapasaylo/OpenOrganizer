@@ -343,6 +343,9 @@ export async function createAccount(username : string, password : string): Promi
     return true;
   }
 
+  export async function isUserLoggedIn(): Promise<boolean> {
+    return accountStore.get('userId') !== "";
+  }
 
   export async function clearLocalData(): Promise<boolean> { // WARNING: clears account data and drops local tables
     accountStore.clear();
