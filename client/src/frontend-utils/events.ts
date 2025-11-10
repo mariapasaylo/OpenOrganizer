@@ -18,6 +18,7 @@ export type CalendarEvent = {
   title: string;
   date: string;
   color: string;
+  icon?: string
 };
 
 export type EventField = { 
@@ -32,6 +33,7 @@ export type EventType = {
     name: string; 
     color: string; 
     fields?: EventField[]; 
+    icon: string;
 };
 
 // Function to get event type fields - will render different fields based on event type selected
@@ -41,6 +43,14 @@ export function getEventTypeFields(eventTypes: EventType[], selectedEventTypeID:
   // If the event type is found, return the fields. Otherwise, return an empty array
   return type ? type.fields : [];
 }
+
+// Function to get event type icons - will render different icons based on event type selected
+export function getEventTypeIcons(eventTypes: EventType[], selectedEventTypeID: number) {
+  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeID);
+  // If the event type is found, return the icon. Otherwise, return a default icon
+  return type ? type.icon : '';
+}
+
 
 // Function to get event type colors - will change checkbox to match event type color
 export function getEventTypeColor(eventTypes: EventType[], selectedEventTypeID: number) {
@@ -61,7 +71,9 @@ export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventTy
       title: reminder.title,
       date: reminder.date,
       // Have background color be same as event type color
-      color: getEventTypeColor(eventTypes, reminder.eventType)
+      color: getEventTypeColor(eventTypes, reminder.eventType),
+      // Icon by event type
+      icon: getEventTypeIcons(eventTypes, reminder.eventType)
     }));
 }
 

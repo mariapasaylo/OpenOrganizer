@@ -216,6 +216,8 @@
                 outlined
                 style="background-color: #f2f2f2; margin-bottom: 10px"
               />
+              <!-- Hide generic reminders temporary event start and end time for event types -->
+              <template v-if="item.eventType !== 1 && item.eventType !== 2">
               <q-input
                   v-model="item.temporaryEventStartTime"
                   :label="getEventStartLabel(item.eventType)"
@@ -232,7 +234,130 @@
                   dense
                   style="background-color: #f2f2f2; margin-bottom: 10px"
                 />
+              </template>
               <!-- Render fields for selected event type - each input corresponds to its type -->
+              <!-- Since flight has a lot of fields, add an expandable section to not overwhelm the user -->
+              <template v-if="item.eventType === 1">
+                <div class="flight-grid">
+                  <q-input
+                    v-model="item.extension.flightNumber"
+                    label="Flight Number"
+                    type="text"
+                    outlined
+                    dense
+                    class="flight-full"
+                  />
+                  <q-input
+                    v-model="item.extension.airlineName"
+                    label="Airline Name"
+                    type="text"
+                    outlined
+                    dense
+                    class="flight-full"
+                  />
+                  <q-input
+                    v-model="item.extension.depAirportIATA"
+                    label="Departure Airport IATA"
+                    type="text"
+                    outlined
+                    dense
+                    class="flight-half"
+                  />
+                  <q-input
+                    v-model="item.extension.arrAirportIATA"
+                    label="Arrival Airport IATA"
+                   type="text"
+                    outlined
+                    dense
+                    class="flight-half"
+                  />
+                  <q-input
+                    v-model="item.extension.depTime"
+                    label="Departure Time"
+                    type="time"
+                    outlined
+                    dense
+                    class="flight-half"
+                  />
+                   <q-input
+                    v-model="item.extension.arrTime"
+                    label="Arrival Time"
+                    type="time"
+                    outlined
+                    dense
+                    class="flight-half"
+                  />
+                  <q-input
+                    v-model="item.extension.gate"
+                    label="Gate"
+                    type="text"
+                    outlined
+                    dense
+                    class="flight-full"
+                  />
+                </div>
+                <q-expansion-item icon="tune" label="Advanced" expand-icon="keyboard_arrow_down">
+                <div class="flight-grid">
+                  <q-input 
+                    v-model="item.extension.boardingTime" 
+                    label="Boarding Time" 
+                    type="time" 
+                    outlined
+                    dense
+                    class="flight-full"
+                  />
+                  <q-input 
+                    v-model="item.extension.boardingGroup" 
+                    label="Boarding Group" type="text" 
+                    dense 
+                    outlined 
+                    class="flight-full"
+                  />
+                  <q-input 
+                    v-model="item.extension.depAirportName" 
+                    label="Departure Airport Name" 
+                    type="text" 
+                    dense 
+                    outlined 
+                    class="flight-half"
+                  />
+                  <q-input 
+                    v-model="item.extension.depAirportAddress" 
+                    label="Departure Airport Address" 
+                    type="text" 
+                    dense 
+                    outlined 
+                    class="flight-half"
+                  />
+                  <q-input 
+                    v-model="item.extension.arrAirportName" 
+                    label="Arrival Airport Name" 
+                    type="text" 
+                    dense 
+                    outlined 
+                    class="flight-half"
+                  />
+                  <q-input 
+                    v-model="item.extension.arrAirportAddress" 
+                    label="Arrival Airport Address" 
+                    type="text" 
+                    dense 
+                    outlined  
+                    class="flight-half"
+                  />
+                  <q-input 
+                    v-model="item.extension.airlineCode" 
+                    label="Airline Code" 
+                    type="text" 
+                    dense 
+                    outlined  
+                    class="flight-full"
+                  />
+                 </div>
+                </q-expansion-item>
+              </template>
+
+              <template v-else>
               <div v-for="field in getEventTypeFields(eventTypes, item.eventType)" :key="field.id" style="margin-bottom: 10px">
                 <q-input
                  v-if="field.type === 'text'"
@@ -262,6 +387,7 @@
                 style="background-color: #f2f2f2"
               />
               </div>
+              </template>
               <!-- Use seperate v-if for error instead of :error prop because it's validating two inputs (arrival & departure) instead of 1 -->
               <div v-if="item.timeMessageError" style="color: #f44336; font-size: 13px; margin-bottom: 8px;">
                 {{ item.timeMessageError }}
@@ -358,10 +484,11 @@
                 <template #day="{ scope: { timestamp } }">
               <template v-for="event in eventsMap[timestamp.date]" :key="String(event.id)">
                 <div
-                  :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center', 'no-wrap', 'event-card']"
-                  style="width: 100%; margin: 1px 0 0 0; padding: 0 2px; font-size: 12px; cursor: pointer;"
+                  :class="['text-white', `bg-${event.color}`, 'row', 'justify-start', 'items-center',  'event-card']"
+                  style="width: 100%; margin: 1px 0 0 0; padding: 0 6px; font-size: 12px; cursor: pointer;"
                   @click="onClickCalendarEvent(event)"
                 >
+                  <q-icon :name="event.icon || 'access_time'" size="14px" class="q-mr-xs" />
                   <div class="event-title" style="width: 100%; max-width: 100%;">
                   {{ event.title }}
                   </div>
@@ -393,11 +520,12 @@ import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '
 import '@quasar/quasar-ui-qcalendar/index.css';
 import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType, type CalendarEvent} from '../frontend-utils/events';
 import { buildBreadcrumbs, normalizeFolderID, buildRootNodes} from '../frontend-utils/tree';
-import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, timeStamptoEpoch, timestampToTimeString, minutesToHHMM } from '../frontend-utils/time';
+import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, minutesToHHMM, timeStamptoEpoch } from '../frontend-utils/time';
 import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
-import type { Reminder, Note, Folder } from '../../src-electron/types/shared-types';
+import type { Reminder, Note, Folder, Extension } from '../../src-electron/types/shared-types';
 import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
+import { FieldsToFlight, FieldsToHotel, FlightToExtensions, HotelToExtensions, ExtensionsToFlight, ExtensionsToHotel } from '../utils/eventtypes';
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 const settingsTab = ref('cloud');
@@ -420,18 +548,16 @@ const notificationOptions = [
 // Array of notes
 const notes = ref<UINote[]>([])
 
-// Object of event types
-// Every reminder has event start time, event end time fields so these are not extensions
-// These are just named differently depending on event type (ex. flight has arrival - start and departure - end times. 
-// Hotel has check-in - start and check out - end times)
+// Object of event types for UI
 const eventTypes: EventType[] = [
    {
        // Generic event type (no extra type fields)
-        id: 0,
-        name: 'General',
-        color: 'blue',
+        id: 0, 
+        name: 'General', 
+        color: 'blue', 
+        icon: 'event',
         fields: []
-    },
+      },
     {
        // In backend each event type is assigned an integer - ex. flight - 1, hotel = 2, etc.
         id: 1,
@@ -439,43 +565,101 @@ const eventTypes: EventType[] = [
         name: 'Flight',
         // Color-coded for display in reminder list
         color: 'red',
+        icon: 'flight',
         // Fields for each event type
         fields: [
-            {
-               // Essentially the unique ID/key of the field
-                id: 'flightNumber',
-               // Name of the field displayed to the user
-                name: "Flight Number",
-                // Type is helpful for rendering the frontend field inputs to match and input validation. 
-                type: 'number'
-            },
-            {
-                id: 'airportLocation',
-                name: "Airport Location",
-                type: 'text'
-            },
+          // ID is the key of the input, name is name of the field displayed to user, type is input field type
+          {id: 'airlineName', name: "Airline Name", type: 'text'},
+          {id: 'airlineCode', name: "Airline Code", type: 'text'},
+          {id: 'depAirportName', name: "Departure Airport", type: 'text'},
+          {id: 'depAirportIATA', name: "Departure Airport IATA", type: 'text'},
+          {id: 'depAirportAddress', name: "Departure Airport Address", type: 'text'},
+          {id: 'depTime', name: "Departure Time", type: 'time'},
+          {id: 'arrAirportName', name: "Arrival Airport", type: 'text'},
+          {id: 'arrAirportIATA', name: "Arrival Airport IATA", type: 'text'},
+          {id: 'arrAirportAddress', name: "Arrival Airport Address", type: 'text'},
+          {id: 'arrTime', name: "Arrival Time", type: 'time'},
+          {id: 'boardingGroup', name: "Boarding Group", type: 'text'},
+          {id: 'boardingTime', name: "Boarding Time", type: 'time'},
+          {id: 'flightNumber', name: "Flight Number", type: 'text'},
+          {id: 'gate', name: "Gate Number", type: 'text'}
         ]
     },
     {
         id: 2,
         name: 'Hotel',
         color: 'green',
+        icon: 'hotel',
         fields: [
-            {
-                id: 'roomNumber',
-                name: "Room Number",
-                type: 'number'
-            },
-            {
-                id: 'hotelLocation',
-                name: "Hotel Location",
-                type: 'text'
-            },
+          {id: 'name', name: "Hotel Name", type: 'text'},
+          {id: 'address', name: "Hotel Address", type: 'text'},
+          {id: 'checkinTime', name: "Check-in Time", type: 'time'},
+          {id: 'checkoutTime', name: "Check-out Time", type: 'time'},
+          {id: 'roomNumber', name: "Room Number", type: 'text'},
         ]
     }
     // can add any more event types here
   ];
 
+  // Function to convert event type input fields into extension object for storing 
+  // Passing in undefined for unused fields on frontend (timezone offsets, abbrev)
+  function buildExtensionsForEventType(reminder: UIReminder): Extension[] | undefined {
+    switch (reminder.eventType) {
+      case 1: {// Flight
+      // Convert user-inputted HH:MM time into timestamps
+        const departureTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['depTime']));
+        const arrivalTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['arrTime']));
+        const boardingTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['boardingTime']));
+
+        const flightFields = FieldsToFlight(
+        String(reminder.extension?.['depAirportName']),
+        String(reminder.extension?.['depAirportAddress']),
+        String(reminder.extension?.['arrAirportName']),
+        String(reminder.extension?.['arrAirportAddress']),
+        String(reminder.extension?.['airlineCode']),
+        String(reminder.extension?.['flightNumber']),
+        String(reminder.extension?.['airlineName']),
+        String(reminder.extension?.['depAirportIATA']),
+        undefined, //depTimezoneAbbr
+        departureTime,
+        undefined, //depTimeDestZone
+        boardingTime,
+        String(reminder.extension?.['boardingGroup']),
+        String(reminder.extension?.['gate']),
+        undefined, //depTimeZoneOffset
+        undefined, //arrTimeZoneOffset
+        String(reminder.extension?.['arrAirportIATA']),
+        undefined, //arrTimezoneAbbr
+        arrivalTime,
+        undefined //arrTimeDestZone
+      );
+        if (!flightFields) {
+        // nothing to save for flight fields
+        return undefined;
+      }
+      return FlightToExtensions(flightFields);
+    }
+
+      case 2: {// Hotel
+        const checkInTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['checkinTime']));
+        const checkOutTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['checkoutTime']));
+        const hotelFields = FieldsToHotel(
+        String(reminder.extension?.['name']),
+        String(reminder.extension?.['address']),
+        checkInTime,
+        checkOutTime,
+        undefined, // timezoneAbbrev
+        undefined, // timezoneOffset
+        String(reminder.extension?.['roomNumber'])
+        );
+        if (!hotelFields) {
+          // nothing to save for hotel fields
+          return undefined;
+      }
+        return HotelToExtensions(hotelFields);
+    }
+  }
+}
 
 // Map event types to format for q-select dropdown menu
 const eventTypeOptions = computed(() => {
@@ -850,7 +1034,7 @@ async function loadReminders(year?: number) {
     const rows = await readRemindersInRange(start, end);
     // convert each note in range from response to UI note format
     for (const reminder of rows) {
-      await mapDBToUIReminder(reminder, true);
+      mapDBToUIReminder(reminder, true);
     }
     // sort reminders alphabetically by title for tree 
     reminders.value.sort((a, b) => {return String(a.temporaryTitle ?? a.title ?? '').toLowerCase().localeCompare(String(b.temporaryTitle ?? b.title ?? '').toLowerCase());});
@@ -1093,7 +1277,7 @@ async function loadNotes(year?: number) {
     const rows = await readNotesInRange(start, end);
     // convert each note in range from response to UI note format
     for (const note of rows) {
-      await mapDBToUINote(note, true);
+      mapDBToUINote(note, true);
     }
     // sort notes alphabetically by title for tree
     notes.value.sort((a, b) => {
@@ -1155,17 +1339,34 @@ async function saveFolder(folder: UIFolder){
     return;
   }
 
+  // Normalize candidate parent ID (in case of drafts parent ID could be undefined)
+  const candidateParentID: bigint = folder.parentFolderID ?? selectedFolderID.value ?? 0n;
+  const normalizeParentFolderID: bigint = normalizeFolderID(candidateParentID, notes.value, reminders.value, folders.value) ?? 0n;
+
+  // Check that parentFolderID exists when creating a folder
+  // Check for a folder with the parent folder ID exists in the folders array (or 0 for root)
+  const parentFolderExists = candidateParentID === 0n || folders.value.some(folder => String(folder.folderID) === String(candidateParentID));
+
+  if (!parentFolderExists) {
+    return;
+  }
+
+  // Extra check to prevent setting a folder as its own parent (can cause recursive loop issues)
+  if (folder.isSaved && String(folder.folderID) === String(candidateParentID)) {
+    folder.folderNameError = 'Folder cannot be its own parent.';
+    return;
+  }
+
   try {
     // First time is a draft folder, create new folder in local DB
     if (!folder.isSaved) {
-      const newParentFolderID = normalizeFolderID(folder.parentFolderID ?? selectedFolderID.value, notes.value, reminders.value, folders.value) ?? 0n;
-      const folderID: bigint = await createFolder(newParentFolderID, -1, folder.temporaryFolderName);
+      const folderID: bigint = await createFolder(normalizeParentFolderID, -1, folder.temporaryFolderName);
       folders.value = mapDBToUIFolder(await readAllFolders());
       selectedFolderID.value = folderID;
     }
     // Anytime afterwards, update preexisting folder
     else {
-      await updateFolder(folder.folderID, folder.parentFolderID, -1, folder.temporaryFolderName);
+      await updateFolder(folder.folderID, normalizeParentFolderID, -1, folder.temporaryFolderName);
       folders.value = mapDBToUIFolder(await readAllFolders());
     }
   }
@@ -1173,7 +1374,6 @@ async function saveFolder(folder: UIFolder){
     console.error('Error adding folder:', error);
   }
 }
-
 
 // Function to save note fields when save button is clicked
 async function saveNote(note: UINote){
@@ -1256,36 +1456,61 @@ async function saveReminder(reminder: UIReminder){
     reminder.folderMessageError = 'Reminder must be in a existing folder';
     return;
   }
-
-  // Check that event start time is before event end time and vice versa for all event types
-    const startTime = reminder.temporaryEventStartTime;
-    const endTime = reminder.temporaryEventEndTime;
-    // If start & end time are valid and start time is after end time, show error message and disable save button
-    if (startTime && endTime && startTime >= endTime) {
-      reminder.timeMessageError = 'Start time must be before end time.';
-      return;
-    }
   
   // Cast times into strings (since extension fields can be multiple types)
   const startTimeStr = String(reminder.temporaryEventStartTime ?? '');
   const endTimeStr = String(reminder.temporaryEventEndTime ?? '');
 
+  // Event start time is day of event + inputted user time
   const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTimeStr);
-  const eventEndTime = convertTimeAndDateToTimestamp(reminder.date, endTimeStr);
+  if (!eventStartTime) {
+    reminder.timeMessageError = 'Invalid start time.';
+    return;
+  }
+
+  // Event end time is optional. If none provided, start time = end time (like an instant alarm)
+  let eventEnd = eventStartTime;
+  // If endTimeStr is valid (inputted), then set end time to the inputted HH:MM time
+  if (endTimeStr) {
+    const eventEndTime = convertTimeAndDateToTimestamp(reminder.date, endTimeStr);
+    if (!eventEndTime) {
+      reminder.timeMessageError = 'Invalid end time.'
+      return;
+    }
+    // Compare exact moment in time if event start time is before event end time, if not, error
+    const startEpoch = timeStamptoEpoch(eventStartTime);
+    const endEpoch = timeStamptoEpoch(eventEndTime);
+    if (endEpoch < startEpoch || startEpoch > endEpoch) {
+      reminder.timeMessageError = 'Start time must be before end time.';
+      return;
+    }
+    // If at this point, start is less than end, overwrite temporary variable with eventEndTime
+    eventEnd = eventEndTime;
+  }
+
   // If no notification time selected (never), return null. Otherwise, convert time into timestamp
   const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTimeStr, reminder.temporaryNotificationTime);
+
+  // Check notification time is before or at event start time if provided
+  if (notifTime && timeStamptoEpoch(notifTime) > timeStamptoEpoch(eventStartTime)) {
+    reminder.timeMessageError = 'Notification must be at or before event start time.'
+    return;
+  }
   // Toggle hasNotif based on whether notification time is selected or not. If notifTime is null, hasNotif is false since theres no notification
   const hasNotification = notifTime != null;
   // Send placeholder timestamp (event start time) to backend if never notification/null for safety since backend expects a timestamp
   // Backend should ignore notifTime if hasNotif is false (theres no notification)
   const notificationTimestampToSend = notifTime ?? eventStartTime;
-  const notifToDisplay = timestampToTimeString(notificationTimestampToSend);
+  // Clear any error messages, time has passed
+  reminder.timeMessageError = '';
 
 try {
+  // Build event type extensions from UI fields
+  const extensions = buildExtensionsForEventType(reminder);
   // Reminder is not yet saved (first time saving after clicking add), create reminder in DB
   if (!reminder.isSaved) {
   // Create base reminder in local DB and retrieve the itemID assigned to it
-  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notificationTimestampToSend, hasNotification, reminder.temporaryTitle);
+  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensions);
   console.log('Reminder successfully created:', itemID);
 
   // Fetch the newly created reminder from the DB 
@@ -1304,7 +1529,7 @@ try {
   }
   // Reminder is saved, just updating a preexisting reminder
   else {
-      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEndTime, notificationTimestampToSend, hasNotification, reminder.temporaryTitle);
+      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensions);
       console.log('Reminder updated successfully in DB.');
 
       // Fetch the newly created reminder from the DB 
