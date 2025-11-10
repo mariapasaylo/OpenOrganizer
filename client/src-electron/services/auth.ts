@@ -344,7 +344,8 @@ export async function createAccount(username : string, password : string): Promi
   }
 
 
-  export function clearLocalData() { // WARNING: clears account data and drops local tables
+  export async function clearLocalData(): Promise<boolean> { // WARNING: clears account data and drops local tables
     accountStore.clear();
     clearAllTables();
+    return true;
   }
