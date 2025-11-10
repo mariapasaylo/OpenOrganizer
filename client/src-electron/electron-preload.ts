@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -53,6 +53,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
+import { changeLogin } from './services/auth';
 
 contextBridge.exposeInMainWorld('sqliteAPI', {
   // create
@@ -138,6 +139,7 @@ contextBridge.exposeInMainWorld('reminderNotificationAPI', {
 contextBridge.exposeInMainWorld('electronAuthAPI', {
   createAccount: (username: string, password: string) => ipcRenderer.invoke('createAccount', username, password),
   loginAccount: (username: string, password: string) => ipcRenderer.invoke('loginAccount', username, password),
+  changeLogin: (username?: string, password?:string) => ipcRenderer.invoke('changeLogin', username, password),
   clearLocalData: () => ipcRenderer.invoke('clearLocalData'),
   isUserLoggedIn: () => ipcRenderer.invoke('isUserLoggedIn')
 });
