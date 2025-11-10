@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
