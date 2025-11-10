@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-09-22
- * Updated: 2025-10-30
+ * Updated: 2025-11-10
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -414,7 +414,7 @@
     <!-- Right column - Settings/Account Buttons (bottom row) -->
     <div style="grid-area: account-settings; padding: 20px 30px; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;"  data-area="account-settings">
       <div class="row justify-between items-center">
-        <q-btn class="account-and-settings-button" flat icon="account_circle" @click="showLoginOptions = true" />
+        <q-btn class="account-and-settings-button" flat icon="account_circle" @click=checkLoggedIn />
         <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
       </div>
     </div>
@@ -1533,7 +1533,6 @@ function onClickHeadWorkweek(data: Timestamp) {
 async function logout()
 {
   try {
-    //MARIA START HERE expose backend API to clear local data and declare router and $q
     const isDeleted: boolean = await window.electronAuthAPI.clearLocalData();
     if(isDeleted){
             console.log('Account logout result:', isDeleted);
@@ -1541,11 +1540,25 @@ async function logout()
             type: 'positive',
             message: 'Successfully logged out'
             });
-            //navigate to main calendar page
-            await router.push('/calendar');
+            //close popup of Login options (i.e. change login and logout)
+            showLoginOptions.value = false;
         } 
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+}
+
+async function checkLoggedIn()
+{
+  try{
+    const isloggedIn: boolean = await window.electronAuthAPI.isUserLoggedIn();
+    if (isloggedIn) {
+      showLoginOptions.value = true;
+    } else {
+      await router.push('/register');
+    }
   } catch (error) {
-    console.error('Logout failed:', error);
+    console.error('Error checking login status:', error);
   }
 }
 
