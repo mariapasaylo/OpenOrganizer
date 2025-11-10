@@ -146,9 +146,11 @@ export async function createAccount(username : string, password : string): Promi
   setUsername(username);
   setPassword(password);
   setPrivateKey1(generatePrivateKey());
+  setPrivateKey2(generatePrivateKey());
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
-  const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
+  const encryptedPrivateKey1: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
+  const encryptedPrivateKey2: Buffer = encrypt(getPrivateKey2(), hashKeyPassword, hashKeyPassword);
 
   //Note do not send 0 for username
   const userData = Buffer.alloc(128,20);
@@ -159,8 +161,8 @@ export async function createAccount(username : string, password : string): Promi
   //Store username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to send to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
-  encryptedPrivateKey.copy(userData, 64);
-  encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
+  encryptedPrivateKey1.copy(userData, 64);
+  encryptedPrivateKey2.copy(userData, 96);
 
   //Testing user data to send to server
   //console.log(getUserId(), getUserId());
