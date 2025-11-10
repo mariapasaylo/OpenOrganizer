@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-08
+ * Updated: 2025-11-10
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -98,6 +98,7 @@
                   @keyup.esc.prevent="cancelRename(getFolder(node.id)!)"
                   placeholder="Folder name"
                   style="min-width: 160px;"
+                  maxlength="24"
                 />
               </template>
               <template v-else-if="getReminder(node.id) && getReminder(node.id)!.isEditing">
@@ -178,6 +179,7 @@
                       style="max-width: 450px; padding-top: 20px"
                       @click.stop
                       @focus.stop
+                      maxlength="48"
                       />
                     </div>
               </template>
@@ -246,6 +248,7 @@
                     outlined
                     dense
                     class="flight-full"
+                    maxlength="8"
                   />
                   <q-input
                     v-model="item.extension.airlineName"
@@ -254,6 +257,7 @@
                     outlined
                     dense
                     class="flight-full"
+                    maxlength="48"
                   />
                   <q-input
                     v-model="item.extension.depAirportIATA"
@@ -262,6 +266,7 @@
                     outlined
                     dense
                     class="flight-half"
+                    maxlength="3"
                   />
                   <q-input
                     v-model="item.extension.arrAirportIATA"
@@ -270,6 +275,7 @@
                     outlined
                     dense
                     class="flight-half"
+                    maxlength="3"
                   />
                   <q-input
                     v-model="item.extension.depTime"
@@ -294,6 +300,7 @@
                     outlined
                     dense
                     class="flight-full"
+                    maxlength="4"
                   />
                 </div>
                 <q-expansion-item icon="tune" label="Advanced" expand-icon="keyboard_arrow_down">
@@ -312,6 +319,7 @@
                     dense 
                     outlined 
                     class="flight-full"
+                    maxlength="2"
                   />
                   <q-input 
                     v-model="item.extension.depAirportName" 
@@ -320,14 +328,7 @@
                     dense 
                     outlined 
                     class="flight-half"
-                  />
-                  <q-input 
-                    v-model="item.extension.depAirportAddress" 
-                    label="Departure Airport Address" 
-                    type="text" 
-                    dense 
-                    outlined 
-                    class="flight-half"
+                    maxlength="64"
                   />
                   <q-input 
                     v-model="item.extension.arrAirportName" 
@@ -336,6 +337,16 @@
                     dense 
                     outlined 
                     class="flight-half"
+                    maxlength="64"
+                  />
+                  <q-input 
+                    v-model="item.extension.depAirportAddress" 
+                    label="Departure Airport Address" 
+                    type="text" 
+                    dense 
+                    outlined 
+                    class="flight-half"
+                    maxlength="64"
                   />
                   <q-input 
                     v-model="item.extension.arrAirportAddress" 
@@ -344,6 +355,7 @@
                     dense 
                     outlined  
                     class="flight-half"
+                    maxlength="64"
                   />
                   <q-input 
                     v-model="item.extension.airlineCode" 
@@ -352,11 +364,58 @@
                     dense 
                     outlined  
                     class="flight-full"
+                    maxlength="8"
                   />
                  </div>
                 </q-expansion-item>
               </template>
-
+              <template v-else-if="item.eventType === 2">
+                <div class="flight-grid"> 
+                <q-input 
+                v-model="item.extension.name" 
+                label="Hotel Name" 
+                type="text" 
+                outlined 
+                dense 
+                class="flight-full"
+                maxlength="64"
+                />
+                <q-input 
+                v-model="item.extension.roomNumber" 
+                label="Room Number" 
+                type="text" 
+                outlined 
+                dense 
+                class="flight-full"
+                maxlength="10"
+                />
+                <q-input 
+                v-model="item.extension.checkinTime" 
+                label="Check-in time" 
+                type="time" 
+                outlined 
+                dense 
+                class="flight-half"
+                />
+                <q-input 
+                v-model="item.extension.checkoutTime" 
+                label="Check-out time" 
+                type="time"
+                outlined 
+                dense 
+                class="flight-half"
+                />
+                <q-input 
+                v-model="item.extension.address" 
+                label="Hotel Address" 
+                type="text" 
+                outlined 
+                dense 
+                class="flight-full"
+                maxlength="128"
+                />
+               </div>
+              </template>
               <template v-else>
               <div v-for="field in getEventTypeFields(eventTypes, item.eventType)" :key="field.id" style="margin-bottom: 10px">
                 <q-input
@@ -366,7 +425,7 @@
                   :label="field.name"
                   outlined
                   dense
-                  style="background-color: #f2f2f2"
+                  style="background-color: #f2f2f2; margin-bottom: 10px;"
                 />
                 <q-input
                 v-else-if="field.type === 'number'"
@@ -375,7 +434,7 @@
                 type="number"
                 dense
                 outlined
-                style="background-color: #f2f2f2"
+                style="background-color: #f2f2f2; margin-bottom: 10px;"
               />
               <q-input
                 v-else-if="field.type === 'time'"
@@ -384,7 +443,7 @@
                 type="time"
                 dense
                 outlined
-                style="background-color: #f2f2f2"
+                style="background-color: #f2f2f2; margin-bottom: 10px;"
               />
               </div>
               </template>
@@ -417,6 +476,7 @@
                       style="max-width: 300px; padding-top: 20px"
                       @click.stop
                       @focus.stop
+                      maxlength="48"
                     />
                 </div>
               </template>
@@ -435,7 +495,7 @@
                 outlined
                 style="background-color: #f2f2f2; margin-bottom: 10px"
               />
-                <q-input class="note-box" outlined v-model="item.temporaryText" type="textarea"
+                <q-input class="note-box" outlined v-model="item.temporaryText" type="textarea" maxlength="64"
                   placeholder="Write your note here..." />
                 <div class="row">
                   <!-- Pass in current note item from v-for to save that specific note -->
@@ -602,64 +662,92 @@ const eventTypes: EventType[] = [
   ];
 
   // Function to convert event type input fields into extension object for storing 
-  // Passing in undefined for unused fields on frontend (timezone offsets, abbrev)
-  function buildExtensionsForEventType(reminder: UIReminder): Extension[] | undefined {
+  // Passing in undefined for unused fields on frontend (timezone offsets, abbrev) -> will be padded into '\0 strings'
+  function buildExtensionsForEventType(reminder: UIReminder): Extension[] {
+  const extRecord = reminder.extension ?? {};
+
+  // Helper function to safely read string/time fields from extension record (as they are optional they can be missing or empty)
+  const extensionString = (fieldKey: string): string | undefined => {
+    // Lookup fields raw value from extension record by its key (ex. reminder.extension.airlineName)
+    const fieldRawValue = extRecord[fieldKey];
+    // If the field is missing (undefined), it has no value
+    if (fieldRawValue === undefined || fieldRawValue === null) {
+      return undefined;
+    }
+    // If the field exists, cast its value to string and trim whitespace
+    const fieldString = String(fieldRawValue).trim();
+    return fieldString === '' ? undefined : fieldString;
+  };
+
+  // Helper function to return qcalendar timestamp when a time is provided, otherwise undefined
+  const extensionTime = (fieldKey: string): Timestamp | undefined => {
+    const fieldRawValue = extRecord[fieldKey];
+    if (fieldRawValue === undefined || fieldRawValue === null) {
+      return undefined;
+    }
+    const fieldString = String(fieldRawValue).trim();
+    if (fieldString === '') {
+      return undefined;
+    }
+    // convert "HH:MM" + reminder.date to Timestamp
+    return convertTimeAndDateToTimestamp(reminder.date, fieldString) ?? undefined;
+  };
+
     switch (reminder.eventType) {
       case 1: {// Flight
-      // Convert user-inputted HH:MM time into timestamps
-        const departureTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['depTime']));
-        const arrivalTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['arrTime']));
-        const boardingTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['boardingTime']));
-
-        const flightFields = FieldsToFlight(
-        String(reminder.extension?.['depAirportName']),
-        String(reminder.extension?.['depAirportAddress']),
-        String(reminder.extension?.['arrAirportName']),
-        String(reminder.extension?.['arrAirportAddress']),
-        String(reminder.extension?.['airlineCode']),
-        String(reminder.extension?.['flightNumber']),
-        String(reminder.extension?.['airlineName']),
-        String(reminder.extension?.['depAirportIATA']),
-        undefined, //depTimezoneAbbr
-        departureTime,
-        undefined, //depTimeDestZone
-        boardingTime,
-        String(reminder.extension?.['boardingGroup']),
-        String(reminder.extension?.['gate']),
-        undefined, //depTimeZoneOffset
-        undefined, //arrTimeZoneOffset
-        String(reminder.extension?.['arrAirportIATA']),
-        undefined, //arrTimezoneAbbr
-        arrivalTime,
-        undefined //arrTimeDestZone
+        const flightFields = 
+        FieldsToFlight(
+          extensionString('depAirportName'),
+          extensionString('depAirportAddress'),
+          extensionString('arrAirportName'),
+          extensionString('arrAirportAddress'),
+          extensionString('airlineCode'),
+          extensionString('flightNumber'),
+          extensionString('airlineName'),
+          extensionString('depAirportIATA'),
+          undefined, // depTimezoneAbbr
+          extensionTime('departureTime'),
+          undefined, // depTimeDestZone
+          extensionTime('boardingTime'),
+          extensionString('boardingGroup'),
+          extensionString('gate'),
+          undefined, // depTimezoneOffset
+          undefined, // arrTimeZoneOffset
+          extensionString('arrAirportIATA'),
+          undefined, // arrTimezoneAbbr
+          extensionTime('arrivalTime'),
+          undefined // arrTimeDestZone
       );
-        if (!flightFields) {
+      if (!flightFields) {
         // nothing to save for flight fields
-        return undefined;
+        return [];
       }
-      return FlightToExtensions(flightFields);
+      return FlightToExtensions(flightFields) ?? [];
     }
 
       case 2: {// Hotel
-        const checkInTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['checkinTime']));
-        const checkOutTime = convertTimeAndDateToTimestamp(reminder.date, String(reminder.extension?.['checkoutTime']));
-        const hotelFields = FieldsToHotel(
-        String(reminder.extension?.['name']),
-        String(reminder.extension?.['address']),
-        checkInTime,
-        checkOutTime,
+      const hotelFields = 
+      FieldsToHotel(
+        extensionString('name'),
+        extensionString('address'),
+        extensionTime('checkinTime'),
+        extensionTime('checkoutTime'),
         undefined, // timezoneAbbrev
         undefined, // timezoneOffset
-        String(reminder.extension?.['roomNumber'])
-        );
-        if (!hotelFields) {
-          // nothing to save for hotel fields
-          return undefined;
+        extensionString('roomNumber')
+      );
+      if (!hotelFields) {
+        // nothing to save for hotel fields
+        return [];
       }
-        return HotelToExtensions(hotelFields);
+      return HotelToExtensions(hotelFields) ?? [];
+    }
+      default: {
+        // No extension fields for other event types
+        return [];
+      }
     }
   }
-}
 
 // Map event types to format for q-select dropdown menu
 const eventTypeOptions = computed(() => {
@@ -909,7 +997,7 @@ function addReminder() {
     itemID: tempID,
     folderID: folderID,
     eventType: 0,
-    extension: {},
+    extension: {} as Record<string, string | number | null | undefined>,
     title: '',
     // Draft has no notification
     temporaryNotificationTime: null,
@@ -1136,12 +1224,21 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
 
   // Build extension row time fields from database stored dayOfMin value (to properly format and display)
-  const ext: Record<string, string | number | null> = { ...(typedRow.extension ?? {}) };
+  const ext = { ...(typedRow.extension ?? {}) } as Record<string, string | number | null | undefined>;
 
   // Derive HH:MM time strings for display from database stored minutes of day value
   // Convert event start and end min into HH:MM string
-  const startStr = (typeof row.eventStartMin === 'number') ? minutesToHHMM(row.eventStartMin) : '';
-  const endStr = (typeof row.eventEndMin === 'number') ? minutesToHHMM(row.eventEndMin) : '';
+  let startStr = (typeof row.eventStartMin === 'number') ? minutesToHHMM(row.eventStartMin) : '';
+  let endStr = (typeof row.eventEndMin === 'number') ? minutesToHHMM(row.eventEndMin) : '';
+
+  // If start string is midnight with no notification, show empty string
+  if (startStr === '00:00' && Number(row.hasNotif) === 0) {
+    startStr = '';
+  }
+   // If end string is midnight with no notification, show empty string
+  if (endStr === '00:00' && Number(row.hasNotif) === 0) {
+    endStr = '';
+  }
 
   const eventStartMin = typeof row.eventStartMin === 'number' ? row.eventStartMin : null;
   const notifMin = typeof row.notifMin === 'number' ? row.notifMin : null;
@@ -1339,6 +1436,12 @@ async function saveFolder(folder: UIFolder){
     return;
   }
 
+ // Folder name cannot be more than 24 characters (to match schema)
+  if (String(folder.temporaryFolderName).trim().length > 24) {
+    folder.folderNameError = 'Folder name cannot exceed 24 characters.';
+    return;
+  }
+
   // Normalize candidate parent ID (in case of drafts parent ID could be undefined)
   const candidateParentID: bigint = folder.parentFolderID ?? selectedFolderID.value ?? 0n;
   const normalizeParentFolderID: bigint = normalizeFolderID(candidateParentID, notes.value, reminders.value, folders.value) ?? 0n;
@@ -1457,12 +1560,49 @@ async function saveReminder(reminder: UIReminder){
     return;
   }
   
-  // Cast times into strings (since extension fields can be multiple types)
-  const startTimeStr = String(reminder.temporaryEventStartTime ?? '');
-  const endTimeStr = String(reminder.temporaryEventEndTime ?? '');
+  const extension = reminder.extension ?? {};
+  // Copy event-type specific extension fields times string value (departure time, arrival time, check-in, etc.) into normal reminder temporaryEventStartTime / temporaryEventEndTime fields value
+  // This is so notifications still go off at event start time even for event types with custom fields
+  const copyExtensionTimes = (fieldKey: string, targetFieldKey: 'temporaryEventStartTime' | 'temporaryEventEndTime') => {
+    // Find value of the extension time field 
+    const fieldValue = extension[fieldKey];
+    // Field missing, skip
+    if (fieldValue === undefined || fieldValue === null) {
+      return;
+    }
+    // Cast field value to string and trim whitespace if it exists
+    const fieldString = String(fieldValue).trim();
+    // If field string is not empty, copy its value into target temporary event time field
+    if (fieldString !== '') {
+      reminder[targetFieldKey] = fieldString;
+    }
+  }
+  // Departure time = start, arrival time = end
+  if (reminder.eventType === 1) {
+    copyExtensionTimes('depTime', 'temporaryEventStartTime');
+    copyExtensionTimes('arrTime', 'temporaryEventEndTime');
+  }
+  // Check-in time = start, check-out time = end
+  else if (reminder.eventType === 2) {
+    copyExtensionTimes('checkinTime', 'temporaryEventStartTime');
+    copyExtensionTimes('checkoutTime', 'temporaryEventEndTime');  
+  }
 
-  // Event start time is day of event + inputted user time
-  const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTimeStr);
+  // Cast times into strings (since extension fields can be multiple types)
+  const startTimeStr = String(reminder.temporaryEventStartTime ?? '').trim();
+  const endTimeStr = String(reminder.temporaryEventEndTime ?? '').trim();
+
+  // If user sets a notification (non-null), they must have a start time
+  if (reminder.temporaryNotificationTime != null && startTimeStr === '') {
+    reminder.timeMessageError = 'Start time is required when setting a notification.';
+    return;
+  }
+
+  // Otherwise if no notification is set and user doesn't provide a start time, use placeholder 00:00 midnight timestamp
+  const startTime = startTimeStr === '' ? '00:00' : startTimeStr;
+
+  // Event start time is day of event + inputted user time - or 00:00 placeholder if none provided
+  const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTime);
   if (!eventStartTime) {
     reminder.timeMessageError = 'Invalid start time.';
     return;
@@ -1480,7 +1620,7 @@ async function saveReminder(reminder: UIReminder){
     // Compare exact moment in time if event start time is before event end time, if not, error
     const startEpoch = timeStamptoEpoch(eventStartTime);
     const endEpoch = timeStamptoEpoch(eventEndTime);
-    if (endEpoch < startEpoch || startEpoch > endEpoch) {
+    if (endEpoch < startEpoch) {
       reminder.timeMessageError = 'Start time must be before end time.';
       return;
     }
@@ -1489,7 +1629,7 @@ async function saveReminder(reminder: UIReminder){
   }
 
   // If no notification time selected (never), return null. Otherwise, convert time into timestamp
-  const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTimeStr, reminder.temporaryNotificationTime);
+  const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTime, reminder.temporaryNotificationTime);
 
   // Check notification time is before or at event start time if provided
   if (notifTime && timeStamptoEpoch(notifTime) > timeStamptoEpoch(eventStartTime)) {
@@ -1509,13 +1649,15 @@ try {
   const extensions = buildExtensionsForEventType(reminder);
   // Reminder is not yet saved (first time saving after clicking add), create reminder in DB
   if (!reminder.isSaved) {
+  //console.log('Saving reminder extensions:', extensions);
   // Create base reminder in local DB and retrieve the itemID assigned to it
   const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensions);
-  console.log('Reminder successfully created:', itemID);
+  console.log('Reminder successfully created:', String(itemID));
 
   // Fetch the newly created reminder from the DB 
   const row = await readReminder(itemID);
-
+  // console.log('Read reminder extensions: readReminder row.extensions =', row?.extensions);
+  
   // Map DB row into UI and update reminders.value array
   if (row) {
     mapDBToUIReminder(row, true);
@@ -1616,6 +1758,8 @@ async function deleteTreeNode() {
           await deleteFolder(folderToDelete.folderID);
           folders.value = mapDBToUIFolder(await readAllFolders());
           await loadRemindersForCalendarDate(selectedDate.value);
+          // Delete from calendar
+          await loadRemindersForMonth(selectedDate.value);
           await loadNotes();
           // Clear tree node selection after deletion
           selectedFolderID.value = null;
@@ -1657,6 +1801,8 @@ async function deleteTreeNode() {
         reminders.value = reminders.value.filter(reminder => String(reminder.itemID) !== String(reminderToDelete.itemID));
         folders.value = mapDBToUIFolder(await readAllFolders());
         await loadRemindersForCalendarDate(selectedDate.value);
+        // Delete from calendar
+        await loadRemindersForMonth(selectedDate.value);
         // Clear tree node selection after deletion
         selectedFolderID.value = null;
       } catch (error) {
@@ -1738,6 +1884,7 @@ watch(selectAll, (selectionVal) => {
     });
   }
 });
+
 
 // Watch event type of each reminder
 reminders.value.forEach(reminder => {

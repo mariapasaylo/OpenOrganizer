@@ -3,7 +3,7 @@
 /* 
  * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-10-15
+ * Updated: 2025-11-10
  *
  * This file is the CSS global stylesheet for the application
  *
@@ -235,11 +235,11 @@ overflow-wrap: break-word;
 .flight-full {
   grid-column: 1 / -1;
   background-color: #f2f2f2;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 // Time and IATA fields are half width boxes
 .flight-half {
   background-color: #f2f2f2;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }

@@ -13,6 +13,7 @@
 import { getDayOfYear, type Timestamp } from '@quasar/quasar-ui-qcalendar';
 import { convertTimeAndDateToTimestamp } from 'src/frontend-utils/time';
 import type { Extension, Flight, Hotel,  } from "app/src-electron/types/shared-types";
+import { Buffer } from 'buffer';
 
 // input fields to eventType
 
