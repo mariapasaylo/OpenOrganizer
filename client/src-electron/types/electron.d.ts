@@ -103,6 +103,7 @@ declare global {
     electronAuthAPI: {
       createAccount: (username: string, password: string) => Promise<{ success: boolean}>;
       loginAccount: (username: string, password: string) => Promise<{ success: boolean}>;
+      changeLogin:(username: string, password: string) => Promise<{ success: boolean}>;
       clearLocalData: () => Promise<boolean>;
       isUserLoggedIn: () => Promise<boolean>;
     }

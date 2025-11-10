@@ -61,7 +61,7 @@
       </q-card>
     </q-dialog>
 
-        <q-dialog v-model="showChangeLogin">
+    <q-dialog v-model="showChangeLogin">
       <q-card style="width: 400px" class="q-px-sm q-pb-md">
         <q-card-section>
           <div class="text-h6">Enter New Username</div>
@@ -80,7 +80,7 @@
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Save Changes" v-close-popup />
+          <q-btn flat label="Save Changes" @click=saveLoginChanges v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -1763,6 +1763,30 @@ async function checkLoggedIn()
   } catch (error) {
     console.error('Error checking login status:', error);
   }
+}
+
+async function saveLoginChanges() {
+  try {
+    const isLoginChanged = await window.electronAuthAPI.changeLogin(newUsername.value, newPassword.value);
+    if (isLoginChanged) {
+      console.log('Login credentials changed successfully:', isLoginChanged);
+      $q.notify({
+        type: 'positive',
+        message: 'Login credentials changed successfully.'
+      });
+      //close popup of Login options (i.e. change login and logout)
+      showLoginOptions.value = false;
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to change login credentials. Please try again.'
+      });
+    }
+  
+  }catch (error) {
+    console.error('Error changing login credentials:', error);
+  }
+
 }
 
 </script>
