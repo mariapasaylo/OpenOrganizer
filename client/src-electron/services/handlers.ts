@@ -325,6 +325,6 @@ ipcMain.handle('loginAccount', async (event, username: string, password:string)=
   return await loginAccount(username, password);
 });
 
-ipcMain.handle('clearLocalData', (event) => {
-  clearLocalData();
+ipcMain.handle('clearLocalData', async (event) => {
+  return await clearLocalData();
 });

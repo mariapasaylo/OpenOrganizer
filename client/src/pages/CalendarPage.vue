@@ -54,8 +54,8 @@
             <q-btn icon="close" flat round dense v-close-popup />
           </div>
           <div class="row justify-around q-mt-md">
-            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Change Login" @click="showChangeLogin = true" />
-            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Log out" @click="$router.push('/calendar')" />
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Change Login" @click="showChangeLogin = true" />            
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Log out" @click=logout />
           </div>  
         </q-card-section>
       </q-card>
@@ -431,6 +431,8 @@ import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types';
 import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -524,6 +526,8 @@ const searchQuery = ref('');
 const newUsername = ref<string>('');
 const newPassword = ref<string>('');
 const isPwd = ref(true);
+const $q = useQuasar();
+const router = useRouter();
 
 // Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
@@ -1524,6 +1528,25 @@ function onClickHeadDay(data: Timestamp) {
 }
 function onClickHeadWorkweek(data: Timestamp) {
   console.info('onClickHeadWorkweek', data)
+}
+
+async function logout()
+{
+  try {
+    //MARIA START HERE expose backend API to clear local data and declare router and $q
+    const isDeleted: boolean = await window.electronAuthAPI.clearLocalData();
+    if(isDeleted){
+            console.log('Account logout result:', isDeleted);
+            $q.notify({
+            type: 'positive',
+            message: 'Successfully logged out'
+            });
+            //navigate to main calendar page
+            await router.push('/calendar');
+        } 
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
 }
 
 </script>
