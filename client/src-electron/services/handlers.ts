@@ -1,7 +1,11 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-25
+<<<<<<< HEAD
  * Updated: 2025-11-10
+=======
+ * Updated: 2025-11-07
+>>>>>>> d5dbb84dad0eb7c1783118bd45bb138ab342ec44
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
  * to electron-main.
@@ -57,10 +61,6 @@ export function registerHandlers()
     db.createYearlyReminder(newYearlyRem);
   });
 
-  ipcMain.handle('createExtension', (event, newExt: Extension) => {
-    db.createExtension(newExt);
-  });
-
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
     db.createFolder(newFolder);
   });
@@ -93,10 +93,6 @@ export function registerHandlers()
 
   ipcMain.handle('readYearlyReminder', (event, itemID: bigint) => {
     return db.readYearlyReminder(itemID);
-  });
-
-  ipcMain.handle('readExtensions', (event, itemID: bigint) => {
-    return db.readExtensions(itemID);
   });
 
   ipcMain.handle('readFolder', (event, folderID: bigint) => {

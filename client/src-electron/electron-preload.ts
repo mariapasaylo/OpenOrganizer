@@ -31,7 +31,11 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
+<<<<<<< HEAD
  * Updated: 2025-11-10
+=======
+ * Updated: 2025-11-07
+>>>>>>> d5dbb84dad0eb7c1783118bd45bb138ab342ec44
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -63,7 +67,6 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   createWeeklyReminder: (newWeeklyRem: WeeklyReminder): Promise<void> => ipcRenderer.invoke('createWeeklyReminder', newWeeklyRem),
   createMonthlyReminder: (newMonthlyRem: MonthlyReminder): Promise<void> => ipcRenderer.invoke('createMonthlyReminder', newMonthlyRem),
   createYearlyReminder: (newYearlyRem: YearlyReminder): Promise<void> => ipcRenderer.invoke('createYearlyReminder', newYearlyRem),
-  createExtension: (newExt: Extension): Promise<void> => ipcRenderer.invoke('createExtension', newExt),
   createFolder: (newFolder: Folder): Promise<void> => ipcRenderer.invoke('createFolder', newFolder),
   createDeleted: (newDeleted: Deleted): Promise<void> => ipcRenderer.invoke('createDeleted', newDeleted),
 
@@ -74,7 +77,6 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   readWeeklyReminder: (itemID: bigint): Promise<WeeklyReminder> => ipcRenderer.invoke('readWeeklyReminder', itemID),
   readMonthlyReminder: (itemID: bigint): Promise<MonthlyReminder> => ipcRenderer.invoke('readMonthlyReminder', itemID),
   readYearlyReminder: (itemID: bigint): Promise<YearlyReminder> => ipcRenderer.invoke('readYearlyReminder', itemID),
-  readExtensions: (itemID: bigint): Promise<Extension[]> => ipcRenderer.invoke('readExtensions', itemID),
   readFolder: (folderID: bigint): Promise<Folder> => ipcRenderer.invoke('readFolder', folderID),
 
   readNotesInRange: (windowStartMs: bigint, windowEndMs: bigint): Promise<Note[]> => ipcRenderer.invoke('readNotesInRange', windowStartMs, windowEndMs),

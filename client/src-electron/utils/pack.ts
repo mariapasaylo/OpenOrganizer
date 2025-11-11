@@ -1,10 +1,9 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-28
- * Updated: 2025-11-03
+ * Updated: 2025-11-06
  *
  * This file defines functions for converting interface arrays into byte arrays for use in syncup.ts POST requests.
- *
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -316,8 +315,8 @@ export function packDeleted(deletes: Deleted[]) {
   return repeatedData;
 }
 
-
 // helpers
+
 function packEventTimes(encrData: Buffer, reminder : Reminder, encrBufPos: number) {
   encrData.writeInt32LE(reminder.eventStartYear, encrBufPos);
   encrBufPos += 4;
@@ -369,3 +368,5 @@ function packDaysOfMonth(daysOfMonth: string) { // uses big-endian to store bits
   packedDoM.writeUint32BE(parseInt(daysOfMonth, 2), 0); // turns binary string into int representation ex: "0000011111010000" = 2000
   return packedDoM;
 }
+
+
