@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-09
+ * Updated: 2025-11-10
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -103,7 +103,9 @@ declare global {
     electronAuthAPI: {
       createAccount: (username: string, password: string) => Promise<{ success: boolean}>;
       loginAccount: (username: string, password: string) => Promise<{ success: boolean}>;
-      clearLocalData: () => Promise<void>;
+      changeLogin:(username: string, password: string) => Promise<{ success: boolean}>;
+      clearLocalData: () => Promise<boolean>;
+      isUserLoggedIn: () => Promise<boolean>;
     }
   }
 }
