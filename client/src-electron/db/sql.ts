@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-11-02
+ * Updated: 2025-11-10
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -315,6 +315,10 @@ export const readExtensionsStmt = `
 SELECT * FROM extensions
 WHERE itemID = ?
 ORDER BY sequenceNum ASC`;
+
+export const readOverrideStmt = `
+SELECT * FROM overrides
+WHERE linkedItemID = ? AND origEventStartYear = ? AND origEventStartDay = ? AND origEventStartMin = ?`;
 
 export const readFolderStmt = `
 SELECT * FROM folders

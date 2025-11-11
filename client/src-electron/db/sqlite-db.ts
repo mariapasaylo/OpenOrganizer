@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-09
+ * Updated: 2025-11-10
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -23,6 +23,8 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  GeneratedReminder,
+  Override,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -53,6 +55,7 @@ const readDailyReminderStmt = db.prepare(sql.readDailyReminderStmt);
 const readWeeklyReminderStmt = db.prepare(sql.readWeeklyReminderStmt);
 const readMonthlyReminderStmt = db.prepare(sql.readMonthlyReminderStmt);
 const readYearlyReminderStmt = db.prepare(sql.readYearlyReminderStmt);
+const readOverrideStmt = db.prepare(sql.readOverrideStmt);
 const readExtensionsStmt = db.prepare(sql.readExtensionsStmt);
 const readFolderStmt = db.prepare(sql.readFolderStmt);
 
@@ -254,6 +257,13 @@ function readExtensions(itemID: bigint) {
   if (extensions === undefined) return undefined;
   castExtensionsBigInts(extensions);
   return extensions;
+}
+
+export function readOverride(linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) {
+  const override = readOverrideStmt.get(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin) as Override;
+  if (override === undefined) return undefined;
+  castOverrideBigInts(override);
+  return override;
 }
 
 export function readFolder(folderID: bigint) {
@@ -680,6 +690,17 @@ function castExtensionBigInts(extension: Extension) {
 
 function castExtensionsBigInts(extensions: Extension[]) {
   for (const extension of extensions) castExtensionBigInts(extension);
+}
+
+function castGeneratedReminderBigInts(generatedRem: GeneratedReminder) {
+  generatedRem.itemID = BigInt(generatedRem.itemID);
+  generatedRem.folderID = BigInt(generatedRem.folderID);
+}
+
+function castOverrideBigInts(override: Override) {
+  override.itemID = BigInt(override.itemID);
+  override.linkedItemID = BigInt(override.linkedItemID);
+  override.lastModified = BigInt(override.lastModified);
 }
 
 function castFolderBigInts(folder: Folder) {
