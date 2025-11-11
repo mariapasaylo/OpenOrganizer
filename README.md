@@ -38,6 +38,7 @@ Example:
 ```
 http://localhost:3001/
 ```
+Note: If running the testing suite, make a file named `testing.txt` containing `TRUE` in the same directory.
 5. `npm run rebuild`
 6. To build / run the application:
 * `quasar dev -m electron` to run in electron **(necessary for sqlite)**

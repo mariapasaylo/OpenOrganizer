@@ -1,10 +1,9 @@
 /*
- * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
+ * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
- * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers()
- * to electron-main.
+ * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers() to electron-main.
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -25,8 +24,9 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
-import { createAccount, loginAccount, clearLocalData} from "./auth";
+import { createAccount, loginAccount, isUserLoggedIn, changeLogin, clearLocalData} from "./auth";
 import { sync } from "./sync";
+import * as notifs from "./notifs"
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -39,6 +39,7 @@ export function registerHandlers()
 
   ipcMain.handle('createReminder', (event, newRem: Reminder) => {
     db.createReminder(newRem);
+    notifs.SetNotifReminder(newRem);
   });
 
   ipcMain.handle('createDailyReminder', (event, newDailyRem: DailyReminder) => {
@@ -57,10 +58,6 @@ export function registerHandlers()
     db.createYearlyReminder(newYearlyRem);
   });
 
-  ipcMain.handle('createExtension', (event, newExt: Extension) => {
-    db.createExtension(newExt);
-  });
-
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
     db.createFolder(newFolder);
   });
@@ -76,7 +73,10 @@ export function registerHandlers()
   });
 
   ipcMain.handle('readReminder', (event, itemID: bigint) => {
-    return db.readReminder(itemID);
+    const reminder = db.readReminder(itemID);
+    if (reminder == undefined) return undefined;
+    notifs.SetNotifReminder(reminder);
+    return reminder;
   });
 
   ipcMain.handle('readDailyReminder', (event, itemID: bigint) => {
@@ -95,10 +95,6 @@ export function registerHandlers()
     return db.readYearlyReminder(itemID);
   });
 
-  ipcMain.handle('readExtensions', (event, itemID: bigint) => {
-    return db.readExtensions(itemID);
-  });
-
   ipcMain.handle('readFolder', (event, folderID: bigint) => {
     return db.readFolder(folderID);
   });
@@ -109,7 +105,12 @@ export function registerHandlers()
   });
 
   ipcMain.handle('readRemindersInRange', (event, rangeWindow: RangeWindow) => {
-    return db.readRemindersInRange(rangeWindow);
+    const reminders = db.readRemindersInRange(rangeWindow);
+    if (reminders == undefined) return undefined;
+    for (const reminder of reminders) {
+      notifs.SetNotifReminder(reminder);
+    }
+    return reminders;
   });
 
   ipcMain.handle('readDailyRemindersInRange', (event, rangeWindow: RangeWindow) => {
@@ -170,6 +171,7 @@ export function registerHandlers()
 
   ipcMain.handle('updateReminder', (event, modRem: Reminder) => {
     db.updateReminder(modRem);
+    notifs.SetNotifReminder(modRem);
   });
 
   ipcMain.handle('updateDailyReminder', (event, modDailyRem: DailyReminder) => {
@@ -198,6 +200,7 @@ export function registerHandlers()
   });
 
   ipcMain.handle('deleteReminder', (event, itemID: bigint) => {
+    notifs.DeleteNotif(itemID);
     return db.deleteReminder(itemID);
   });
 
@@ -267,54 +270,6 @@ export function registerHandlers()
     store.set('name', name);
     return true;
   });
-
-  ipcMain.handle('showReminderNotification', (event, reminder: { title: string; date: string }) => {
-    // Show the reminder notification
-    new Notification({
-      title: 'Reminder',
-      body: `${reminder.title} is scheduled for ${reminder.date}`,
-    }).show();
-    return true;
-  });
-
-  // Schedule a reminder notification once at local timezone and specific date and time
-  ipcMain.handle('scheduleReminderNotification', (event, reminder: { itemID: bigint; date: string; title: string; time?: string; unixMilliseconds?: number}) => {
-      const unixMillisecondsTime = Number(reminder.unixMilliseconds);
-      // Derive datetime from unix epoch milliseconds timestamp
-      // const dateTime = new Date(unixMillisecondsTime);
-
-      // Time until the notification should go off. Computes how many milliseconds there are from now until the reminder epoch time
-      // Current time since epoch in ms - time since epoch for reminder in ms
-      const delay = unixMillisecondsTime - Date.now();
-      console.log('Delay between now and reminder time:', delay);
-
-      // Do not schedule reminder notification in the past
-      if (delay <= 0) {
-        console.error('Reminder time is in the past. Cannot schedule notification.');
-        return false;
-      }
-
-      // Workaround with setTimeout
-      // Schedule the reminder notification after the delay time
-      setTimeout(() => {
-          new Notification({
-          title: 'Reminder',
-          body: `${reminder.title} is scheduled for ${reminder.time} on ${reminder.date}`,
-        }).show();
-      }, delay);
-
-      // Issue with node-schedule and scheduleJob not working in packaged app - needs further investigation
-      /*
-      schedule.scheduleJob(dateTime, () => {
-        new Notification({
-          title: 'Reminder',
-          body: `${reminder.title} is scheduled for ${reminder.time} on ${reminder.date}`,
-        }).show();
-      });
-      */
-
-    return true;
-  });
 }
 
 ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
@@ -325,6 +280,14 @@ ipcMain.handle('loginAccount', async (event, username: string, password:string)=
   return await loginAccount(username, password);
 });
 
-ipcMain.handle('clearLocalData', (event) => {
-  clearLocalData();
+ipcMain.handle('changeLogin', async (event, username?: string, password?:string)=> {
+  return await changeLogin(username, password);
+});
+
+ipcMain.handle('isUserLoggedIn', async (event) => {
+  return await isUserLoggedIn();
+});
+
+ipcMain.handle('clearLocalData', async (event) => {
+  return await clearLocalData();
 });

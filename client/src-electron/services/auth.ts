@@ -1,7 +1,7 @@
 /*
  * Authors: Maria Pasaylo, Kevin Sirantoine
  * Created: 2025-10-07
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
  * This file contains functions related to user authentication including getters
  * and setters for privateKey, username, password, and authToken.
@@ -15,7 +15,7 @@
 import {hash256, hash512_256, generatePrivateKey, encrypt, decrypt} from "app/src-electron/services/crypto";
 import Store from 'electron-store';
 import type {Schema} from 'electron-store';
-import axios from 'axios';
+import axios, { get } from 'axios';
 import fs from 'fs';
 import path from "path";
 import {app} from 'electron';
@@ -147,9 +147,11 @@ export async function createAccount(username : string, password : string): Promi
   setUsername(username);
   setPassword(password);
   setPrivateKey1(generatePrivateKey());
+  setPrivateKey2(generatePrivateKey());
   const hashKeyPassword: Buffer = hash256(password);
   const hashServerPassword: Buffer = hash512_256(password);
-  const encryptedPrivateKey: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
+  const encryptedPrivateKey1: Buffer = encrypt(getPrivateKey1(), hashKeyPassword, hashKeyPassword);
+  const encryptedPrivateKey2: Buffer = encrypt(getPrivateKey2(), hashKeyPassword, hashKeyPassword);
 
 
   //Note do not send 0 for username
@@ -161,8 +163,8 @@ export async function createAccount(username : string, password : string): Promi
   //Store username[0:32], passwordHash[32:64], encr1[64:96], encr2[96:128] to send to server
   usernameBuffer.copy(userData, 0);
   hashServerPassword.copy(userData, 32);
-  encryptedPrivateKey.copy(userData, 64);
-  encryptedPrivateKey.copy(userData, 96);//Duplicate for private key 2 for now
+  encryptedPrivateKey1.copy(userData, 64);
+  encryptedPrivateKey2.copy(userData, 96);
 
   //Testing user data to send to server
   //Testing user data to send to server
@@ -232,9 +234,9 @@ export async function createAccount(username : string, password : string): Promi
 
 
     //testing output
-    console.log('LOG IN USER DATA', userData.toString('utf8'));
-    console.log('LOG IN USER DATA RAW', userData);
-    console.log('LOG IN USER DATA LENGTH', userData.length);
+    // console.log('LOG IN USER DATA', userData.toString('utf8'));
+    // console.log('LOG IN USER DATA RAW', userData);
+    // console.log('LOG IN USER DATA LENGTH', userData.length);
 
     //Sending in raw data via API request to /login
     try {
@@ -272,7 +274,83 @@ export async function createAccount(username : string, password : string): Promi
     return true;
   }
 
-  export function clearLocalData() { // WARNING: clears account data and drops local tables
+
+   export async function changeLogin(newUsername?: string, newPassword? : string): Promise<boolean> {
+    const oldUsername = getUsername();
+    const oldPassword = getPassword();
+    newUsername = newUsername || oldUsername;
+    newPassword = newPassword || oldPassword; 
+
+    //update stored username and password
+    setUsername(newUsername);
+    setPassword(newPassword);
+
+    //Ensure username is max 32 bytes
+    const usernameBuffer = Buffer.from(newUsername).slice(0,32);
+    const oldUsernameBuffer = Buffer.from(oldUsername).slice(0,32);
+
+    //hash the passwords
+    const hashNewPassword: Buffer = hash512_256(newPassword);
+    const hashOldPassword: Buffer = hash512_256(oldPassword);
+
+    //get the private keys
+    const encrPrivateKey1: Buffer = getPrivateKey1();
+    const encrPrivateKey2: Buffer = getPrivateKey2();
+
+    //Store username[0:32], passwordHash[32:64], newUsername[64:96], newPasswordHash[96:128], 
+    //privateKey1[128:160], privateKey2[160:192] to send to server
+    const userData = Buffer.alloc(192,20);
+    oldUsernameBuffer.copy(userData, 0);
+    hashOldPassword.copy(userData, 32);
+    usernameBuffer.copy(userData, 64);
+    hashNewPassword.copy(userData, 96);
+    encrPrivateKey1.copy(userData, 128);
+    encrPrivateKey2.copy(userData, 160);
+
+    //testing output
+    // console.log('CHANGE LOGIN USER DATA', userData.toString('utf8'));
+    // console.log('CHANGE LOGIN USER DATA RAW', userData);
+    // console.log('CHANGE LOGIN USER DATA LENGTH', userData.length);
+
+    //Sending in raw data via API request to /changelogin
+    try {
+      const serverURL = getServerURL();
+      const response = await axios.post<ArrayBuffer>(`${serverURL}changelogin`, userData, {
+        'responseType': 'arraybuffer',
+        headers:{'Content-Type': 'application/octet-stream'}
+      }); 
+
+      // Parse and store the userID, authToken, decrypt encrypted private keys
+      const responseData = response.data;
+
+      //More testing
+      // console.log('CHANGE LOGIN RESPONSE DATA!!!!!!!', Buffer.from(responseData).toString('utf8'));
+      // console.log('CHANGE LOGIN RESPONSE STATUS!!!!!!!',response.status);
+
+      //userID [0:8], authToken[8:40]
+      const userIdBytes = Buffer.from(responseData.slice(0, 8));
+      const authTokenBytes = Buffer.from(responseData.slice(8, 40));
+
+      //read as little endian and need to convert to string because electron-store json does not support bigint
+      setUserId(userIdBytes.readBigInt64LE(0).toString());
+      setAuthToken(authTokenBytes);
+      setAutoSyncEnabled(true);
+
+     
+    } catch (error){
+      console.error("Error changing username and password: ", error);
+      return false;
+    }
+
+    return true;
+  }
+
+  export async function isUserLoggedIn(): Promise<boolean> {
+    return accountStore.get('userId') !== "";
+  }
+
+  export async function clearLocalData(): Promise<boolean> { // WARNING: clears account data and drops local tables
     accountStore.clear();
     clearAllTables();
+    return true;
   }

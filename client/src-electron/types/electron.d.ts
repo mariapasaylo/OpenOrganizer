@@ -1,10 +1,9 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-05
+ * Updated: 2025-11-10
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
- *
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
@@ -35,7 +34,6 @@ declare global {
       createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
       createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
       createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
-      createExtension: (newExt: Extension) => Promise<void>;
       createFolder: (newFolder: Folder) => Promise<void>;
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
@@ -46,7 +44,6 @@ declare global {
       readWeeklyReminder: (itemID: bigint) => Promise<WeeklyReminder>;
       readMonthlyReminder: (itemID: bigint) => Promise<MonthlyReminder>;
       readYearlyReminder: (itemID: bigint) => Promise<YearlyReminder>;
-      readExtensions: (itemID: bigint) => Promise<Extension[]>;
       readFolder: (folderID: bigint) => Promise<Folder>;
 
       readNotesInRange: (windowStartMs: bigint, windowEndMs: bigint) => Promise<Note[]>;
@@ -106,12 +103,9 @@ declare global {
     electronAuthAPI: {
       createAccount: (username: string, password: string) => Promise<{ success: boolean}>;
       loginAccount: (username: string, password: string) => Promise<{ success: boolean}>;
-      clearLocalData: () => Promise<void>;
+      changeLogin:(username: string, password: string) => Promise<{ success: boolean}>;
+      clearLocalData: () => Promise<boolean>;
+      isUserLoggedIn: () => Promise<boolean>;
     }
-
-    reminderNotificationAPI: {
-      showReminderNotification: (reminder: { title: string; date: string }) => Promise<boolean>;
-      scheduleReminderNotification: (reminder: { itemID: bigint; date: string; title: string; time?: string; unixMilliseconds?: number }) => Promise<boolean>;
-    };
   }
 }

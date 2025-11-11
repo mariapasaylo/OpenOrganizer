@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-02
+ * Updated: 2025-11-09
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -117,6 +117,7 @@ const deleteFolderStmt = db.prepare(sql.deleteFolderStmt);
 // create
 export function createNote(newNote: Note) {
   createNoteStmt.run(newNote.itemID, newNote.lastModified, newNote.folderID, newNote.isExtended, newNote.title, newNote.text);
+  if (newNote.extensions !== undefined) for (const ext of newNote.extensions) createExtension(ext);
 }
 
 export function createReminder(newRem: Reminder) {
@@ -125,6 +126,7 @@ export function createReminder(newRem: Reminder) {
     newRem.eventStartMin, newRem.eventEndYear, newRem.eventEndDay, newRem.eventEndMin, newRem.notifYear,
     newRem.notifDay, newRem.notifMin, newRem.isExtended, newRem.hasNotif, newRem.title
   );
+  if (newRem.extensions !== undefined) for (const ext of newRem.extensions) createExtension(ext);
 }
 
 export function createDailyReminder(newDailyRem: DailyReminder) {
@@ -134,6 +136,7 @@ export function createDailyReminder(newDailyRem: DailyReminder) {
     newDailyRem.seriesEndMin, newDailyRem.timeOfDayMin, newDailyRem.eventDurationMin, newDailyRem.notifOffsetTimeMin,
     newDailyRem.hasNotifs, newDailyRem.isExtended, newDailyRem.everyNDays, newDailyRem.title
   );
+  if (newDailyRem.extensions !== undefined) for (const ext of newDailyRem.extensions) createExtension(ext);
 }
 
 export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
@@ -143,6 +146,7 @@ export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
     newWeeklyRem.seriesEndMin, newWeeklyRem.timeOfDayMin, newWeeklyRem.eventDurationMin, newWeeklyRem.notifOffsetTimeMin,
     newWeeklyRem.hasNotifs, newWeeklyRem.isExtended, newWeeklyRem.everyNWeeks, newWeeklyRem.daysOfWeek, newWeeklyRem.title
   );
+  if (newWeeklyRem.extensions !== undefined) for (const ext of newWeeklyRem.extensions) createExtension(ext);
 }
 
 export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
@@ -152,6 +156,7 @@ export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
     newMonthlyRem.seriesEndMin, newMonthlyRem.timeOfDayMin, newMonthlyRem.eventDurationMin, newMonthlyRem.notifOffsetTimeMin,
     newMonthlyRem.hasNotifs, newMonthlyRem.isExtended, newMonthlyRem.lastDayOfMonth, newMonthlyRem.daysOfMonth, newMonthlyRem.title
   );
+  if (newMonthlyRem.extensions !== undefined) for (const ext of newMonthlyRem.extensions) createExtension(ext);
 }
 
 export function createYearlyReminder(newYearlyRem: YearlyReminder) {
@@ -161,6 +166,7 @@ export function createYearlyReminder(newYearlyRem: YearlyReminder) {
     newYearlyRem.seriesEndMin, newYearlyRem.timeOfDayMin, newYearlyRem.eventDurationMin, newYearlyRem.notifOffsetTimeMin,
     newYearlyRem.hasNotifs, newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title
   );
+  if (newYearlyRem.extensions !== undefined) for (const ext of newYearlyRem.extensions) createExtension(ext);
 }
 
 export function createExtension(newExt: Extension) {
@@ -180,6 +186,10 @@ export function createDeleted(newDeleted: Deleted) {
 export function readNote(itemID: bigint) {
   const note = readNoteStmt.get(itemID) as Note;
   if (note === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) note.extensions = extensions;
+
   castItemBigInts(note);
   return note;
 }
@@ -187,6 +197,10 @@ export function readNote(itemID: bigint) {
 export function readReminder(itemID: bigint) {
   const rem = readReminderStmt.get(itemID) as Reminder;
   if (rem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) rem.extensions = extensions;
+
   castItemBigInts(rem);
   return rem;
 }
@@ -194,6 +208,10 @@ export function readReminder(itemID: bigint) {
 export function readDailyReminder(itemID: bigint) {
   const dailyRem = readDailyReminderStmt.get(itemID) as DailyReminder;
   if (dailyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) dailyRem.extensions = extensions;
+
   castItemBigInts(dailyRem);
   return dailyRem;
 }
@@ -201,6 +219,10 @@ export function readDailyReminder(itemID: bigint) {
 export function readWeeklyReminder(itemID: bigint) {
   const weeklyRem = readWeeklyReminderStmt.get(itemID) as WeeklyReminder;
   if (weeklyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) weeklyRem.extensions = extensions;
+
   castItemBigInts(weeklyRem);
   return weeklyRem;
 }
@@ -208,6 +230,10 @@ export function readWeeklyReminder(itemID: bigint) {
 export function readMonthlyReminder(itemID: bigint) {
   const monthlyRem = readMonthlyReminderStmt.get(itemID) as MonthlyReminder;
   if (monthlyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) monthlyRem.extensions = extensions;
+
   castItemBigInts(monthlyRem);
   return monthlyRem;
 }
@@ -215,11 +241,15 @@ export function readMonthlyReminder(itemID: bigint) {
 export function readYearlyReminder(itemID: bigint) {
   const yearlyRem = readYearlyReminderStmt.get(itemID) as YearlyReminder;
   if (yearlyRem === undefined) return undefined;
+
+  const extensions = readExtensions(itemID);
+  if (extensions !== undefined) yearlyRem.extensions = extensions;
+
   castItemBigInts(yearlyRem);
   return yearlyRem;
 }
 
-export function readExtensions(itemID: bigint) {
+function readExtensions(itemID: bigint) {
   const extensions = readExtensionsStmt.all(itemID) as Extension[];
   if (extensions === undefined) return undefined;
   castExtensionsBigInts(extensions);
@@ -237,6 +267,12 @@ export function readFolder(folderID: bigint) {
 export function readNotesInRange(windowStartMs: bigint, windowEndMs: bigint) {
   const notes = readNotesInRangeStmt.all({ windowStartMs: windowStartMs, windowEndMs: windowEndMs }) as Note[];
   if (notes === undefined) return undefined;
+
+  for (const note of notes) {
+    const extensions = readExtensions(note.itemID);
+    if (extensions !== undefined) note.extensions = extensions;
+  }
+
   castItemsBigInts(notes);
   return notes;
 }
@@ -248,6 +284,12 @@ export function readRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as Reminder[];
   if (rems === undefined) return undefined;
+
+  for (const rem of rems) {
+    const extensions = readExtensions(rem.itemID);
+    if (extensions !== undefined) rem.extensions = extensions;
+  }
+
   castItemsBigInts(rems);
   return rems;
 }
@@ -260,6 +302,12 @@ export function readDailyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as DailyReminder[];
   if (dailyRems === undefined) return undefined;
+
+  for (const dailyRem of dailyRems) {
+    const extensions = readExtensions(dailyRem.itemID);
+    if (extensions !== undefined) dailyRem.extensions = extensions;
+  }
+
   castItemsBigInts(dailyRems);
   return dailyRems;
 }
@@ -272,6 +320,12 @@ export function readWeeklyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as WeeklyReminder[];
   if (weeklyRems === undefined) return undefined;
+
+  for (const weeklyRem of weeklyRems) {
+    const extensions = readExtensions(weeklyRem.itemID);
+    if (extensions !== undefined) weeklyRem.extensions = extensions;
+  }
+
   castItemsBigInts(weeklyRems);
   return weeklyRems;
 }
@@ -284,6 +338,12 @@ export function readMonthlyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as MonthlyReminder[];
   if (monthlyRems === undefined) return undefined;
+
+  for (const monthlyRem of monthlyRems) {
+    const extensions = readExtensions(monthlyRem.itemID);
+    if (extensions !== undefined) monthlyRem.extensions = extensions;
+  }
+
   castItemsBigInts(monthlyRems);
   return monthlyRems;
 }
@@ -296,6 +356,12 @@ export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
     windowEndMinOfYear: rangeWindow.endMinOfYear
   }) as YearlyReminder[];
   if (yearlyRems === undefined) return undefined;
+
+  for (const yearlyRem of yearlyRems) {
+    const extensions = readExtensions(yearlyRem.itemID);
+    if (extensions !== undefined) yearlyRem.extensions = extensions;
+  }
+
   castItemsBigInts(yearlyRems);
   return yearlyRems;
 }
@@ -344,7 +410,7 @@ export function readFoldersInFolder(parentFolderID: bigint) {
   return folderIDs.map((folderID) => BigInt(folderID.folderID));
 }
 
-// read all modified after a given timestamp
+// read all modified after a given timestamp (for use in sync-up)
 export function readNotesAfter(lastUpdated: bigint) {
   const notes = readNotesAfterStmt.all(lastUpdated) as Note[];
   if (notes === undefined) return undefined;
@@ -408,65 +474,65 @@ export function readDeletesAfter(lastUpdated: bigint) {
   return deletes;
 }
 
-// read lastModified based on itemID (used in syncing)
+// read lastModified based on itemID (used in storing items retrieved in sync-down)
 export function readNoteLm(itemID: bigint) {
-  const note = readNoteLmStmt.get(itemID) as bigint;
-  if (note === undefined) return undefined;
-  return BigInt(note);
+  const lastModified = readNoteLmStmt.get(itemID) as { lastModified: bigint };
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified.lastModified);
 }
 
 export function readReminderLm(itemID: bigint) {
-  const lastModified = readReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readDailyReminderLm(itemID: bigint) {
-  const lastModified = readDailyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readDailyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readWeeklyReminderLm(itemID: bigint) {
-  const lastModified = readWeeklyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readWeeklyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readMonthlyReminderLm(itemID: bigint) {
-  const lastModified = readMonthlyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readMonthlyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readYearlyReminderLm(itemID: bigint) {
-  const lastModified = readYearlyReminderLmStmt.get(itemID) as bigint;
+  const lastModified = readYearlyReminderLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readExtensionLm(itemID: bigint, sequenceNum: number) {
-  const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as bigint;
+  const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readFolderLm(folderID: bigint) {
-  const lastModified = readFolderLmStmt.get(folderID) as bigint;
+  const lastModified = readFolderLmStmt.get(folderID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 export function readDeletedLm(itemID: bigint) {
-  const lastModified = readDeletedLmStmt.get(itemID) as bigint;
+  const lastModified = readDeletedLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
-  return BigInt(lastModified);
+  return BigInt(lastModified.lastModified);
 }
 
 // update
 export function updateNote(modNote: Note) {
-  updateNoteStmt.run(
-    modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
+  updateNoteStmt.run(modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
+  if (modNote.extensions !== undefined) for (const ext of modNote.extensions) createExtension(ext);
 }
 
 export function updateReminder(modRem: Reminder) {
@@ -475,6 +541,7 @@ export function updateReminder(modRem: Reminder) {
     modRem.eventStartMin, modRem.eventEndYear, modRem.eventEndDay, modRem.eventEndMin, modRem.notifYear,
     modRem.notifDay, modRem.notifMin, modRem.isExtended, modRem.hasNotif, modRem.title, modRem.itemID
   ); // itemID last
+  if (modRem.extensions !== undefined) for (const ext of modRem.extensions) createExtension(ext);
 }
 
 export function updateDailyReminder(modDailyRem: DailyReminder) {
@@ -484,6 +551,7 @@ export function updateDailyReminder(modDailyRem: DailyReminder) {
     modDailyRem.seriesEndMin, modDailyRem.timeOfDayMin, modDailyRem.eventDurationMin, modDailyRem.notifOffsetTimeMin,
     modDailyRem.hasNotifs, modDailyRem.isExtended, modDailyRem.everyNDays, modDailyRem.title, modDailyRem.itemID
   ); // itemID last
+  if (modDailyRem.extensions !== undefined) for (const ext of modDailyRem.extensions) createExtension(ext);
 }
 
 export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
@@ -494,6 +562,7 @@ export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
     modWeeklyRem.hasNotifs, modWeeklyRem.isExtended, modWeeklyRem.everyNWeeks, modWeeklyRem.daysOfWeek, modWeeklyRem.title,
     modWeeklyRem.itemID
   ); // itemID last
+  if (modWeeklyRem.extensions !== undefined) for (const ext of modWeeklyRem.extensions) createExtension(ext);
 }
 
 export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
@@ -504,6 +573,7 @@ export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
     modMonthlyRem.hasNotifs, modMonthlyRem.isExtended, modMonthlyRem.lastDayOfMonth, modMonthlyRem.daysOfMonth, modMonthlyRem.title,
     modMonthlyRem.itemID
   ); // itemID last
+  if (modMonthlyRem.extensions !== undefined) for (const ext of modMonthlyRem.extensions) createExtension(ext);
 }
 
 export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
@@ -513,6 +583,7 @@ export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
     modYearlyRem.seriesEndMin, modYearlyRem.timeOfDayMin, modYearlyRem.eventDurationMin, modYearlyRem.notifOffsetTimeMin,
     modYearlyRem.hasNotifs, modYearlyRem.isExtended, modYearlyRem.dayOfYear, modYearlyRem.title, modYearlyRem.itemID
   ); // itemID last
+  if (modYearlyRem.extensions !== undefined) for (const ext of modYearlyRem.extensions) createExtension(ext);
 }
 
 export function updateFolder(modFolder: Folder) {
