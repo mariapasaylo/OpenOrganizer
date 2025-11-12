@@ -19,6 +19,8 @@ export type CalendarEvent = {
   date: string;
   color: string;
   icon?: string
+  isStart?: boolean;
+  isEnd?: boolean;
 };
 
 export type EventField = { 
@@ -64,18 +66,42 @@ export function getEventTypeColor(eventTypes: EventType[], selectedEventTypeID: 
 // script source code similar to slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
 export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventType[]): CalendarEvent[] {
-  // Only show saved reminders on calendar
-  return reminders.filter(reminder => reminder.isSaved)
-    .map(reminder => ({
-      id: reminder.itemID, 
-      title: reminder.title,
-      date: reminder.date,
-      // Have background color be same as event type color
-      color: getEventTypeColor(eventTypes, reminder.eventType),
-      // Icon by event type
-      icon: getEventTypeIcons(eventTypes, reminder.eventType)
-    }));
+   const events: CalendarEvent[] = [];
+
+  // Iterate through viewable calendar month reminders
+  for (const reminder of reminders) {
+       // Build a single-day calendar event for each saved reminder in the viewable month
+       if (reminder.isSaved) {
+        events.push({
+          id: reminder.itemID,
+          title: reminder.title,
+          date: reminder.date,
+          color: getEventTypeColor(eventTypes, reminder.eventType),
+          icon: getEventTypeIcons(eventTypes, reminder.eventType),
+          isStart: true,
+          // End day is true if single-day event (as its the start and end)
+          isEnd: reminder.temporaryEventEndDay === reminder.date
+        });
+
+        // If reminder is a multi-event, create a marker on the end day (when viewed on calendar month)
+        if (reminder.temporaryEventEndDateEnabled) {
+          if (reminder.temporaryEventEndDay != reminder.date)  {
+            events.push({
+            id: reminder.itemID,
+            title: reminder.title,
+            date: reminder.temporaryEventEndDay,
+            color: getEventTypeColor(eventTypes, reminder.eventType),
+            icon: 'stop_circle',
+            isEnd: true
+            });
+          } 
+        }
+      }
+    }
+
+  return events;
 }
+
 
 // Map dates to array of events - key is date string, value is array of events on that date
 // script source code similar to slot - day month example

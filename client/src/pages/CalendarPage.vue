@@ -128,7 +128,7 @@
               <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
               <template v-else>
                 <div class="row items-center">
-                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" class="q-mr-sm" />
+                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" :style="node.iconStyle" class="q-mr-sm" />
                   <span>{{ node.label }}</span>
                 </div>
               </template>
@@ -193,6 +193,7 @@
                   label="Multi‑day"
                   dense
                   hide-bottom-space
+                  :color="getEventTypeColor(eventTypes, item.eventType)" 
                   style="margin-bottom:10px"
                 />
                 <q-select
@@ -605,8 +606,13 @@
                 >
                   <q-icon :name="event.icon || 'access_time'" size="14px" class="q-mr-xs" />
                   <div class="event-title" style="width: 100%; max-width: 100%;">
-                  {{ event.title }}
+                  {{ event.title}}
                   </div>
+                <!-- Tooltip on hover to clarify if event start or end -->
+                <q-tooltip v-if="event.isStart || event.isEnd">
+                  <!-- If single day, combined start and end labels. If multi-day start and end separate labels. -->
+                  {{ (event.isStart && event.isEnd) ? 'Event start & end' : (event.isStart ? 'Event start' : 'Event end') }}
+                </q-tooltip>
                 </div>
               </template>
             </template>
@@ -653,7 +659,11 @@ const monthReminders = ref<UIReminder[]>([])
 // Hard limits reminders to +1 year from start date for event duration
 function endDateRange(startDate: string): { min: string; max: string } {
   // Normalize inputted date string to yyyy-mm-dd format
-  const dateString = normalizeDatePickerToCalendar(startDate ?? '') || '';
+  let dateString = normalizeDatePickerToCalendar(startDate ?? '') || '';
+  // If provided startDate is empty/invalid, fallback to currently selected calendar date
+  if (!dateString) {
+    dateString = normalizeDatePickerToCalendar(String(selectedDate.value ?? '')) || '';
+  }
   if (dateString) {
     const [yearString, monthString, dayString] = dateString.split('-');
     const year = Number(yearString);
