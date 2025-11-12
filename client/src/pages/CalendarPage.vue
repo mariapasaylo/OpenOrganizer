@@ -1432,14 +1432,13 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   let startStr = (typeof row.eventStartMin === 'number') ? minutesToHHMM(row.eventStartMin) : '';
   let endStr = (typeof row.eventEndMin === 'number') ? minutesToHHMM(row.eventEndMin) : '';
 
-  // If start string is midnight with no notification, show empty string
-  if (startStr === '00:00' && Number(row.hasNotif) === 0) {
+  if (!startStr) {
     startStr = '';
   }
-   // If end string is midnight with no notification, show empty string
-  if (endStr === '00:00' && Number(row.hasNotif) === 0) {
+  if (!endStr) {
     endStr = '';
   }
+
   const eventStartMin = typeof row.eventStartMin === 'number' ? row.eventStartMin : null;
   const notifMin = typeof row.notifMin === 'number' ? row.notifMin : null;
   // Compute dropdown remind me option (ex. 5 mins before event time)
@@ -1480,8 +1479,6 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   }
 }
 
-// 
-
  // Need to add fields to the DB reminder row specific to the UI card
  // Sets temporary fields to saved values from DB
   const UIReminder = {
@@ -1497,12 +1494,12 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     extension: extensionsUI,
     temporaryEventStartTime: startStr,
     temporaryEventEndTime: endStr,
-    temporaryEventEndDay: endDateString, // Default end day is same as start day (not multi-day)
+    temporaryEventEndDay: normalizeDatePickerToCalendar(endDateString) ?? dateString, // Default end day is same as start day (not multi-day)
     temporaryEventEndDateEnabled: isMultiDayEvent, // Default not multi-day event
     // If theres a notification, temporary notification time is reminder notification minute of day 
     temporaryNotificationTime: minutesBeforeStartTime,
     temporaryLastModified: lastModifiedTimeAndDate,
-    date: dateString,
+    date: normalizeDatePickerToCalendar(dateString) ?? dateString,
     titleMessageError: '',
     folderMessageError: '',
     timeMessageError: '',
@@ -1865,10 +1862,11 @@ async function saveReminder(reminder: UIReminder){
     return;
   }
 
+  const eventStartDay = normalizeDatePickerToCalendar(reminder.date) ?? reminder.date;
  // If multi-day event is enabled, use end day user provided, if single day, use start date (reminder.date)
   const eventEndDay = reminder.temporaryEventEndDateEnabled
   // Uses end day from calendar picker in format YYYY-MM-DD (extra validation)
-  ? (normalizeDatePickerToCalendar(reminder.temporaryEventEndDay)) : reminder.date;
+  ? (normalizeDatePickerToCalendar(reminder.temporaryEventEndDay)) : eventStartDay;
 
   // If multi-day event is enabled, end day must be provided
   if (reminder.temporaryEventEndDateEnabled) {
@@ -1902,7 +1900,7 @@ async function saveReminder(reminder: UIReminder){
     }
 
   // If no notification time selected (never), return null. Otherwise, convert time into timestamp
-  const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTime, reminder.temporaryNotificationTime);
+  const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(eventStartDay, startTime, reminder.temporaryNotificationTime);
 
   // Check notification time is before or at event start time if provided
   if (notifTime && timeStamptoEpoch(notifTime) > timeStamptoEpoch(eventStartTime)) {
