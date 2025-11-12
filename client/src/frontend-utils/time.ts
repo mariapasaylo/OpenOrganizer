@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-30
+ * Updated: 2025-11-12
  *
  * This file contains helper functions to handle time and date conversions on the client
  *
@@ -109,6 +109,37 @@ export function minutesToHHMM(minOfDay: number): string {
     return `${hourString}:${minuteString}`;
   }
 
+// Helper function to take date-pickers YYYY/MM/DD format to YYYY-MM-DD (no slash) to match qcalendar 
+export function normalizeDatePickerToCalendar(dateString: string): string {
+  if (!dateString) {
+    return '';
+  }
+  const rawString = String(dateString).trim();
+  // Split date string into year, month, day parts based on '-' or '/' delimiter
+  const [yearString, monthString, dayString] = rawString.includes('/') ? rawString.split('/') : rawString.split('-');
+  const year = String(Number(yearString));
+  const month = String(Number(monthString));
+  const day = String(Number(dayString));
+  const dateFormattedString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return dateFormattedString;
+}
 
+// Helper function to display event date on reminder cards from YYYY-MM-DD to locale date string MM/DD/YYYY
+export function eventDatetoLocaleString(dateString: string): string {
+  if (!dateString) {
+    return '';
+  }
+  const rawString = String(dateString).trim();
+    // Split date string into year, month, day parts based on '-' or '/' delimiter
+  const [yearString, monthString, dayString] = rawString.includes('/') ? rawString.split('/') : rawString.split('-');
+  const year = Number(yearString);
+  const month = Number(monthString);
+  const day = Number(dayString);
+  // Construct new date at midnight from ISO date for consistenct
+  const dateFormatted = new Date(year, month - 1, day);
+  // String in MM/DD/YYYY format based on date
+  const dateFormattedString = String(dateFormatted.getMonth() + 1).padStart(2, '0') + '/' + String(dateFormatted.getDate()).padStart(2, '0') + '/' + String(dateFormatted.getFullYear());
+  return dateFormattedString;
+}
 
 

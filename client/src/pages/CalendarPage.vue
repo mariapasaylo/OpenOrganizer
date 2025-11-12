@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-10
+ * Updated: 2025-11-12
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -185,9 +185,16 @@
               </template>
               <q-card-section>
                     <div style="padding-bottom:10px">
-                      Event date: {{ item.date }}<br>
+                      Event date: {{ eventDatetoLocaleString(item.date) }}<br>
                       Last modified: {{(item.temporaryLastModified) }}
-                    </div>
+                  </div>
+                <q-checkbox
+                  v-model="item.temporaryEventEndDateEnabled"
+                  label="Multi‑day"
+                  dense
+                  hide-bottom-space
+                  style="margin-bottom:10px"
+                />
                 <q-select
                 v-model="item.eventType"
                 :options="eventTypeOptions"
@@ -228,14 +235,36 @@
                   dense
                   style="background-color: #f2f2f2; margin-bottom: 10px"
                 />
-                <q-input
+                <!-- Extra fields for multi-day events -->
+                <div v-if="item.temporaryEventEndDateEnabled">
+                  <q-input
+                        outlined
+                        dense
+                        v-model="item.temporaryEventEndTime"
+                        type="time"
+                        label="Event End Time"
+                        style="background-color: #f2f2f2; margin-bottom: 10px;"
+                      />
+                      <q-input
+                        outlined
+                        dense
+                        type="date"
+                        label="Event End Date"
+                        v-model="item.temporaryEventEndDay"
+                        :min="endDateRange(item.date).min"
+                        :max="endDateRange(item.date).max"
+                        style="font-size: 12px; background-color: #f2f2f2; margin-bottom: 8px;"
+                      >
+                      </q-input>
+                  </div>
+                <q-input v-else
                   v-model="item.temporaryEventEndTime"
                   :label="getEventEndLabel(item.eventType)"
                   type="time"
                   outlined
                   dense
                   style="background-color: #f2f2f2; margin-bottom: 10px"
-                />
+                />                
               </template>
               <!-- Render fields for selected event type - each input corresponds to its type -->
               <!-- Since flight has a lot of fields, add an expandable section to not overwhelm the user -->
@@ -293,6 +322,19 @@
                     dense
                     class="flight-half"
                   />
+                  <div v-if="item.temporaryEventEndDateEnabled" style="width:100%; grid-column: 1 / -1;">
+                    <q-input
+                      v-model="item.temporaryEventEndDay"
+                      label="Flight Arrival Date"
+                      outlined
+                      dense
+                      type="date" 
+                      :min="endDateRange(item.date).min"
+                      :max="endDateRange(item.date).max"
+                      class="flight-full"
+                      style="width: 100%"
+                    />
+                  </div>
                   <q-input
                     v-model="item.extension.gate"
                     label="Gate"
@@ -405,6 +447,19 @@
                 dense 
                 class="flight-half"
                 />
+                <div v-if="item.temporaryEventEndDateEnabled" style="width:100%; grid-column: 1 / -1;">
+                  <q-input
+                    outlined
+                    dense
+                    type="date"
+                    label="Check-out Date"
+                    v-model="item.temporaryEventEndDay"
+                    :min="endDateRange(item.date).min"
+                    :max="endDateRange(item.date).max"
+                    style="width:100%;"
+                    class = "flight-full"
+                  />
+                 </div>
                 <q-input 
                 v-model="item.extension.address" 
                 label="Hotel Address" 
@@ -580,7 +635,7 @@ import {QCalendarMonth, addToDate, parseTimestamp, today, type Timestamp} from '
 import '@quasar/quasar-ui-qcalendar/index.css';
 import {buildCalendarEvents, groupEventsByDate, getEventTypeColor, getEventTypeFields, getEventStartLabel, getEventEndLabel, type EventType, type CalendarEvent} from '../frontend-utils/events';
 import { buildBreadcrumbs, normalizeFolderID, buildRootNodes} from '../frontend-utils/tree';
-import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, minutesToHHMM, timeStamptoEpoch } from '../frontend-utils/time';
+import { convertTimeAndDateToTimestamp, convertNotificationTimestamp, minutesToHHMM, timeStamptoEpoch, normalizeDatePickerToCalendar, eventDatetoLocaleString } from '../frontend-utils/time';
 import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Reminder, Note, Folder, Extension } from '../../src-electron/types/shared-types';
@@ -593,6 +648,36 @@ const settingsTab = ref('cloud');
 const reminders = ref<UIReminder[]>([])
 // Array of reminders by month for calendar
 const monthReminders = ref<UIReminder[]>([])
+
+// Helper function to determine days user can pick for event end day (from start day to one year later)
+// Hard limits reminders to +1 year from start date for event duration
+function endDateRange(startDate: string): { min: string; max: string } {
+  // Normalize inputted date string to yyyy-mm-dd format
+  const dateString = normalizeDatePickerToCalendar(startDate ?? '') || '';
+  if (dateString) {
+    const [yearString, monthString, dayString] = dateString.split('-');
+    const year = Number(yearString);
+    const month = Number(monthString);
+    const day = Number(dayString);
+    // Create a new start date object from inputted start date with 0 hours, minutes, seconds to compare full day
+    const sDate = new Date(year, month - 1, day);
+    sDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(sDate);
+    // Takes the start date (0 time) and adds 365 
+    // days to it for max end date
+    endDate.setDate(endDate.getDate() + 365);
+
+    const startString = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}`;
+    const endString = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+    // Return the min and max date strings in yyyy-mm-dd format for date picker
+    return { min: startString, max: endString };
+  }
+
+  // If input is invalid or empty, return empty strings to satisfy the declared return type
+  return { min: '', max: '' };
+}
 
 // List of notification options for when to be notified for reminder
 // Value is minutes before the event start time
@@ -665,6 +750,10 @@ const eventTypes: EventType[] = [
   // Passing in undefined for unused fields on frontend (timezone offsets, abbrev) -> will be padded into '\0 strings'
   function buildExtensionsForEventType(reminder: UIReminder): Extension[] {
   const extRecord = reminder.extension ?? {};
+  // Use event end-day for multi-day events and event start-day for single day events
+  const eventEndDay = reminder.temporaryEventEndDateEnabled
+  // Uses end day from calendar picker in format YYYY-MM-DD (extra validation)
+  ? (normalizeDatePickerToCalendar(reminder.temporaryEventEndDay)) : reminder.date;
 
   // Helper function to safely read string/time fields from extension record (as they are optional they can be missing or empty)
   const extensionString = (fieldKey: string): string | undefined => {
@@ -679,22 +768,54 @@ const eventTypes: EventType[] = [
     return fieldString === '' ? undefined : fieldString;
   };
 
-  // Helper function to return qcalendar timestamp when a time is provided, otherwise undefined
+  // If extension field time exists, use it to build timestamps
   const extensionTime = (fieldKey: string): Timestamp | undefined => {
-    const fieldRawValue = extRecord[fieldKey];
-    if (fieldRawValue === undefined || fieldRawValue === null) {
-      return undefined;
+    const raw = extRecord[fieldKey];
+    // Check that field exists in extension record (set in UI)
+    if (raw !== undefined && raw !== null) {
+      const fieldString = String(raw).trim();
+      // If extension field exists and is not empty, convert to timestamp using UI-provided time
+      if (fieldString !== '') {
+        // Arrival and check-out time are built on event end day if provided (multi-day), else on event start day
+        if (fieldKey === 'arrTime' || fieldKey === 'checkoutTime') {
+          return convertTimeAndDateToTimestamp(eventEndDay, fieldString) ?? undefined;
+        }
+        // Departure, check-in, and boarding time are built on event start day
+        if (fieldKey === 'depTime' || fieldKey === 'checkinTime' || fieldKey === 'boardingTime') {
+          return convertTimeAndDateToTimestamp(reminder.date, fieldString) ?? undefined;
+        }
+      }
     }
-    const fieldString = String(fieldRawValue).trim();
-    if (fieldString === '') {
-      return undefined;
+
+    // If there's no set value in UI for the arrival or checkout time ('')
+    if (fieldKey === 'arrTime' || fieldKey === 'checkoutTime') {
+      // If arrival time (end) is the key field, see if departure time (start) exists in record
+      // Otherwise if check out time (end) is the key field, see if check in time (start) exists in record
+      const startKey = (fieldKey === 'arrTime') ? 'depTime' : 'checkinTime';
+      const startRaw = extRecord[startKey];
+      if (startRaw !== undefined && startRaw !== null) {
+        const startString = String(startRaw).trim();
+        // If start time exists, derive end time using temporary logic rules from saveReminder
+        if (startString !== '') {
+          if (reminder.temporaryEventEndDateEnabled) {
+            // If reminder is multi-day, end time is 23:59 on event end day
+            return convertTimeAndDateToTimestamp(eventEndDay, '23:59') ?? undefined;
+          } else {
+            // Otherwise, if reminder is same-day, end time is same as start time
+            return convertTimeAndDateToTimestamp(reminder.date, startString) ?? undefined;
+          }
+        }
+      }
     }
-    // convert "HH:MM" + reminder.date to Timestamp
-    return convertTimeAndDateToTimestamp(reminder.date, fieldString) ?? undefined;
+
+    // Neither of the times have set values, return undefined
+    return undefined;
   };
 
+
+    // Flight
     switch (reminder.eventType) {
-      case 1: {// Flight
+      case 1: {
         const flightFields = 
         FieldsToFlight(
           extensionString('depAirportName'),
@@ -706,7 +827,7 @@ const eventTypes: EventType[] = [
           extensionString('airlineName'),
           extensionString('depAirportIATA'),
           undefined, // depTimezoneAbbr
-          extensionTime('departureTime'),
+          extensionTime('depTime'),
           undefined, // depTimeDestZone
           extensionTime('boardingTime'),
           extensionString('boardingGroup'),
@@ -715,7 +836,7 @@ const eventTypes: EventType[] = [
           undefined, // arrTimeZoneOffset
           extensionString('arrAirportIATA'),
           undefined, // arrTimezoneAbbr
-          extensionTime('arrivalTime'),
+          extensionTime('arrTime'),
           undefined // arrTimeDestZone
       );
       if (!flightFields) {
@@ -724,8 +845,8 @@ const eventTypes: EventType[] = [
       }
       return FlightToExtensions(flightFields) ?? [];
     }
-
-      case 2: {// Hotel
+      // Hotel
+      case 2: {
       const hotelFields = 
       FieldsToHotel(
         extensionString('name'),
@@ -1003,6 +1124,7 @@ function addReminder() {
     temporaryNotificationTime: null,
     temporaryEventStartTime: '',
     temporaryEventEndTime: '',
+    temporaryEventEndDay: '',
     temporaryLastModified: new Date().toLocaleString(),
     temporaryTitle: '',
     temporaryFolderID: folderID,
@@ -1014,6 +1136,7 @@ function addReminder() {
     isEditing: false,
     isSelected: false,
     expanded: true,
+    temporaryEventEndDateEnabled: false
   } as UIReminder;
 
   // Add draft reminder to reminders array for UI rendering
@@ -1213,6 +1336,22 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   // Pad month and day so its always two digits - ex. day 5 becomes 05
   const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+  const endMinuteOfDay = Number(row.eventEndMin);
+  const endEventDay = Number(row.eventEndDay);
+  const endEventYear = Number(row.eventEndYear);
+  const endDate = new Date(endEventYear, 0, 1);
+  endDate.setDate(endDate.getDate() + (endEventDay - 1));
+  const eventEndHour = Math.floor(endMinuteOfDay / 60);
+  const eventEndMinute = endMinuteOfDay % 60;
+  endDate.setHours(eventEndHour, eventEndMinute, 0, 0);
+  const endDateString = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+  const startEpoch = date.getTime();
+  const endEpoch = endDate.getTime();
+
+  // If end day is different calendar day from start day, and end time moment is after start time moment, multi-day event has occured
+   const isMultiDayEvent = (endDateString !== dateString) && (endEpoch > startEpoch);
+
   // Get last modified and convert for display
   const lastModifiedEpoch = Number(row.lastModified);
   const reminderDate = new Date(lastModifiedEpoch);
@@ -1220,11 +1359,11 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   // getMonth returns zero-based index so add 1 to get actual month number
   const lastModifiedTimeAndDate = reminderDate.toLocaleString();
 
-  // Add extension onto reminder row type at compile time
-  const typedRow = row as Reminder & { extension?: Record<string, string | number | null> };
+  // UI reminder extension fields as a record, these are the actual values taken from frontend input fields 
+  const extensionsUI = {} as Record<string, string | number | null | undefined>;
 
-  // Build extension row time fields from database stored dayOfMin value (to properly format and display)
-  const ext = { ...(typedRow.extension ?? {}) } as Record<string, string | number | null | undefined>;
+  // DB reminder row with extensions
+  const extensionsArr = (row as Reminder & { extensions?: Extension[] }).extensions;
 
   // Derive HH:MM time strings for display from database stored minutes of day value
   // Convert event start and end min into HH:MM string
@@ -1239,11 +1378,47 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
   if (endStr === '00:00' && Number(row.hasNotif) === 0) {
     endStr = '';
   }
-
   const eventStartMin = typeof row.eventStartMin === 'number' ? row.eventStartMin : null;
   const notifMin = typeof row.notifMin === 'number' ? row.notifMin : null;
   // Compute dropdown remind me option (ex. 5 mins before event time)
   const minutesBeforeStartTime = (row.hasNotif === 1 && eventStartMin != null && notifMin != null) ? eventStartMin - notifMin : null;
+
+  // If extensions array exists, map each extension into extensions UI record
+  if (extensionsArr && extensionsArr.length > 0) {
+    // If a flight, extract flight fields
+    if (row.eventType === 1) {
+      const flightFields = ExtensionsToFlight(extensionsArr);
+      if (flightFields) {
+        extensionsUI.depAirportName = flightFields.depAirportName ?? '';
+        extensionsUI.depAirportAddress = flightFields.depAirportAddress ?? '';
+        extensionsUI.arrAirportName = flightFields.arrAirportName ?? '';
+        extensionsUI.arrAirportAddress = flightFields.arrAirportAddress ?? '';
+        extensionsUI.airlineCode = flightFields.airlineCode ?? '';
+        extensionsUI.flightNumber = flightFields.flightNumber ?? '';
+        extensionsUI.airlineName = flightFields.airlineName ?? '';
+        extensionsUI.depAirportIATA = flightFields.depAirportIATA ?? '';
+        extensionsUI.depTime = minutesToHHMM(flightFields.depTimeMin);
+        extensionsUI.boardingTime = minutesToHHMM(flightFields.boardingTimeMin);
+        extensionsUI.boardingGroup = flightFields.boardingGroup ?? '';
+        extensionsUI.gate = flightFields.gate ?? '';
+        extensionsUI.arrAirportIATA = flightFields.arrAirportIATA ?? '';
+        extensionsUI.arrTime = minutesToHHMM(flightFields.arrTimeMin);
+      }
+    }
+    // If a hotel, extract hotel fields
+    else if (row.eventType === 2) {
+      const hotelFields = ExtensionsToHotel(extensionsArr);
+      if (hotelFields) {
+        extensionsUI.name = hotelFields.name ?? '';
+        extensionsUI.address = hotelFields.address ?? '';
+        extensionsUI.checkinTime = minutesToHHMM(hotelFields.checkinTimeMin);
+        extensionsUI.checkoutTime = minutesToHHMM(hotelFields.checkoutTimeMin);
+        extensionsUI.roomNumber = hotelFields.roomNumber ?? '';
+    }
+  }
+}
+
+// 
 
  // Need to add fields to the DB reminder row specific to the UI card
  // Sets temporary fields to saved values from DB
@@ -1252,14 +1427,16 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     ...row,
     // normalize itemID and folder IDs to bigint so they match folder IDs used by the tree
     itemID: (typeof row.itemID === 'bigint') ? row.itemID : BigInt(row.itemID),
-    folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID ),
+    folderID: (typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID),
     temporaryFolderID: row.folderID == null ? null : ((typeof row.folderID === 'bigint') ? row.folderID : BigInt(row.folderID)),
     // Add on UI specific fields
     temporaryTitle: row.title ?? '',
-    // Replace this with actual extension fields later when support is added 
-    extension: ext,
+    // Replace this with actual extension fields later when support is added
+    extension: extensionsUI,
     temporaryEventStartTime: startStr,
     temporaryEventEndTime: endStr,
+    temporaryEventEndDay: endDateString, // Default end day is same as start day (not multi-day)
+    temporaryEventEndDateEnabled: isMultiDayEvent, // Default not multi-day event
     // If theres a notification, temporary notification time is reminder notification minute of day 
     temporaryNotificationTime: minutesBeforeStartTime,
     temporaryLastModified: lastModifiedTimeAndDate,
@@ -1552,7 +1729,6 @@ async function saveReminder(reminder: UIReminder){
     reminder.titleMessageError = 'Invalid event type selected.';
     return;
   }
-
   // Folder must exist
   // Checks if folder id (temporary folder) matches any existing folder ids in folders array
   if (reminder.temporaryFolderID == null || !folders.value.some(folder => String(folder.folderID) === String(reminder.temporaryFolderID))) {
@@ -1561,36 +1737,54 @@ async function saveReminder(reminder: UIReminder){
   }
   
   const extension = reminder.extension ?? {};
-  // Copy event-type specific extension fields times string value (departure time, arrival time, check-in, etc.) into normal reminder temporaryEventStartTime / temporaryEventEndTime fields value
-  // This is so notifications still go off at event start time even for event types with custom fields
-  const copyExtensionTimes = (fieldKey: string, targetFieldKey: 'temporaryEventStartTime' | 'temporaryEventEndTime') => {
-    // Find value of the extension time field 
-    const fieldValue = extension[fieldKey];
-    // Field missing, skip
-    if (fieldValue === undefined || fieldValue === null) {
-      return;
+
+  // Helper function to safely read string/time fields from extension record (as they are optional they can be missing or empty)
+  const extensionString = (fieldKey: string): string | undefined => {
+    // Lookup fields raw value from extension record by its key (ex. reminder.extension.airlineName)
+    const fieldRawValue = extension[fieldKey];
+    // If the field is missing (undefined), it has no value
+    if (fieldRawValue === undefined || fieldRawValue === null) {
+      return undefined;
     }
-    // Cast field value to string and trim whitespace if it exists
-    const fieldString = String(fieldValue).trim();
-    // If field string is not empty, copy its value into target temporary event time field
-    if (fieldString !== '') {
-      reminder[targetFieldKey] = fieldString;
-    }
-  }
-  // Departure time = start, arrival time = end
-  if (reminder.eventType === 1) {
-    copyExtensionTimes('depTime', 'temporaryEventStartTime');
-    copyExtensionTimes('arrTime', 'temporaryEventEndTime');
-  }
-  // Check-in time = start, check-out time = end
-  else if (reminder.eventType === 2) {
-    copyExtensionTimes('checkinTime', 'temporaryEventStartTime');
-    copyExtensionTimes('checkoutTime', 'temporaryEventEndTime');  
-  }
+    // If the field exists, cast its value to string and trim whitespace
+    const fieldString = String(fieldRawValue).trim();
+    return fieldString === '' ? undefined : fieldString;
+  };
+
 
   // Cast times into strings (since extension fields can be multiple types)
-  const startTimeStr = String(reminder.temporaryEventStartTime ?? '').trim();
-  const endTimeStr = String(reminder.temporaryEventEndTime ?? '').trim();
+  let startTimeStr = String(reminder.temporaryEventStartTime ?? '').trim();
+  let endTimeStr = String(reminder.temporaryEventEndTime ?? '').trim();
+  // Temporary start and end time strings should use extensions (if they exist) for event types. Otherwise, use temporary fields
+  // Flight
+  if (reminder.eventType === 1) { 
+    // Lookup extension fields to see if they exist
+    const departureTime = extensionString('depTime');
+    const arrivalTime = extensionString('arrTime');
+    // If they exist, override temporary times (in DB) with extension times
+    if (departureTime !== undefined) {
+      startTimeStr = departureTime;
+    } 
+    if (arrivalTime !== undefined) {
+      endTimeStr = arrivalTime;
+    } 
+    // Hotel
+  } else if (reminder.eventType === 2) { 
+    const checkinTime = extensionString('checkinTime');
+    const checkoutTime = extensionString('checkoutTime');
+    if (checkinTime !== undefined) {
+      startTimeStr = checkinTime;
+    }
+    if (checkoutTime !== undefined) {
+      endTimeStr = checkoutTime;
+    }
+  }
+
+  // Do not allow event end time without a start time
+  if (startTimeStr === '' && endTimeStr !== '') {
+    reminder.timeMessageError = 'Start time is required when setting an end time.';
+    return;
+  }
 
   // If user sets a notification (non-null), they must have a start time
   if (reminder.temporaryNotificationTime != null && startTimeStr === '') {
@@ -1603,30 +1797,47 @@ async function saveReminder(reminder: UIReminder){
 
   // Event start time is day of event + inputted user time - or 00:00 placeholder if none provided
   const eventStartTime = convertTimeAndDateToTimestamp(reminder.date, startTime);
+
   if (!eventStartTime) {
     reminder.timeMessageError = 'Invalid start time.';
     return;
   }
 
-  // Event end time is optional. If none provided, start time = end time (like an instant alarm)
-  let eventEnd = eventStartTime;
-  // If endTimeStr is valid (inputted), then set end time to the inputted HH:MM time
-  if (endTimeStr) {
-    const eventEndTime = convertTimeAndDateToTimestamp(reminder.date, endTimeStr);
-    if (!eventEndTime) {
+ // If multi-day event is enabled, use end day user provided, if single day, use start date (reminder.date)
+  const eventEndDay = reminder.temporaryEventEndDateEnabled
+  // Uses end day from calendar picker in format YYYY-MM-DD (extra validation)
+  ? (normalizeDatePickerToCalendar(reminder.temporaryEventEndDay)) : reminder.date;
+
+  // If multi-day event is enabled, end day must be provided
+  if (reminder.temporaryEventEndDateEnabled) {
+    if (!eventEndDay) {
+      reminder.timeMessageError = 'Please select a valid event end date for multi‑day events.';
+      return;
+    }
+  }
+
+  // If multi-day event and no end time selected (''), end time is end of that day (23:59), otherwise its the end time provided
+  // Otherwise, if single day event and no time selected (''), event end time is same as as start time , otherwise its the end time provided
+  const eventEndTime = reminder.temporaryEventEndDateEnabled
+  ? (endTimeStr === '' ? '23:59' : endTimeStr)
+  : (endTimeStr === '' ? startTime : endTimeStr);
+
+  // Create timestamp from event end day + time (or just time)
+  // Takes event end day (ex. YYYY-MM DD and time HH:MM) and converts to qcalendar timestamp)
+  const eventEnd = convertTimeAndDateToTimestamp(eventEndDay, eventEndTime);
+
+    if (!eventEnd) {
       reminder.timeMessageError = 'Invalid end time.'
       return;
     }
+
     // Compare exact moment in time if event start time is before event end time, if not, error
     const startEpoch = timeStamptoEpoch(eventStartTime);
-    const endEpoch = timeStamptoEpoch(eventEndTime);
+    const endEpoch = timeStamptoEpoch(eventEnd);
     if (endEpoch < startEpoch) {
       reminder.timeMessageError = 'Start time must be before end time.';
       return;
     }
-    // If at this point, start is less than end, overwrite temporary variable with eventEndTime
-    eventEnd = eventEndTime;
-  }
 
   // If no notification time selected (never), return null. Otherwise, convert time into timestamp
   const notifTime = reminder.temporaryNotificationTime == null ? null : convertNotificationTimestamp(reminder.date, startTime, reminder.temporaryNotificationTime);
@@ -1647,11 +1858,13 @@ async function saveReminder(reminder: UIReminder){
 try {
   // Build event type extensions from UI fields
   const extensions = buildExtensionsForEventType(reminder);
+  // Only send an extension if there are fields to send (otherwise undefined so DB doesn't make an extension)
+  const extensionsToSend = (extensions && extensions.length > 0) ? extensions : undefined;
   // Reminder is not yet saved (first time saving after clicking add), create reminder in DB
   if (!reminder.isSaved) {
   //console.log('Saving reminder extensions:', extensions);
   // Create base reminder in local DB and retrieve the itemID assigned to it
-  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensions);
+  const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensionsToSend);
   console.log('Reminder successfully created:', String(itemID));
 
   // Fetch the newly created reminder from the DB 
@@ -1671,7 +1884,7 @@ try {
   }
   // Reminder is saved, just updating a preexisting reminder
   else {
-      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensions);
+      await updateReminder(reminder.itemID, reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensionsToSend);
       console.log('Reminder updated successfully in DB.');
 
       // Fetch the newly created reminder from the DB 

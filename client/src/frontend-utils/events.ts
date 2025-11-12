@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-28
+ * Updated: 2025-11-12
  *
  * This file contains functions to build calendar events from reminders and retrieve event type details
  *
@@ -92,26 +92,26 @@ export function groupEventsByDate(events: CalendarEvent[]): Record<string, Calen
 export function getEventStartLabel(eventType: number) {
   // Flight
   if (eventType === 1) {
-    return 'Arrival Time';
+    return 'Flight Arrival Time';
   }
   // Hotel
   if (eventType === 2) {
-    return 'Check-in Time';
+    return 'Hotel Check-in Time';
   }
   // General
-  return 'Start Time'; 
+  return 'Event Start Time'; 
 }
 
 // Function to rename event start time label dependent on event type
 export function getEventEndLabel(eventType: number) {
   // Flight
   if (eventType === 1) {
-    return 'Departure Time';
+    return 'Flight Departure Time';
   }
   // Hotel
   if (eventType === 2) {
-    return 'Check-out Time';
+    return 'Hotel Check-out Time';
   }
   // General
-  return 'End Time'; 
+  return 'Event End Time'; 
 }
