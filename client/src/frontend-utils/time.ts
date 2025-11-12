@@ -96,6 +96,14 @@ export function timestampToTimeString(timestamp: Timestamp): string {
 // Function to convert minute of day from backend into HH:MM format for time display
 // Used in mapping database row into UI reminder to display notification time on frontend
 export function minutesToHHMM(minOfDay: number): string {
+  // validate if minOfDay is missing
+  if (minOfDay === null || minOfDay === undefined) {
+    return '';
+  }
+  // Validate if minOfDay is out of range (less or more than the numebr of minutes in a day)
+  if (minOfDay < 0 || minOfDay >= 24 * 60) {
+    return '';
+  }
     // Calculate hours: divide number of minutes by 60 to get hours
     // Floor to return actual integer hour, no decimals
     const hour = Math.floor(minOfDay / 60);
