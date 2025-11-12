@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-11-07
+ * Updated: 2025-11-12
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -361,6 +361,19 @@ export async function readYearlyRemindersInRange(windowStartTime: Timestamp, win
   const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
 
   return await window.sqliteAPI.readYearlyRemindersInRange(rangeWindow);
+}
+
+export async function readGeneratedRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
+  if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
+  const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
+
+  for (let i = rangeWindow.startYear - 1; i <= rangeWindow.endYear + 1; i++) { // -1 and +1 ensure all generated reminders within the window are included in case of long event times
+    if (!(await window.genAPI.generatedYearsHas(i))) {
+      await window.sqliteAPI.createGeneratedReminders((await window.genAPI.generateInYear(i)));
+    }
+  }
+
+  return await window.sqliteAPI.readGeneratedRemindersInRange(rangeWindow);
 }
 
 export async function readAllFolders() {

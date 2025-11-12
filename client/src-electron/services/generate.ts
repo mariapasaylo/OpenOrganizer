@@ -10,7 +10,7 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
-import * as db from "../db/sqlite-db";
+import * as db from "app/src-electron/db/sqlite-db";
 import {
   type Timestamp,
   getDayOfYear,
@@ -29,11 +29,18 @@ import type {
   MonthlyReminder,
   YearlyReminder,
   GeneratedReminder,
-  RangeWindow
+  Override,
+  RangeWindow,
 } from "app/src-electron/types/shared-types";
+
 const generatedYears = new Set<number>(); // maintain a set of currently generated years
 
-export function generateInRange(rangeWindow: RangeWindow) {
+export function generatedYearsHas(year: number) { // for use in renderer
+  return generatedYears.has(year);
+}
+
+export function generateInYear(year: number) {
+  const rangeWindow = yearToRangeWindow(year);
   const generatedRems: GeneratedReminder[] = [];
 
   const dailys = db.readDailyRemindersInRange(rangeWindow);
@@ -41,20 +48,19 @@ export function generateInRange(rangeWindow: RangeWindow) {
   const monthlys = db.readMonthlyRemindersInRange(rangeWindow);
   const yearlys = db.readYearlyRemindersInRange(rangeWindow);
 
-  if (dailys !== undefined) for (const daily of dailys) generatedRems.push(...generateDaily(daily, rangeWindow));
-  if (weeklys !== undefined) for (const weekly of weeklys) generatedRems.push(...generateWeekly(weekly, rangeWindow));
-  if (monthlys !== undefined) for (const monthly of monthlys) generatedRems.push(...generateMonthly(monthly, rangeWindow));
-  if (yearlys !== undefined) for (const yearly of yearlys) generatedRems.push(...generateYearly(yearly, rangeWindow));
+  if (dailys !== undefined) for (const daily of dailys) generatedRems.push(...generateDaily(daily, year));
+  if (weeklys !== undefined) for (const weekly of weeklys) generatedRems.push(...generateWeekly(weekly, year));
+  if (monthlys !== undefined) for (const monthly of monthlys) generatedRems.push(...generateMonthly(monthly, year));
+  if (yearlys !== undefined) for (const yearly of yearlys) generatedRems.push(...generateYearly(yearly, year));
 
-  for (let i = rangeWindow.startYear; i <= rangeWindow.endYear; i++) { // update generatedYears set
-    generatedYears.add(i);
-  }
-
+  generatedYears.add(year); // update generatedYears set
   return generatedRems
 }
 
-function generateDaily(daily: DailyReminder, rangeWindow: RangeWindow) {
-  const dailyStartTime = parseDate(new Date(daily.seriesStartYear, 0, daily.seriesStartDay))!;
+export function generateDaily(daily: DailyReminder, year: number) {
+  const rangeWindow = yearToRangeWindow(year);
+
+  const dailyStartTime = parseDate(new Date(daily.seriesStartYear, 0, daily.seriesStartDay, 0, 0))!;
   const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
   const {startTime, endTime} = getGenWindow(daily, rangeWindow);
   let currTime = copyTimestamp(startTime);
@@ -78,15 +84,32 @@ function generateDaily(daily: DailyReminder, rangeWindow: RangeWindow) {
     currTime = addToDate(currTime, {day: daily.everyNDays});
   }
 
+  const overridesMap = getOverridesMap(daily.itemID);
   const generatedRems: GeneratedReminder[] = [];
-  for (let i = 0; i < eventStartTimes.length; i++) {
-    generatedRems.push(getGeneratedRem(daily, 1, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  if (overridesMap !== undefined) {
+    for (const [origStartTime, override] of overridesMap) {
+      // assume overrides only set event start time within the series start and end times
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(1, daily, override)); // only apply overrides that fall within the year window
+      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+    }
   }
+
+  for (let i = 0; i < eventStartTimes.length; i++) {
+    if (overridesMap !== undefined) {
+      const {year: origEventStartYear, day: origEventStartDay, min: origEventStartMin} = getYearDayMin(eventStartTimes[i]!);
+      const origStartTime: OrigStartTime = { origEventStartYear, origEventStartDay, origEventStartMin };
+      if (overridesMap.get(origStartTime) !== undefined) continue;
+    }
+    generatedRems.push(getGeneratedRem(1, daily, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  }
+
   return generatedRems;
 }
 
-function generateWeekly(weekly: WeeklyReminder, rangeWindow: RangeWindow) {
-  const weeklyStartTime = parseDate(new Date(weekly.seriesStartYear, 0, weekly.seriesStartDay))!;
+export function generateWeekly(weekly: WeeklyReminder, year: number) {
+  const rangeWindow = yearToRangeWindow(year);
+
+  const weeklyStartTime = parseDate(new Date(weekly.seriesStartYear, 0, weekly.seriesStartDay, 0, 0))!;
   const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
   const {startTime, endTime} = getGenWindow(weekly, rangeWindow);
   let currTime = copyTimestamp(startTime);
@@ -124,14 +147,31 @@ function generateWeekly(weekly: WeeklyReminder, rangeWindow: RangeWindow) {
     currTime = addToDate(currTime, {day: ((weekly.everyNWeeks - 1) * 7)});
   }
 
+  const overridesMap = getOverridesMap(weekly.itemID);
   const generatedRems: GeneratedReminder[] = [];
-  for (let i = 0; i < eventStartTimes.length; i++) {
-    generatedRems.push(getGeneratedRem(weekly, 2, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  if (overridesMap !== undefined) {
+    for (const [origStartTime, override] of overridesMap) {
+      // assume overrides only set event start time within the series start and end times
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(2, weekly, override)); // only apply overrides that fall within the year window
+      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+    }
   }
+
+  for (let i = 0; i < eventStartTimes.length; i++) {
+    if (overridesMap !== undefined) {
+      const {year: origEventStartYear, day: origEventStartDay, min: origEventStartMin} = getYearDayMin(eventStartTimes[i]!);
+      const origStartTime: OrigStartTime = { origEventStartYear, origEventStartDay, origEventStartMin };
+      if (overridesMap.get(origStartTime) !== undefined) continue;
+    }
+    generatedRems.push(getGeneratedRem(2, weekly, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  }
+
   return generatedRems;
 }
 
-function generateMonthly(monthly: MonthlyReminder, rangeWindow: RangeWindow) {
+export function generateMonthly(monthly: MonthlyReminder, year: number) {
+  const rangeWindow = yearToRangeWindow(year);
+
   const {startTime, endTime} = getGenWindow(monthly, rangeWindow);
   let currTime = updateMinutes(startTime, monthly.timeOfDayMin); // add timeOfDayMin
 
@@ -163,14 +203,31 @@ function generateMonthly(monthly: MonthlyReminder, rangeWindow: RangeWindow) {
     }
   }
 
+  const overridesMap = getOverridesMap(monthly.itemID);
   const generatedRems: GeneratedReminder[] = [];
-  for (let i = 0; i < eventStartTimes.length; i++) {
-    generatedRems.push(getGeneratedRem(monthly, 3, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  if (overridesMap !== undefined) {
+    for (const [origStartTime, override] of overridesMap) {
+      // assume overrides only set event start time within the series start and end times
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(3, monthly, override)); // only apply overrides that fall within the year window
+      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+    }
   }
+
+  for (let i = 0; i < eventStartTimes.length; i++) {
+    if (overridesMap !== undefined) {
+      const {year: origEventStartYear, day: origEventStartDay, min: origEventStartMin} = getYearDayMin(eventStartTimes[i]!);
+      const origStartTime: OrigStartTime = { origEventStartYear, origEventStartDay, origEventStartMin };
+      if (overridesMap.get(origStartTime) !== undefined) continue;
+    }
+    generatedRems.push(getGeneratedRem(3, monthly, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  }
+
   return generatedRems;
 }
 
-function generateYearly(yearly: YearlyReminder, rangeWindow: RangeWindow) {
+export function generateYearly(yearly: YearlyReminder, year: number) {
+  const rangeWindow = yearToRangeWindow(year);
+
   const {startTime, endTime} = getGenWindow(yearly, rangeWindow);
   let currTime = copyTimestamp(startTime);
 
@@ -191,69 +248,95 @@ function generateYearly(yearly: YearlyReminder, rangeWindow: RangeWindow) {
     currTime = updateMinutes(currTime, yearly.timeOfDayMin); // add timeOfDayMin
   }
 
+  const overridesMap = getOverridesMap(yearly.itemID);
   const generatedRems: GeneratedReminder[] = [];
-  for (let i = 0; i < eventStartTimes.length; i++) {
-    generatedRems.push(getGeneratedRem(yearly, 4, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  if (overridesMap !== undefined) {
+    for (const [origStartTime, override] of overridesMap) {
+      // assume overrides only set event start time within the series start and end times
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(4, yearly, override)); // only apply overrides that fall within the year window
+      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+    }
   }
+
+  for (let i = 0; i < eventStartTimes.length; i++) {
+    if (overridesMap !== undefined) {
+      const {year: origEventStartYear, day: origEventStartDay, min: origEventStartMin} = getYearDayMin(eventStartTimes[i]!);
+      const origStartTime: OrigStartTime = { origEventStartYear, origEventStartDay, origEventStartMin };
+      if (overridesMap.get(origStartTime) !== undefined) continue;
+    }
+    generatedRems.push(getGeneratedRem(4, yearly, eventStartTimes[i]!, eventEndTimes[i]!, notifTimes[i]!));
+  }
+
   return generatedRems;
 }
 
 
 // helpers
 function getGenWindow(recurring: DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder, rangeWindow: RangeWindow) {
-  const seriesStartTime = parseDate(new Date(recurring.seriesStartYear, 0, recurring.seriesStartDay))!;
-  const seriesEndTime = parseDate(new Date(recurring.seriesEndYear, 0, recurring.seriesEndDay))!;
+  const seriesStartTime = parseDate(new Date(recurring.seriesStartYear, 0, recurring.seriesStartDay, 0, 0))!;
+  const seriesEndTime = parseDate(new Date(recurring.seriesEndYear, 0, recurring.seriesEndDay, 23, 59))!;
   const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
   const windowEndTime = parseDate(new Date(rangeWindow.endYear, 0, 0, 0, rangeWindow.endMinOfYear))!;
 
   const startTime = (diffTimestamp(seriesStartTime, windowStartTime, false) < 0) ? seriesStartTime : windowStartTime; // if seriesStart > windowStart take seriesStart
-  const endTime = (diffTimestamp(seriesEndTime, windowEndTime, false) < 0) ? seriesEndTime : windowEndTime;
+  const endTime = (diffTimestamp(seriesEndTime, windowEndTime, false) < 0) ? windowEndTime : seriesEndTime; // if seriesEnd > windowEnd take windowEnd
 
   return {startTime, endTime}
 }
 
-function getGeneratedRem(recurring: DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder, recurrenceTable: number,
-                         eventStartTimes: Timestamp, eventEndTimes: Timestamp, notifTimes: Timestamp) {
+function getGeneratedRem(recurrenceTable: number, recurring: DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder,
+                         eventStartTime: Timestamp, eventEndTime: Timestamp, notifTime: Timestamp) {
+  const {year: eventStartYear, day: eventStartDay, min: eventStartMin} = getYearDayMin(eventStartTime);
+  const {year: eventEndYear, day: eventEndDay, min: eventEndMin} = getYearDayMin(eventEndTime);
+  const {year: notifYear, day: notifDay, min: notifMin} = getYearDayMin(notifTime);
+
   const generatedRem : GeneratedReminder = {
     itemID: recurring.itemID,
     folderID: recurring.folderID,
     eventType: recurring.eventType,
     recurrenceTable : recurrenceTable,
-    origEventStartYear: eventStartTimes.year,
-    origEventStartDay: getDayOfYear(eventStartTimes),
-    origEventStartMin: (eventStartTimes.hour * 60) + eventStartTimes.minute,
-    eventStartYear: eventStartTimes.year,
-    eventStartDay: getDayOfYear(eventStartTimes),
-    eventStartMin: (eventStartTimes.hour * 60) + eventStartTimes.minute,
-    eventEndYear: eventEndTimes.year,
-    eventEndDay: getDayOfYear(eventEndTimes),
-    eventEndMin: (eventEndTimes.hour * 60) + eventEndTimes.minute,
-    notifYear: notifTimes.year,
-    notifDay: getDayOfYear(notifTimes),
-    notifMin: (notifTimes.hour * 60) + notifTimes.minute,
+    origEventStartYear: eventStartYear,
+    origEventStartDay: eventStartDay,
+    origEventStartMin: eventStartMin,
+    eventStartYear: eventStartYear,
+    eventStartDay: eventStartDay,
+    eventStartMin: eventStartMin,
+    eventEndYear: eventEndYear,
+    eventEndDay: eventEndDay,
+    eventEndMin: eventEndMin,
+    notifYear: notifYear,
+    notifDay: notifDay,
+    notifMin: notifMin,
     isExtended: recurring.isExtended,
     hasNotif: recurring.hasNotifs,
     title : recurring.title
   }
-  applyOverride(generatedRem); // applies the generatedReminder's override if it exists
-
   return generatedRem;
 }
 
-function applyOverride(generatedRem: GeneratedReminder) {
-  const override = db.readOverride(generatedRem.itemID, generatedRem.origEventStartYear, generatedRem.origEventStartDay, generatedRem.origEventStartMin);
-  if (override !== undefined) {
-    generatedRem.eventStartYear = override.eventStartYear;
-    generatedRem.eventStartDay = override.eventStartDay;
-    generatedRem.eventStartMin = override.eventStartMin;
-    generatedRem.eventEndYear = override.eventEndYear;
-    generatedRem.eventEndDay = override.eventEndDay;
-    generatedRem.eventEndMin = override.eventEndMin;
-    generatedRem.notifYear = override.notifYear;
-    generatedRem.notifDay = override.notifDay;
-    generatedRem.notifMin = override.notifMin;
-    generatedRem.hasNotif = override.hasNotif;
+function getGeneratedRemFromOverride(recurrenceTable: number, recurring: DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder, override: Override) {
+  const generatedRem : GeneratedReminder = {
+    itemID: recurring.itemID,
+    folderID: recurring.folderID,
+    eventType: recurring.eventType,
+    recurrenceTable : recurrenceTable,
+    origEventStartYear: override.origEventStartYear,
+    origEventStartDay: override.origEventStartDay,
+    origEventStartMin: override.origEventStartMin,
+    eventStartYear: override.eventStartYear,
+    eventStartDay: override.eventStartDay,
+    eventStartMin: override.eventStartMin,
+    eventEndYear: override.eventEndYear,
+    eventEndDay: override.eventEndDay,
+    eventEndMin: override.eventEndMin,
+    notifYear: override.notifYear,
+    notifDay: override.notifDay,
+    notifMin: override.notifMin,
+    isExtended: recurring.isExtended,
+    hasNotif: override.hasNotif,
+    title : recurring.title
   }
+  return generatedRem;
 }
 
 function denormalizeDayOfYear(year: number, dayOfYear: number) {
@@ -265,4 +348,45 @@ function denormalizeDayOfYear(year: number, dayOfYear: number) {
   }
   else if (dayOfYear === 366) dayOfYearDenormalized = 59; // set to 59 if dayOfYear is 366 on NON leap year
   return dayOfYearDenormalized;
+}
+
+function yearToRangeWindow(year: number) {
+  let endMinOfYear = 525599;
+  if (isLeapYear(year)) endMinOfYear = 527039
+  return {
+    startYear: year,
+    startMinOfYear: 0,
+    endYear: year,
+    endMinOfYear: endMinOfYear
+  } as RangeWindow;
+}
+
+function getOverridesMap(linkedItemID: bigint) {
+  const overrides = db.readOverrides(linkedItemID);
+  if (overrides === undefined) return undefined;
+
+  const overridesMap = new Map<OrigStartTime, Override>();
+  for (const override of overrides) {
+    const origStartTime: OrigStartTime = {
+      origEventStartYear: override.origEventStartYear,
+      origEventStartDay: override.origEventStartDay,
+      origEventStartMin: override.origEventStartMin
+    }
+    overridesMap.set(origStartTime, override)
+  }
+  return overridesMap;
+}
+
+function getYearDayMin(timestamp: Timestamp) {
+  return {
+    year: timestamp.year,
+    day: getDayOfYear(timestamp),
+    min: (timestamp.hour * 60) + timestamp.minute
+  }
+}
+
+interface OrigStartTime {
+  origEventStartYear: number,
+  origEventStartDay: number,
+  origEventStartMin: number
 }

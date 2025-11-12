@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-10
+ * Updated: 2025-11-12
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -44,6 +44,7 @@ const createDailyReminderStmt = db.prepare(sql.createDailyReminderStmt);
 const createWeeklyReminderStmt = db.prepare(sql.createWeeklyReminderStmt);
 const createMonthlyReminderStmt = db.prepare(sql.createMonthlyReminderStmt);
 const createYearlyReminderStmt = db.prepare(sql.createYearlyReminderStmt);
+const createGeneratedRemindersStmt = db.prepare(sql.createGeneratedRemindersStmt);
 const createExtensionStmt = db.prepare(sql.createExtensionStmt);
 const createFolderStmt = db.prepare(sql.createFolderStmt);
 const createDeletedStmt = db.prepare(sql.createDeletedStmt);
@@ -55,7 +56,7 @@ const readDailyReminderStmt = db.prepare(sql.readDailyReminderStmt);
 const readWeeklyReminderStmt = db.prepare(sql.readWeeklyReminderStmt);
 const readMonthlyReminderStmt = db.prepare(sql.readMonthlyReminderStmt);
 const readYearlyReminderStmt = db.prepare(sql.readYearlyReminderStmt);
-const readOverrideStmt = db.prepare(sql.readOverrideStmt);
+const readOverridesStmt = db.prepare(sql.readOverridesStmt);
 const readExtensionsStmt = db.prepare(sql.readExtensionsStmt);
 const readFolderStmt = db.prepare(sql.readFolderStmt);
 
@@ -65,6 +66,7 @@ const readDailyRemindersInRangeStmt = db.prepare(sql.readDailyRemindersInRangeSt
 const readWeeklyRemindersInRangeStmt = db.prepare(sql.readWeeklyRemindersInRangeStmt);
 const readMonthlyRemindersInRangeStmt = db.prepare(sql.readMonthlyRemindersInRangeStmt);
 const readYearlyRemindersInRangeStmt = db.prepare(sql.readYearlyRemindersInRangeStmt);
+const readGeneratedRemindersInRangeStmt = db.prepare(sql.readGeneratedRemindersInRangeStmt);
 const readAllFoldersStmt = db.prepare(sql.readAllFoldersStmt);
 
 const readNotesAfterStmt = db.prepare(sql.readNotesAfterStmt);
@@ -95,6 +97,8 @@ const readExtensionLmStmt = db.prepare(sql.readExtensionLmStmt);
 const readFolderLmStmt = db.prepare(sql.readFolderLmStmt);
 const readDeletedLmStmt = db.prepare(sql.readDeletedLmStmt);
 
+const readGeneratedReminderIDInYearStmt = db.prepare(sql.readGeneratedReminderIDInYearStmt);
+
 // update
 const updateNoteStmt = db.prepare(sql.updateNoteStmt);
 const updateReminderStmt = db.prepare(sql.updateReminderStmt);
@@ -114,6 +118,10 @@ const deleteYearlyReminderStmt = db.prepare(sql.deleteYearlyReminderStmt);
 const deleteExtensionStmt = db.prepare(sql.deleteExtensionStmt);
 const deleteAllExtensionsStmt = db.prepare(sql.deleteAllExtensionsStmt);
 const deleteFolderStmt = db.prepare(sql.deleteFolderStmt);
+
+const deleteGeneratedRemindersOutsideYearRangeStmt = db.prepare(sql.deleteGeneratedRemindersOutsideYearRangeStmt);
+const deleteGeneratedRemindersByIdStmt = db.prepare(sql.deleteGeneratedRemindersByIdStmt);
+const deleteOverridesByLinkedIdStmt = db.prepare(sql.deleteOverridesByLinkedIdStmt);
 
 
 // Table CRUD functions:
@@ -170,6 +178,20 @@ export function createYearlyReminder(newYearlyRem: YearlyReminder) {
     newYearlyRem.hasNotifs, newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title
   );
   if (newYearlyRem.extensions !== undefined) for (const ext of newYearlyRem.extensions) createExtension(ext);
+}
+
+export function createGeneratedReminders(newGeneratedRems: GeneratedReminder[]) {
+  const createGeneratedReminders = db.transaction((newGeneratedRems: GeneratedReminder[]) => {
+    for (const newGeneratedRem of newGeneratedRems) {
+      createGeneratedRemindersStmt.run(
+        newGeneratedRem.itemID, newGeneratedRem.folderID, newGeneratedRem.eventType, newGeneratedRem.recurrenceTable, newGeneratedRem.origEventStartYear,
+        newGeneratedRem.origEventStartDay, newGeneratedRem.origEventStartMin, newGeneratedRem.eventStartYear, newGeneratedRem.eventStartDay,
+        newGeneratedRem.eventStartMin, newGeneratedRem.eventEndYear, newGeneratedRem.eventEndDay, newGeneratedRem.eventEndMin,
+        newGeneratedRem.notifYear, newGeneratedRem.notifDay, newGeneratedRem.notifMin, newGeneratedRem.isExtended, newGeneratedRem.hasNotif, newGeneratedRem.title
+      );
+    }
+  });
+  createGeneratedReminders(newGeneratedRems);
 }
 
 export function createExtension(newExt: Extension) {
@@ -259,11 +281,11 @@ function readExtensions(itemID: bigint) {
   return extensions;
 }
 
-export function readOverride(linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) {
-  const override = readOverrideStmt.get(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin) as Override;
-  if (override === undefined) return undefined;
-  castOverrideBigInts(override);
-  return override;
+export function readOverrides(linkedItemID: bigint) {
+  const overrides = readOverridesStmt.all(linkedItemID) as Override[];
+  if (overrides === undefined) return undefined;
+  castOverridesBigInts(overrides);
+  return overrides;
 }
 
 export function readFolder(folderID: bigint) {
@@ -374,6 +396,24 @@ export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
 
   castItemsBigInts(yearlyRems);
   return yearlyRems;
+}
+
+export function readGeneratedRemindersInRange(rangeWindow: RangeWindow) {
+  const generatedRems = readGeneratedRemindersInRangeStmt.all({
+    windowStartYear: rangeWindow.startYear,
+    windowStartMinOfYear: rangeWindow.startMinOfYear,
+    windowEndYear: rangeWindow.endYear,
+    windowEndMinOfYear: rangeWindow.endMinOfYear
+  }) as GeneratedReminder[];
+  if (generatedRems === undefined) return undefined;
+
+  for (const generatedRem of generatedRems) {
+    const extensions = readExtensions(generatedRem.itemID);
+    if (extensions !== undefined) generatedRem.extensions = extensions;
+  }
+
+  castGeneratedRemindersBigInts(generatedRems);
+  return generatedRems;
 }
 
 // read all
@@ -539,6 +579,12 @@ export function readDeletedLm(itemID: bigint) {
   return BigInt(lastModified.lastModified);
 }
 
+export function readGeneratedReminderIDInYear(origEventStartYear: number) { // checks for origEventStartYear to determine if a year has been generated (used in init)
+  const itemID = readGeneratedReminderIDInYearStmt.get(origEventStartYear) as { itemID: bigint };
+  if (itemID === undefined) return undefined;
+  return BigInt(itemID.itemID);
+}
+
 // update
 export function updateNote(modNote: Note) {
   updateNoteStmt.run(modNote.lastModified, modNote.folderID, modNote.isExtended, modNote.title, modNote.text, modNote.itemID); // itemID last
@@ -638,6 +684,19 @@ export function deleteFolder(folderID: bigint) {
   return (deleteFolderStmt.run(folderID).changes != 0);
 }
 
+export function deleteGeneratedRemindersOutsideYearRange(startYear: number, endYear: number) {
+  deleteGeneratedRemindersOutsideYearRangeStmt.run(startYear, endYear);
+}
+
+export function deleteGeneratedRemindersById(itemID: bigint) {
+  deleteGeneratedRemindersByIdStmt.run(itemID);
+}
+
+export function deleteOverridesByLinkedId(linkedItemID: bigint) {
+  deleteOverridesByLinkedIdStmt.run(linkedItemID);
+}
+
+
 export function clearAllTables() {
   dropTables();
   createTables();
@@ -697,10 +756,18 @@ function castGeneratedReminderBigInts(generatedRem: GeneratedReminder) {
   generatedRem.folderID = BigInt(generatedRem.folderID);
 }
 
+function castGeneratedRemindersBigInts(generatedRems: GeneratedReminder[]) {
+  for (const generatedRem of generatedRems) castGeneratedReminderBigInts(generatedRem);
+}
+
 function castOverrideBigInts(override: Override) {
   override.itemID = BigInt(override.itemID);
   override.linkedItemID = BigInt(override.linkedItemID);
   override.lastModified = BigInt(override.lastModified);
+}
+
+function castOverridesBigInts(overrides: Override[]) {
+  for (const override of overrides) castOverrideBigInts(override);
 }
 
 function castFolderBigInts(folder: Folder) {

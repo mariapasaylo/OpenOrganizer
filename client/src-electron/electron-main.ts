@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello, Kevin Sirantoine, Maria Pasaylo, Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-11-08
+ * Updated: 2025-11-11
  *
  * This file is the Electron main process entry point that creates the application window,
  * manages the system tray icon, and handles communication between the user
@@ -24,6 +24,8 @@ import { sync } from "./services/sync";
 import * as fs from "node:fs";
 import {getAutoSyncEnabled} from "app/src-electron/services/auth";
 import { InitNotifications } from "./services/notifs";
+import { generateInYear } from "./services/generate"
+import { readGeneratedReminderIDInYear, deleteGeneratedRemindersOutsideYearRange } from "app/src-electron/db/sqlite-db";
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -111,7 +113,14 @@ app.on('activate', () => {
 
 function init() {
   registerHandlers(); // Registers all ipcMain handlers for APIs exposed in electron-preload
+  initGeneratedTable();
   serverAddress = fs.readFileSync(path.join(app.getAppPath(), '../../public/serveraddress.txt'), 'utf8');
   if (getAutoSyncEnabled()) void sync(); // sync on startup if autoSyncEnabled is true
   InitNotifications();
+}
+
+function initGeneratedTable() { // Ensures only previous, current, and next year is loaded into the Generated Table
+  const currYear = new Date().getFullYear();
+  deleteGeneratedRemindersOutsideYearRange(currYear - 1, currYear + 1);
+  for (let i = currYear - 1; i <= currYear + 1; i++) if (readGeneratedReminderIDInYear(currYear) === undefined) generateInYear(currYear);
 }

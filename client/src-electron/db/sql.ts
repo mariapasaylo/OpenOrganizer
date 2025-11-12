@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-11-10
+ * Updated: 2025-11-11
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -273,6 +273,12 @@ INSERT INTO yearly_reminders (
   seriesEndMin, timeOfDayMin, eventDurationMin, notifOffsetTimeMin, hasNotifs, isExtended, dayOfYear, title)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
+export const createGeneratedRemindersStmt = `
+INSERT OR REPLACE INTO generated_reminders (
+  itemID, folderID, eventType, recurrenceTable, origEventStartYear, origEventStartDay, origEventStartMin, eventStartYear, eventStartDay,
+  eventStartMin, eventEndYear, eventEndDay, eventEndMin, notifYear, notifDay, notifMin, isExtended, hasNotif, title)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
 export const createExtensionStmt = `
 INSERT INTO extensions (itemID, sequenceNum, lastModified, data)
 VALUES (?, ?, ?, ?)`;
@@ -316,9 +322,9 @@ SELECT * FROM extensions
 WHERE itemID = ?
 ORDER BY sequenceNum ASC`;
 
-export const readOverrideStmt = `
+export const readOverridesStmt = `
 SELECT * FROM overrides
-WHERE linkedItemID = ? AND origEventStartYear = ? AND origEventStartDay = ? AND origEventStartMin = ?`;
+WHERE linkedItemID = ?`;
 
 export const readFolderStmt = `
 SELECT * FROM folders
@@ -371,6 +377,15 @@ WHERE (
   ((seriesStartYear < $windowEndYear) OR (seriesStartYear = $windowEndYear AND ((seriesStartDay * 1440 + seriesStartMin) <= $windowEndMinOfYear)))
   AND
   ((seriesEndYear > $windowStartYear) OR (seriesEndYear = $windowStartYear AND ((seriesEndDay * 1440 + seriesEndMin) >= $windowStartMinOfYear)))
+)
+ORDER BY itemID ASC`;
+
+export const readGeneratedRemindersInRangeStmt = `
+SELECT * FROM generated_reminders
+WHERE (
+  ((eventStartYear < $windowEndYear) OR (eventStartYear = $windowEndYear AND ((eventStartDay * 1440 + eventStartMin) <= $windowEndMinOfYear)))
+  AND
+  ((eventEndYear > $windowStartYear) OR (eventEndYear = $windowStartYear AND ((eventEndDay * 1440 + eventEndMin) >= $windowStartMinOfYear)))
 )
 ORDER BY itemID ASC`;
 
@@ -490,6 +505,10 @@ export const readDeletedLmStmt = `
 SELECT lastModified FROM deleted
 WHERE itemID = ?`;
 
+export const readGeneratedReminderIDInYearStmt = `
+SELECT itemID FROM generated_reminders
+WHERE origEventStartYear = ?`;
+
 
 // update entry SQL statements
 export const updateNoteStmt = `
@@ -570,6 +589,17 @@ export const deleteFolderStmt = `
 DELETE FROM folders
 WHERE folderID = ?`;
 
+export const deleteGeneratedRemindersOutsideYearRangeStmt = `
+DELETE FROM generated_reminders
+WHERE (origEventStartYear < ?) OR (origEventStartYear > ?)`;
+
+export const deleteGeneratedRemindersByIdStmt = `
+DELETE FROM generated_reminders
+WHERE itemID = ?`;
+
+export const deleteOverridesByLinkedIdStmt = `
+DELETE FROM overrides
+WHERE linkedItemID = ?`;
 
 // Example SQL
 export const createExTable = `

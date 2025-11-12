@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-09
+ * Updated: 2025-11-12
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -11,13 +11,13 @@
  */
 import type {
   Note,
-  Extension,
   Folder,
   Reminder,
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  GeneratedReminder,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -34,6 +34,7 @@ declare global {
       createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
       createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
       createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
+      createGeneratedReminders: (newGeneratedRems: GeneratedReminder[]) => Promise<void>;
       createFolder: (newFolder: Folder) => Promise<void>;
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
@@ -52,6 +53,7 @@ declare global {
       readWeeklyRemindersInRange: (rangeWindow: RangeWindow) => Promise<WeeklyReminder[]>;
       readMonthlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<MonthlyReminder[]>;
       readYearlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<YearlyReminder[]>;
+      readGeneratedRemindersInRange: (rangeWindow: RangeWindow) => Promise<GeneratedReminder[]>;
 
       readAllFolders: () => Promise<Folder[]>;
 
@@ -89,6 +91,11 @@ declare global {
       sqliteCreate: (key: string, value: string) => Promise<boolean>;
       sqliteUpdate: (key: string, value: string) => Promise<boolean>;
       sqliteDelete: (key: string) => Promise<boolean>;
+    };
+
+    genAPI: {
+      generatedYearsHas: (year: number) => Promise<boolean>;
+      generateInYear: (year: number) => Promise<GeneratedReminder[]>;
     };
 
     syncAPI: {
