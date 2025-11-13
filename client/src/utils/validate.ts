@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-11-11
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file defines helper validation functions for user inputs.
  *
@@ -17,11 +17,24 @@ export function ValidateString(str: string | undefined, minLength: number, maxLe
   if (str == undefined) return stringName + " is undefined";
   if (str.length < minLength) return stringName + " must be at least " + minLength.toString() + " characters long";
   if (str.length > maxLength) return stringName + " must be at most "  + maxLength.toString() + " characters long";
-  return ""
+  if (str.includes("\0")) return stringName + " must not include null terminators, and I have no clue how you pulled this off";
+  return "";
 }
 
-export function PadString(str: string, length: number) {
+export function MatchStrings(str1: string, str2: string, stringName?: string) {
+  if (stringName == undefined) stringName = "string";
+  if (str1 != str2) return stringName + " does not match";
+  return "";
+}
+
+export function PadString(str: string | undefined, length: number) {
+  if (str == undefined) str = "";
   return str + "\0".repeat(length - str.length);
+}
+
+export function UnpadString(str: string | undefined) {
+  if (str == undefined) str = "";
+  return str.replaceAll("\0", "");
 }
 
 // disallows empty, length < 8, length > 32, spaces, apostrophes (single quotes), double quotes, and nulls

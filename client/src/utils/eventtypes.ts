@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-11-06
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file defines functions for converting back and forth between extensions and eventTypes, as well as helpers to convert input fields into the eventTypes.
  *
@@ -10,9 +10,10 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
 
+import { Buffer } from "buffer"
 import { getDayOfYear, type Timestamp } from '@quasar/quasar-ui-qcalendar';
 import { convertTimeAndDateToTimestamp } from 'src/frontend-utils/time';
-import { ValidateString, PadString } from "./validate";
+import { ValidateString, PadString, UnpadString } from "./validate";
 import type { Extension, Flight, Hotel } from "app/src-electron/types/shared-types";
 
 // input fields to eventType
@@ -25,33 +26,33 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
     depTime?: Timestamp, depTimeDestZone?: Timestamp, boardingTime?: Timestamp,
     boardingGroup?: string, gate?: string, depTimezoneOffset?: string, arrTimezoneOffset?: string, 
     arrAirportIATA?: string, arrTimezoneAbbr?: string, arrTime?: Timestamp, arrTimeDestZone?: Timestamp) {
-  if ((depAirportName = ValidateString(depAirportName, 0, 64)) != "") return undefined;
-  if ((depAirportAddress = ValidateString(depAirportAddress, 0, 64)) != "") return undefined;
-  if ((arrAirportName = ValidateString(arrAirportName, 0, 64)) != "") return undefined;
-  if ((arrAirportAddress = ValidateString(arrAirportAddress, 0, 64)) != "") return undefined;
-  if ((airlineCode = ValidateString(airlineCode, 0, 8)) != "") return undefined;
-  if ((flightNumber = ValidateString(flightNumber, 0, 8)) != "") return undefined;
-  if ((airlineName = ValidateString(airlineName, 0, 48)) != "") return undefined;
-  if ((depAirportIATA = ValidateString(depAirportIATA, 0, 3)) != "") return undefined;
-  if ((depTimezoneAbbr = ValidateString(depTimezoneAbbr, 0, 5)) != "") return undefined;
-  if ((boardingGroup = ValidateString(boardingGroup, 0, 2)) != "") return undefined;
-  if ((gate = ValidateString(gate, 0, 4)) != "") return undefined;
-  if ((depTimezoneOffset = ValidateString(depTimezoneOffset, 0, 1)) != "") return undefined;
-  if ((arrTimezoneOffset = ValidateString(arrTimezoneOffset, 0, 1)) != "") return undefined;
-  if ((arrAirportIATA = ValidateString(arrAirportIATA, 0, 3)) != "") return undefined;
-  if ((arrTimezoneAbbr = ValidateString(arrTimezoneAbbr, 0, 5)) != "") return undefined;
+  if ((ValidateString(depAirportName, 0, 64)) != "") return undefined;
+  if ((ValidateString(depAirportAddress, 0, 64)) != "") return undefined;
+  if ((ValidateString(arrAirportName, 0, 64)) != "") return undefined;
+  if ((ValidateString(arrAirportAddress, 0, 64)) != "") return undefined;
+  if ((ValidateString(airlineCode, 0, 8)) != "") return undefined;
+  if ((ValidateString(flightNumber, 0, 8)) != "") return undefined;
+  if ((ValidateString(airlineName, 0, 48)) != "") return undefined;
+  if ((ValidateString(depAirportIATA, 0, 3)) != "") return undefined;
+  if ((ValidateString(depTimezoneAbbr, 0, 5)) != "") return undefined;
+  if ((ValidateString(boardingGroup, 0, 2)) != "") return undefined;
+  if ((ValidateString(gate, 0, 4)) != "") return undefined;
+  if ((ValidateString(depTimezoneOffset, 0, 1)) != "") return undefined;
+  if ((ValidateString(arrTimezoneOffset, 0, 1)) != "") return undefined;
+  if ((ValidateString(arrAirportIATA, 0, 3)) != "") return undefined;
+  if ((ValidateString(arrTimezoneAbbr, 0, 5)) != "") return undefined;
   const flight: Flight = {
     itemID: 0n,
     lastModified: 0n,
-    depAirportName: PadString(depAirportName, 64),
-    depAirportAddress: PadString(depAirportAddress, 64),
-    arrAirportName: PadString(arrAirportName, 64),
-    arrAirportAddress: PadString(arrAirportAddress, 64),
-    airlineCode: PadString(airlineCode, 8),
-    flightNumber: PadString(flightNumber, 8),
-    airlineName: PadString(airlineName, 48),
-    depAirportIATA: PadString(depAirportIATA, 3),
-    depTimezoneAbbr: PadString(depTimezoneAbbr, 5),
+    depAirportName: depAirportName != undefined ? depAirportName : "",
+    depAirportAddress: depAirportAddress != undefined ? depAirportAddress : "",
+    arrAirportName: arrAirportName != undefined ? arrAirportName : "",
+    arrAirportAddress: arrAirportAddress != undefined ? arrAirportAddress : "",
+    airlineCode: airlineCode != undefined ? airlineCode : "",
+    flightNumber: flightNumber != undefined ? flightNumber : "",
+    airlineName: airlineName != undefined ? airlineName : "",
+    depAirportIATA: depAirportIATA != undefined ? depAirportIATA : "",
+    depTimezoneAbbr: depTimezoneAbbr != undefined ? depTimezoneAbbr : "",
     depTimeYear: TimestampYear(ValidateTimestamp(depTime)),
     depTimeDay: TimestampDay(ValidateTimestamp(depTime)),
     depTimeMin: TimestampMin(ValidateTimestamp(depTime)),
@@ -61,12 +62,12 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
     boardingTimeYear: TimestampYear(ValidateTimestamp(boardingTime)),
     boardingTimeDay: TimestampDay(ValidateTimestamp(boardingTime)),
     boardingTimeMin: TimestampMin(ValidateTimestamp(boardingTime)),
-    boardingGroup: PadString(boardingGroup, 2),
-    gate: PadString(gate, 4),
-    depTimezoneOffset: PadString(depTimezoneOffset, 1),
-    arrTimezoneOffset: PadString(arrTimezoneOffset, 1),
-    arrAirportIATA: PadString(arrAirportIATA, 3),
-    arrTimezoneAbbr: PadString(arrTimezoneAbbr, 5),
+    boardingGroup: boardingGroup != undefined ? boardingGroup : "",
+    gate: gate != undefined ? gate : "",
+    depTimezoneOffset: depTimezoneOffset != undefined ? depTimezoneOffset : "",
+    arrTimezoneOffset: arrTimezoneOffset != undefined ? arrTimezoneOffset : "",
+    arrAirportIATA: arrAirportIATA != undefined ? arrAirportIATA : "",
+    arrTimezoneAbbr: arrTimezoneAbbr != undefined ? arrTimezoneAbbr : "",
     arrTimeYear: TimestampYear(ValidateTimestamp(arrTime)),
     arrTimeDay: TimestampDay(ValidateTimestamp(arrTime)),
     arrTimeMin: TimestampMin(ValidateTimestamp(arrTime)),
@@ -83,25 +84,25 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
 export function FieldsToHotel(name?: string, address?: string, 
     checkinTime?: Timestamp, checkoutTime?: Timestamp, 
     timezoneAbbrev?: string, timezoneOffset?: string, roomNumber?: string) {
-  if ((name = ValidateString(name, 0, 64)) != "") return undefined;
-  if ((address = ValidateString(address, 0, 128)) != "") return undefined;
-  if ((timezoneAbbrev = ValidateString(timezoneAbbrev, 0, 5)) != "") return undefined;
-  if ((timezoneOffset = ValidateString(timezoneOffset, 0, 1)) != "") return undefined;
-  if ((roomNumber = ValidateString(roomNumber, 0, 10)) != "") return undefined;
+  if ((ValidateString(name, 0, 64)) != "") return undefined;
+  if ((ValidateString(address, 0, 128)) != "") return undefined;
+  if ((ValidateString(timezoneAbbrev, 0, 5)) != "") return undefined;
+  if ((ValidateString(timezoneOffset, 0, 1)) != "") return undefined;
+  if ((ValidateString(roomNumber, 0, 10)) != "") return undefined;
   const hotel: Hotel = {
     itemID: 0n,
     lastModified: 0n,
-    name: PadString(name, 64),
-    address: PadString(address, 128),
+    name: name != undefined ? name : "",
+    address: address != undefined ? address : "",
     checkinTimeYear: TimestampYear(ValidateTimestamp(checkinTime)),
     checkinTimeDay: TimestampDay(ValidateTimestamp(checkinTime)),
     checkinTimeMin: TimestampMin(ValidateTimestamp(checkinTime)),
     checkoutTimeYear: TimestampYear(ValidateTimestamp(checkoutTime)),
     checkoutTimeDay: TimestampDay(ValidateTimestamp(checkoutTime)),
     checkoutTimeMin: TimestampMin(ValidateTimestamp(checkoutTime)),
-    timezoneAbbrev: PadString(timezoneAbbrev, 5),
-    timezoneOffset: PadString(timezoneOffset, 1),
-    roomNumber: PadString(roomNumber, 10)
+    timezoneAbbrev: timezoneAbbrev != undefined ? timezoneAbbrev : "",
+    timezoneOffset: timezoneOffset != undefined ? timezoneOffset : "",
+    roomNumber: roomNumber != undefined ? roomNumber : ""
   };
   return hotel;
 }
@@ -116,51 +117,51 @@ export function FlightToExtensions(flight: Flight) {
       itemID: flight.itemID,
       sequenceNum: 1,
       lastModified: flight.lastModified,
-      data: flight.depAirportName
+      data: PadString(flight.depAirportName, 64)
     },
     {
       itemID: flight.itemID,
       sequenceNum: 2,
       lastModified: flight.lastModified,
-      data: flight.depAirportAddress
+      data: PadString(flight.depAirportAddress, 64)
     },
     {
       itemID: flight.itemID,
       sequenceNum: 3,
       lastModified: flight.lastModified,
-      data: flight.arrAirportName
+      data: PadString(flight.arrAirportName, 64)
     },
     {
       itemID: flight.itemID,
       sequenceNum: 4,
       lastModified: flight.lastModified,
-      data: flight.arrAirportAddress
+      data: PadString(flight.arrAirportAddress, 64)
     },
     {
       itemID: flight.itemID,
       sequenceNum: 5,
       lastModified: flight.lastModified,
       data: 
-        flight.airlineCode +
-        flight.flightNumber +
-        flight.airlineName
+        PadString(flight.airlineCode, 8) +
+        PadString(flight.flightNumber, 8) +
+        PadString(flight.airlineName, 48)
     },
     {
       itemID: flight.itemID,
       sequenceNum: 6,
       lastModified: flight.lastModified,
       data:
-        flight.depAirportIATA +
-        flight.depTimezoneAbbr +
+        PadString(flight.depAirportIATA, 3) +
+        PadString(flight.depTimezoneAbbr, 5) +
         PackTime(flight.depTimeYear, flight.depTimeDay, flight.depTimeMin) +
         PackTime(flight.depTimeDestZoneYear, flight.depTimeDestZoneDay, flight.depTimeDestZoneMin) +
         PackTime(flight.boardingTimeYear, flight.boardingTimeDay, flight.boardingTimeMin) +
-        flight.boardingGroup +
-        flight.gate +
-        flight.depTimezoneOffset +
-        flight.arrTimezoneOffset +
-        flight.arrAirportIATA +
-        flight.arrTimezoneAbbr +
+        PadString(flight.boardingGroup, 2) +
+        PadString(flight.gate, 4) +
+        PadString(flight.depTimezoneOffset, 1) +
+        PadString(flight.arrTimezoneOffset, 1) +
+        PadString(flight.arrAirportIATA, 3) +
+        PadString(flight.arrTimezoneAbbr, 5) +
         PackTime(flight.arrTimeYear, flight.arrTimeDay, flight.arrTimeMin) +
         PackTime(flight.arrTimeDestZoneYear, flight.arrTimeDestZoneDay, flight.arrTimeDestZoneMin)
     }
@@ -176,19 +177,19 @@ export function HotelToExtensions(hotel: Hotel) {
       itemID: hotel.itemID,
       sequenceNum: 1,
       lastModified: hotel.lastModified,
-      data: hotel.name
+      data: PadString(hotel.name, 64)
     },
     {
       itemID: hotel.itemID,
       sequenceNum: 2,
       lastModified: hotel.lastModified,
-      data: hotel.address.substring(0, 64)
+      data: PadString(hotel.address, 128).substring(0, 64)
     },
     {
       itemID: hotel.itemID,
       sequenceNum: 3,
       lastModified: hotel.lastModified,
-      data: hotel.address.substring(64, 128)
+      data: PadString(hotel.address, 128).substring(64, 128)
     },
     {
       itemID: hotel.itemID,
@@ -197,9 +198,9 @@ export function HotelToExtensions(hotel: Hotel) {
       data:
         PackTime(hotel.checkinTimeYear, hotel.checkinTimeDay, hotel.checkinTimeMin) +
         PackTime(hotel.checkoutTimeYear, hotel.checkoutTimeDay, hotel.checkoutTimeMin) +
-        hotel.timezoneAbbrev +
-        hotel.timezoneOffset +
-        hotel.roomNumber +
+        PadString(hotel.timezoneAbbrev, 5) +
+        PadString(hotel.timezoneOffset, 1) +
+        PadString(hotel.roomNumber, 10) +
         "\0".repeat(32)
     }
   ];
@@ -221,36 +222,36 @@ export function ExtensionsToFlight(data: Extension[]) {
   const flight: Flight = {
     itemID: data[0]!.itemID,
     lastModified: data[0]!.lastModified,
-    depAirportName: ext1,
-    depAirportAddress: ext2,
-    arrAirportName: ext3,
-    arrAirportAddress: ext4,
-    airlineCode: ext5.substring(0, 8),
-    flightNumber: ext5.substring(8, 16),
-    airlineName: ext5.substring(16, 64),
-    depAirportIATA: ext6.substring(0, 3),
-    depTimezoneAbbr: ext6.substring(3, 8),
-    depTimeYear: Number(Buffer.from(ext6.substring(8, 12)).readInt32LE(0)),
-    depTimeDay: Number(Buffer.from(ext6.substring(12, 14)).readInt16LE(0)),
-    depTimeMin: Number(Buffer.from(ext6.substring(14, 16)).readInt16LE(0)),
-    depTimeDestZoneYear: Number(Buffer.from(ext6.substring(16, 20)).readInt32LE(0)),
-    depTimeDestZoneDay: Number(Buffer.from(ext6.substring(20, 22)).readInt16LE(0)),
-    depTimeDestZoneMin: Number(Buffer.from(ext6.substring(22, 24)).readInt16LE(0)),
-    boardingTimeYear: Number(Buffer.from(ext6.substring(24, 28)).readInt32LE(0)),
-    boardingTimeDay: Number(Buffer.from(ext6.substring(28, 30)).readInt16LE(0)),
-    boardingTimeMin: Number(Buffer.from(ext6.substring(30, 32)).readInt16LE(0)),
-    boardingGroup: ext6.substring(32, 34),
-    gate: ext6.substring(34, 38),
-    depTimezoneOffset: ext6.substring(38, 39),
-    arrTimezoneOffset: ext6.substring(39, 40),
-    arrAirportIATA: ext6.substring(40, 43),
-    arrTimezoneAbbr: ext6.substring(43, 48),
-    arrTimeYear: Number(Buffer.from(ext6.substring(48, 52)).readInt32LE(0)),
-    arrTimeDay: Number(Buffer.from(ext6.substring(52, 54)).readInt16LE(0)),
-    arrTimeMin: Number(Buffer.from(ext6.substring(54, 56)).readInt16LE(0)),
-    arrTimeDestZoneYear: Number(Buffer.from(ext6.substring(56, 60)).readInt32LE(0)),
-    arrTimeDestZoneDay: Number(Buffer.from(ext6.substring(60, 62)).readInt16LE(0)),
-    arrTimeDestZoneMin: Number(Buffer.from(ext6.substring(62, 64)).readInt16LE(0))
+    depAirportName: UnpadString(ext1),
+    depAirportAddress: UnpadString(ext2),
+    arrAirportName: UnpadString(ext3),
+    arrAirportAddress: UnpadString(ext4),
+    airlineCode: UnpadString(ext5.substring(0, 8)),
+    flightNumber: UnpadString(ext5.substring(8, 16)),
+    airlineName: UnpadString(ext5.substring(16, 64)),
+    depAirportIATA: UnpadString(ext6.substring(0, 3)),
+    depTimezoneAbbr: UnpadString(ext6.substring(3, 8)),
+    depTimeYear: ToBuffer(ext6.substring(8, 12)).readInt32LE(0),
+    depTimeDay: ToBuffer(ext6.substring(12, 14)).readInt16LE(0),
+    depTimeMin: ToBuffer(ext6.substring(14, 16)).readInt16LE(0),
+    depTimeDestZoneYear: ToBuffer(ext6.substring(16, 20)).readInt32LE(0),
+    depTimeDestZoneDay: ToBuffer(ext6.substring(20, 22)).readInt16LE(0),
+    depTimeDestZoneMin: ToBuffer(ext6.substring(22, 24)).readInt16LE(0),
+    boardingTimeYear: ToBuffer(ext6.substring(24, 28)).readInt32LE(0),
+    boardingTimeDay: ToBuffer(ext6.substring(28, 30)).readInt16LE(0),
+    boardingTimeMin: ToBuffer(ext6.substring(30, 32)).readInt16LE(0),
+    boardingGroup: UnpadString(ext6.substring(32, 34)),
+    gate: UnpadString(ext6.substring(34, 38)),
+    depTimezoneOffset: UnpadString(ext6.substring(38, 39)),
+    arrTimezoneOffset: UnpadString(ext6.substring(39, 40)),
+    arrAirportIATA: UnpadString(ext6.substring(40, 43)),
+    arrTimezoneAbbr: UnpadString(ext6.substring(43, 48)),
+    arrTimeYear: ToBuffer(ext6.substring(48, 52)).readInt32LE(0),
+    arrTimeDay: ToBuffer(ext6.substring(52, 54)).readInt16LE(0),
+    arrTimeMin: ToBuffer(ext6.substring(54, 56)).readInt16LE(0),
+    arrTimeDestZoneYear: ToBuffer(ext6.substring(56, 60)).readInt32LE(0),
+    arrTimeDestZoneDay: ToBuffer(ext6.substring(60, 62)).readInt16LE(0),
+    arrTimeDestZoneMin: ToBuffer(ext6.substring(62, 64)).readInt16LE(0)
   };
   return flight;
 }
@@ -266,17 +267,17 @@ export function ExtensionsToHotel(data: Extension[]) {
   const hotel: Hotel = {
     itemID: data[0]!.itemID,
     lastModified: data[0]!.lastModified,
-    name: ext1,
-    address: ext2 + ext3,
-    checkinTimeYear: Number(Buffer.from(ext4.substring(0, 4)).readInt32LE(0)),
-    checkinTimeDay: Number(Buffer.from(ext4.substring(4, 6)).readInt16LE(0)),
-    checkinTimeMin: Number(Buffer.from(ext4.substring(6, 8)).readInt16LE(0)),
-    checkoutTimeYear: Number(Buffer.from(ext4.substring(8, 12)).readInt32LE(0)),
-    checkoutTimeDay: Number(Buffer.from(ext4.substring(12, 14)).readInt16LE(0)),
-    checkoutTimeMin: Number(Buffer.from(ext4.substring(14, 16)).readInt16LE(0)),
-    timezoneAbbrev: ext4.substring(16, 21),
-    timezoneOffset: ext4.substring(21, 22),
-    roomNumber: ext4.substring(22, 32)
+    name: UnpadString(ext1),
+    address: UnpadString(ext2 + ext3),
+    checkinTimeYear: ToBuffer(ext4.substring(0, 4)).readInt32LE(0),
+    checkinTimeDay: ToBuffer(ext4.substring(4, 6)).readInt16LE(0),
+    checkinTimeMin: ToBuffer(ext4.substring(6, 8)).readInt16LE(0),
+    checkoutTimeYear: ToBuffer(ext4.substring(8, 12)).readInt32LE(0),
+    checkoutTimeDay: ToBuffer(ext4.substring(12, 14)).readInt16LE(0),
+    checkoutTimeMin: ToBuffer(ext4.substring(14, 16)).readInt16LE(0),
+    timezoneAbbrev: UnpadString(ext4.substring(16, 21)),
+    timezoneOffset: UnpadString(ext4.substring(21, 22)),
+    roomNumber: UnpadString(ext4.substring(22, 32))
   };
   return hotel;
 }
@@ -301,7 +302,7 @@ function PackTime(year: number, day: number, minute: number) {
   result.writeUint32LE(year, 0);
   result.writeUint16LE(day, 4);
   result.writeUint16LE(minute, 6);
-  return result.toString();
+  return result.toString('binary');
 }
 
 function ValidateBigint(int: bigint | undefined) {
@@ -312,4 +313,8 @@ function ValidateBigint(int: bigint | undefined) {
 function ValidateTimestamp(time: Timestamp | undefined) {
   if (time == undefined) return convertTimeAndDateToTimestamp("2001-01-01", "00:00");
   return time;
+}
+
+function ToBuffer(str: string) {
+  return Buffer.from(str, 'binary');
 }
