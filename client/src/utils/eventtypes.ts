@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-11-06
- * Updated: 2025-11-06
+ * Updated: 2025-11-12
  *
  * This file defines functions for converting back and forth between extensions and eventTypes, as well as helpers to convert input fields into the eventTypes.
  *
@@ -12,7 +12,8 @@
 
 import { getDayOfYear, type Timestamp } from '@quasar/quasar-ui-qcalendar';
 import { convertTimeAndDateToTimestamp } from 'src/frontend-utils/time';
-import type { Extension, Flight, Hotel,  } from "app/src-electron/types/shared-types";
+import { ValidateString, PadString } from "./validate";
+import type { Extension, Flight, Hotel } from "app/src-electron/types/shared-types";
 
 // input fields to eventType
 
@@ -24,33 +25,33 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
     depTime?: Timestamp, depTimeDestZone?: Timestamp, boardingTime?: Timestamp,
     boardingGroup?: string, gate?: string, depTimezoneOffset?: string, arrTimezoneOffset?: string, 
     arrAirportIATA?: string, arrTimezoneAbbr?: string, arrTime?: Timestamp, arrTimeDestZone?: Timestamp) {
-  if ((depAirportName = ValidateString(depAirportName, 64)) == undefined) return undefined;
-  if ((depAirportAddress = ValidateString(depAirportAddress, 64)) == undefined) return undefined;
-  if ((arrAirportName = ValidateString(arrAirportName, 64)) == undefined) return undefined;
-  if ((arrAirportAddress = ValidateString(arrAirportAddress, 64)) == undefined) return undefined;
-  if ((airlineCode = ValidateString(airlineCode, 8)) == undefined) return undefined;
-  if ((flightNumber = ValidateString(flightNumber, 8)) == undefined) return undefined;
-  if ((airlineName = ValidateString(airlineName, 48)) == undefined) return undefined;
-  if ((depAirportIATA = ValidateString(depAirportIATA, 3)) == undefined) return undefined;
-  if ((depTimezoneAbbr = ValidateString(depTimezoneAbbr, 5)) == undefined) return undefined;
-  if ((boardingGroup = ValidateString(boardingGroup, 2)) == undefined) return undefined;
-  if ((gate = ValidateString(gate, 4)) == undefined) return undefined;
-  if ((depTimezoneOffset = ValidateString(depTimezoneOffset, 1)) == undefined) return undefined;
-  if ((arrTimezoneOffset = ValidateString(arrTimezoneOffset, 1)) == undefined) return undefined;
-  if ((arrAirportIATA = ValidateString(arrAirportIATA, 3)) == undefined) return undefined;
-  if ((arrTimezoneAbbr = ValidateString(arrTimezoneAbbr, 5)) == undefined) return undefined;
+  if ((depAirportName = ValidateString(depAirportName, 0, 64)) != "") return undefined;
+  if ((depAirportAddress = ValidateString(depAirportAddress, 0, 64)) != "") return undefined;
+  if ((arrAirportName = ValidateString(arrAirportName, 0, 64)) != "") return undefined;
+  if ((arrAirportAddress = ValidateString(arrAirportAddress, 0, 64)) != "") return undefined;
+  if ((airlineCode = ValidateString(airlineCode, 0, 8)) != "") return undefined;
+  if ((flightNumber = ValidateString(flightNumber, 0, 8)) != "") return undefined;
+  if ((airlineName = ValidateString(airlineName, 0, 48)) != "") return undefined;
+  if ((depAirportIATA = ValidateString(depAirportIATA, 0, 3)) != "") return undefined;
+  if ((depTimezoneAbbr = ValidateString(depTimezoneAbbr, 0, 5)) != "") return undefined;
+  if ((boardingGroup = ValidateString(boardingGroup, 0, 2)) != "") return undefined;
+  if ((gate = ValidateString(gate, 0, 4)) != "") return undefined;
+  if ((depTimezoneOffset = ValidateString(depTimezoneOffset, 0, 1)) != "") return undefined;
+  if ((arrTimezoneOffset = ValidateString(arrTimezoneOffset, 0, 1)) != "") return undefined;
+  if ((arrAirportIATA = ValidateString(arrAirportIATA, 0, 3)) != "") return undefined;
+  if ((arrTimezoneAbbr = ValidateString(arrTimezoneAbbr, 0, 5)) != "") return undefined;
   const flight: Flight = {
     itemID: 0n,
     lastModified: 0n,
-    depAirportName: depAirportName,
-    depAirportAddress: depAirportAddress,
-    arrAirportName: arrAirportName,
-    arrAirportAddress: arrAirportAddress,
-    airlineCode: airlineCode,
-    flightNumber: flightNumber,
-    airlineName: airlineName,
-    depAirportIATA: depAirportIATA,
-    depTimezoneAbbr: depTimezoneAbbr,
+    depAirportName: PadString(depAirportName, 64),
+    depAirportAddress: PadString(depAirportAddress, 64),
+    arrAirportName: PadString(arrAirportName, 64),
+    arrAirportAddress: PadString(arrAirportAddress, 64),
+    airlineCode: PadString(airlineCode, 8),
+    flightNumber: PadString(flightNumber, 8),
+    airlineName: PadString(airlineName, 48),
+    depAirportIATA: PadString(depAirportIATA, 3),
+    depTimezoneAbbr: PadString(depTimezoneAbbr, 5),
     depTimeYear: TimestampYear(ValidateTimestamp(depTime)),
     depTimeDay: TimestampDay(ValidateTimestamp(depTime)),
     depTimeMin: TimestampMin(ValidateTimestamp(depTime)),
@@ -60,12 +61,12 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
     boardingTimeYear: TimestampYear(ValidateTimestamp(boardingTime)),
     boardingTimeDay: TimestampDay(ValidateTimestamp(boardingTime)),
     boardingTimeMin: TimestampMin(ValidateTimestamp(boardingTime)),
-    boardingGroup: boardingGroup,
-    gate: gate,
-    depTimezoneOffset: depTimezoneOffset,
-    arrTimezoneOffset: arrTimezoneOffset,
-    arrAirportIATA: arrAirportIATA,
-    arrTimezoneAbbr: arrTimezoneAbbr,
+    boardingGroup: PadString(boardingGroup, 2),
+    gate: PadString(gate, 4),
+    depTimezoneOffset: PadString(depTimezoneOffset, 1),
+    arrTimezoneOffset: PadString(arrTimezoneOffset, 1),
+    arrAirportIATA: PadString(arrAirportIATA, 3),
+    arrTimezoneAbbr: PadString(arrTimezoneAbbr, 5),
     arrTimeYear: TimestampYear(ValidateTimestamp(arrTime)),
     arrTimeDay: TimestampDay(ValidateTimestamp(arrTime)),
     arrTimeMin: TimestampMin(ValidateTimestamp(arrTime)),
@@ -82,25 +83,25 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
 export function FieldsToHotel(name?: string, address?: string, 
     checkinTime?: Timestamp, checkoutTime?: Timestamp, 
     timezoneAbbrev?: string, timezoneOffset?: string, roomNumber?: string) {
-  if ((name = ValidateString(name, 64)) == undefined) return undefined;
-  if ((address = ValidateString(address, 128)) == undefined) return undefined;
-  if ((timezoneAbbrev = ValidateString(timezoneAbbrev, 5)) == undefined) return undefined;
-  if ((timezoneOffset = ValidateString(timezoneOffset, 1)) == undefined) return undefined;
-  if ((roomNumber = ValidateString(roomNumber, 10)) == undefined) return undefined;
+  if ((name = ValidateString(name, 0, 64)) != "") return undefined;
+  if ((address = ValidateString(address, 0, 128)) != "") return undefined;
+  if ((timezoneAbbrev = ValidateString(timezoneAbbrev, 0, 5)) != "") return undefined;
+  if ((timezoneOffset = ValidateString(timezoneOffset, 0, 1)) != "") return undefined;
+  if ((roomNumber = ValidateString(roomNumber, 0, 10)) != "") return undefined;
   const hotel: Hotel = {
     itemID: 0n,
     lastModified: 0n,
-    name: name,
-    address: address,
+    name: PadString(name, 64),
+    address: PadString(address, 128),
     checkinTimeYear: TimestampYear(ValidateTimestamp(checkinTime)),
     checkinTimeDay: TimestampDay(ValidateTimestamp(checkinTime)),
     checkinTimeMin: TimestampMin(ValidateTimestamp(checkinTime)),
     checkoutTimeYear: TimestampYear(ValidateTimestamp(checkoutTime)),
     checkoutTimeDay: TimestampDay(ValidateTimestamp(checkoutTime)),
     checkoutTimeMin: TimestampMin(ValidateTimestamp(checkoutTime)),
-    timezoneAbbrev: timezoneAbbrev,
-    timezoneOffset: timezoneOffset,
-    roomNumber: roomNumber
+    timezoneAbbrev: PadString(timezoneAbbrev, 5),
+    timezoneOffset: PadString(timezoneOffset, 1),
+    roomNumber: PadString(roomNumber, 10)
   };
   return hotel;
 }
@@ -304,25 +305,11 @@ function PackTime(year: number, day: number, minute: number) {
 }
 
 function ValidateBigint(int: bigint | undefined) {
-  if (int == undefined) {
-    return 0n;
-  }
+  if (int == undefined) return 0n;
   return int;
 }
 
-function ValidateString(str: string | undefined, length: number) {
-  if (str == undefined) {
-    return "\0".repeat(length);
-  }
-  if (str.length > length) {
-    return undefined;
-  }
-  return str + "\0".repeat(length - str.length);
-}
-
 function ValidateTimestamp(time: Timestamp | undefined) {
-  if (time == undefined) {
-    return convertTimeAndDateToTimestamp("2000-01-01", "00:00");
-  }
+  if (time == undefined) return convertTimeAndDateToTimestamp("2001-01-01", "00:00");
   return time;
 }

@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello
  * Created: 2025-11-11
- * Updated: 2025-11-11
+ * Updated: 2025-11-12
  *
  * This file defines helper validation functions for user inputs.
  *
@@ -10,56 +10,42 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
 
-// disallows empty, length < 8, length > 32, spaces, single and double quotes, and nulls
-// returns true upon success or a string for error message upon fail
+// disallows undefined, length < minLength or length > maxLength
+// returns "" upon success or an error message upon fail using the optional stringName | "string"
+export function ValidateString(str: string | undefined, minLength: number, maxLength: number, stringName?: string) {
+  if (stringName == undefined) stringName = "string";
+  if (str == undefined) return stringName + " is undefined";
+  if (str.length < minLength) return stringName + " must be at least " + minLength.toString() + " characters long";
+  if (str.length > maxLength) return stringName + " must be at most "  + maxLength.toString() + " characters long";
+  return ""
+}
+
+export function PadString(str: string, length: number) {
+  return str + "\0".repeat(length - str.length);
+}
+
+// disallows empty, length < 8, length > 32, spaces, apostrophes (single quotes), double quotes, and nulls
+// returns "" upon success or an error message upon fail
 export function ValidateUsername(username: string) {
-  if (username == "") {
-    return "username must not be empty";
-  }
-  if (username.length < 8) {
-    return "username must be at least 8 characters long";
-  }
-  if (username.length > 32) {
-    return "username must be 32 characters long or less";
-  }
-  if (username.includes(" ")) {
-    return "username must not include spaces";
-  }
-  if (username.includes("'")) {
-    return "username must not include spaces";
-  }
-  if (username.includes("\"")) {
-    return "username must not include spaces";
-  }
-  if (username.includes("\0")) {
-    return "username must not include null terminators, and I have no clue how you pulled this off";
-  }
+  if (username == "") return "username must not be empty";
+  let ret = "";
+  if ((ret = ValidateString(username, 8, 32, "username")) != "") return ret;
+  if (username.includes(" ")) return "username must not include any spaces";
+  if (username.includes("'")) return "username must not include any apostrophes";
+  if (username.includes("\"")) return "username must not include any quotes";
+  if (username.includes("\0")) return "username must not include null terminators, and I have no clue how you pulled this off";
   return "";
 }
 
-// disallows empty, length < 8, length > 32, spaces, single and double quotes, and nulls
-// returns true upon success or a string for error message upon fail
+// disallows empty, length < 8, length > 32, spaces, apostrophes (single quotes), double quotes, and nulls
+// returns "" upon success or an error message upon fail
 export function ValidatePassword(password: string) {
-  if (password == "") {
-    return "password must not be empty";
-  }
-  if (password.length < 8) {
-    return "password must be at least 8 characters long";
-  }
-  if (password.length > 32) {
-    return "password must be 32 characters long or less";
-  }
-  if (password.includes(" ")) {
-    return "password must not include spaces";
-  }
-  if (password.includes("'")) {
-    return "password must not include spaces";
-  }
-  if (password.includes("\"")) {
-    return "password must not include spaces";
-  }
-  if (password.includes("\0")) {
-    return "password must not include null terminators, and I have no clue how you pulled this off";
-  }
+  if (password == "") return "password must not be empty";
+  let ret = "";
+  if ((ret = ValidateString(password, 8, 32, "password")) != "") return ret;
+  if (password.includes(" ")) return "password must not include any spaces";
+  if (password.includes("'")) return "password must not include any apostrophes";
+  if (password.includes("\"")) return "password must not include any quotes";
+  if (password.includes("\0")) return "password must not include null terminators, and I have no clue how you pulled this off";
   return "";
 }
