@@ -11,7 +11,6 @@
  */
 import { ipcMain } from "electron";
 import * as db from "app/src-electron/db/sqlite-db";
-import * as gen from "app/src-electron/services/generate"
 import { store } from "app/src-electron/services/store";
 import type {
   Note,
@@ -21,13 +20,13 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  Override,
   Deleted,
-  RangeWindow, GeneratedReminder
+  RangeWindow
 } from "app/src-electron/types/shared-types";
 import { createAccount, loginAccount, clearLocalData} from "./auth";
 import { sync } from "./sync";
 import * as notifs from "./notifs"
-import {readGeneratedRemindersInRange} from "app/src-electron/db/sqlite-db";
 // import schedule from 'node-schedule';
 
 export function registerHandlers()
@@ -59,8 +58,8 @@ export function registerHandlers()
     db.createYearlyReminder(newYearlyRem);
   });
 
-  ipcMain.handle('createGeneratedReminders', (event, newGeneratedRems: GeneratedReminder[]) => {
-    db.createGeneratedReminders(newGeneratedRems);
+  ipcMain.handle('createOrUpdateOverride', (event, override: Override) => {
+    db.createOrUpdateOverride(override);
   });
 
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
@@ -172,6 +171,10 @@ export function registerHandlers()
     return db.readFoldersInFolder(parentFolderID);
   });
 
+  ipcMain.handle('readOverrideID', (event, linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) => {
+    return db.readOverrideID(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin);
+  });
+
 
   // update
   ipcMain.handle('updateNote', (event, modNote: Note) => {
@@ -241,17 +244,16 @@ export function registerHandlers()
     return db.deleteFolder(folderID);
   });
 
+  ipcMain.handle('deleteGeneratedRemindersById', (event, itemID: bigint) => {
+    db.deleteGeneratedRemindersById(itemID);
+  });
+
+  ipcMain.handle('deleteOverridesByLinkedId', (event, linkedItemID: bigint) => {
+    db.deleteOverridesByLinkedId(linkedItemID);
+  });
+
   ipcMain.handle('clearAllTables', (event) => {
     db.clearAllTables();
-  });
-
-  // generate
-  ipcMain.handle('generatedYearsHas', (event, year: number) => {
-    return gen.generatedYearsHas(year);
-  });
-
-  ipcMain.handle('generateInYear', (event, year: number) => {
-    return gen.generateInYear(year);
   });
 
   // sync

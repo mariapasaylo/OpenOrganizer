@@ -26,6 +26,7 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  Override,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -242,6 +243,38 @@ export async function createYearlyReminder(
   await window.sqliteAPI.createYearlyReminder(newYearlyRem);
 }
 
+export async function createOrUpdateOverride(
+  linkedItemID: bigint, origEventStartTime: Timestamp, eventStartTime: Timestamp, eventEndTime: Timestamp,
+  notifTime: Timestamp, hasNotif: boolean) {
+  const timeMs: bigint = BigInt(Date.now());
+
+  const origEventStartYear = origEventStartTime.year;
+  const origEventStartDay = getDayOfYear(origEventStartTime);
+  const origEventStartMin = (origEventStartTime.hour * 60) + origEventStartTime.minute;
+  let itemID = await window.sqliteAPI.readOverrideID(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin);
+  if (itemID === undefined) itemID = timeMs;
+
+  const override: Override = {
+    itemID: itemID,
+    linkedItemID: linkedItemID,
+    lastModified: timeMs,
+    origEventStartYear: origEventStartYear,
+    origEventStartDay: origEventStartDay,
+    origEventStartMin: origEventStartMin,
+    eventStartYear: eventStartTime.year,
+    eventStartDay: getDayOfYear(eventStartTime),
+    eventStartMin: (eventStartTime.hour * 60) + eventStartTime.minute,
+    eventEndYear: eventEndTime.year,
+    eventEndDay: getDayOfYear(eventEndTime),
+    eventEndMin: (eventEndTime.hour * 60) + eventEndTime.minute,
+    notifYear: notifTime.year,
+    notifDay: getDayOfYear(notifTime),
+    notifMin: (notifTime.hour * 60) + notifTime.minute,
+    hasNotif: (hasNotif) ? 1 : 0
+  };
+  await window.sqliteAPI.createOrUpdateOverride(override);
+}
+
 export async function createFolder(parentFolderID: bigint, colorCode: number, folderName: string) { // -1 treated as no colorCode
   const timeMs: bigint = BigInt(Date.now());
   const newFolder: Folder = {
@@ -366,12 +399,6 @@ export async function readYearlyRemindersInRange(windowStartTime: Timestamp, win
 export async function readGeneratedRemindersInRange(windowStartTime: Timestamp, windowEndTime: Timestamp) {
   if (diffTimestamp(windowStartTime, windowEndTime, false) < 0) return [];
   const rangeWindow = calculateRangeWindow(windowStartTime, windowEndTime);
-
-  for (let i = rangeWindow.startYear - 1; i <= rangeWindow.endYear + 1; i++) { // -1 and +1 ensure all generated reminders within the window are included in case of long event times
-    if (!(await window.genAPI.generatedYearsHas(i))) {
-      await window.sqliteAPI.createGeneratedReminders((await window.genAPI.generateInYear(i)));
-    }
-  }
 
   return await window.sqliteAPI.readGeneratedRemindersInRange(rangeWindow);
 }
@@ -616,7 +643,6 @@ const dailyTable = 21;
 const weeklyTable = 22;
 const monthlyTable = 23;
 const yearlyTable = 24;
-const overridesTable = 31;
 const foldersTable = 32;
 
 export async function deleteItem(itemID: bigint, itemTable: number) { // used for all but specific extensions and folders
@@ -653,6 +679,11 @@ export async function deleteItem(itemID: bigint, itemTable: number) { // used fo
   if (deleteOccurred) {
     await window.sqliteAPI.deleteAllExtensions(itemID); // delete all extensions associated with deleted item
     await createDeleted(itemID, itemTable); // create deleted entry for the deleted item
+
+    if (Math.floor(itemTable / 10) === 2) { // itemTable = 2_ (recurring reminder)
+      await window.sqliteAPI.deleteGeneratedRemindersById(itemID);
+      await window.sqliteAPI.deleteOverridesByLinkedId(itemID);
+    }
   }
 }
 
@@ -692,7 +723,7 @@ export async function clearAllTables() {
 }
 
 // helpers
-export function calculateRangeWindow(windowStartTime: Timestamp, windowEndTime: Timestamp) { // used for readInRange
+function calculateRangeWindow(windowStartTime: Timestamp, windowEndTime: Timestamp) { // used for readInRange
   const startMinOfYear = getDayOfYear(windowStartTime) * 1440 + windowStartTime.hour * 60 + windowStartTime.minute;
   const endMinOfYear = getDayOfYear(windowEndTime) * 1440 + windowEndTime.hour * 60 + windowEndTime.minute;
 

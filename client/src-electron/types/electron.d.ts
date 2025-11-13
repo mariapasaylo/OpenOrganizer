@@ -34,7 +34,7 @@ declare global {
       createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
       createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
       createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
-      createGeneratedReminders: (newGeneratedRems: GeneratedReminder[]) => Promise<void>;
+      createOrUpdateOverride: (override: Override) => Promise<void>;
       createFolder: (newFolder: Folder) => Promise<void>;
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
@@ -57,13 +57,15 @@ declare global {
 
       readAllFolders: () => Promise<Folder[]>;
 
-      readNotesInFolder: (folderID: bigint) => Promise<bigint[]>
-      readRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readDailyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readYearlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readFoldersInFolder: (parentFolderID: bigint) => Promise<bigint[]>
+      readNotesInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readDailyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readYearlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readFoldersInFolder: (parentFolderID: bigint) => Promise<bigint[]>;
+
+      readOverrideID: (linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) => Promise<bigint>;
 
       // update
       updateNote: (modNote: Note) => Promise<void>;
@@ -84,6 +86,8 @@ declare global {
       deleteExtension: (itemID: bigint, sequenceNum: number) => Promise<void>;
       deleteAllExtensions: (itemID: bigint) => Promise<void>;
       deleteFolder: (folderID: bigint) => Promise<boolean>;
+      deleteGeneratedRemindersById: (itemID: bigint) => Promise<void>;
+      deleteOverridesByLinkedId: (linkedItemID: bigint) => Promise<void>;
       clearAllTables: () => Promise<void>;
 
       // Example functions
@@ -91,11 +95,6 @@ declare global {
       sqliteCreate: (key: string, value: string) => Promise<boolean>;
       sqliteUpdate: (key: string, value: string) => Promise<boolean>;
       sqliteDelete: (key: string) => Promise<boolean>;
-    };
-
-    genAPI: {
-      generatedYearsHas: (year: number) => Promise<boolean>;
-      generateInYear: (year: number) => Promise<GeneratedReminder[]>;
     };
 
     syncAPI: {

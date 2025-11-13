@@ -13,6 +13,7 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
+import * as gen from "app/src-electron/services/generate";
 import * as sql from "./sql";
 import type {
   Note,
@@ -44,8 +45,9 @@ const createDailyReminderStmt = db.prepare(sql.createDailyReminderStmt);
 const createWeeklyReminderStmt = db.prepare(sql.createWeeklyReminderStmt);
 const createMonthlyReminderStmt = db.prepare(sql.createMonthlyReminderStmt);
 const createYearlyReminderStmt = db.prepare(sql.createYearlyReminderStmt);
-const createGeneratedRemindersStmt = db.prepare(sql.createGeneratedRemindersStmt);
+const createOrUpdateGeneratedRemindersStmt = db.prepare(sql.createOrUpdateGeneratedRemindersStmt);
 const createExtensionStmt = db.prepare(sql.createExtensionStmt);
+const createOrUpdateOverrideStmt = db.prepare(sql.createOrUpdateOverrideStmt);
 const createFolderStmt = db.prepare(sql.createFolderStmt);
 const createDeletedStmt = db.prepare(sql.createDeletedStmt);
 
@@ -56,6 +58,7 @@ const readDailyReminderStmt = db.prepare(sql.readDailyReminderStmt);
 const readWeeklyReminderStmt = db.prepare(sql.readWeeklyReminderStmt);
 const readMonthlyReminderStmt = db.prepare(sql.readMonthlyReminderStmt);
 const readYearlyReminderStmt = db.prepare(sql.readYearlyReminderStmt);
+const readGeneratedReminderStmt = db.prepare(sql.readGeneratedReminderStmt);
 const readOverridesStmt = db.prepare(sql.readOverridesStmt);
 const readExtensionsStmt = db.prepare(sql.readExtensionsStmt);
 const readFolderStmt = db.prepare(sql.readFolderStmt);
@@ -98,6 +101,7 @@ const readFolderLmStmt = db.prepare(sql.readFolderLmStmt);
 const readDeletedLmStmt = db.prepare(sql.readDeletedLmStmt);
 
 const readGeneratedReminderIDInYearStmt = db.prepare(sql.readGeneratedReminderIDInYearStmt);
+const readOverrideIDStmt = db.prepare(sql.readOverrideIDStmt);
 
 // update
 const updateNoteStmt = db.prepare(sql.updateNoteStmt);
@@ -148,6 +152,13 @@ export function createDailyReminder(newDailyRem: DailyReminder) {
     newDailyRem.hasNotifs, newDailyRem.isExtended, newDailyRem.everyNDays, newDailyRem.title
   );
   if (newDailyRem.extensions !== undefined) for (const ext of newDailyRem.extensions) createExtension(ext);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // maintain generated_reminders table for all generatedYears
+    generatedRems.push(...gen.generateDaily(newDailyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
@@ -158,6 +169,13 @@ export function createWeeklyReminder(newWeeklyRem: WeeklyReminder) {
     newWeeklyRem.hasNotifs, newWeeklyRem.isExtended, newWeeklyRem.everyNWeeks, newWeeklyRem.daysOfWeek, newWeeklyRem.title
   );
   if (newWeeklyRem.extensions !== undefined) for (const ext of newWeeklyRem.extensions) createExtension(ext);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // maintain generated_reminders table for all generatedYears
+    generatedRems.push(...gen.generateWeekly(newWeeklyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
@@ -168,6 +186,13 @@ export function createMonthlyReminder(newMonthlyRem: MonthlyReminder) {
     newMonthlyRem.hasNotifs, newMonthlyRem.isExtended, newMonthlyRem.lastDayOfMonth, newMonthlyRem.daysOfMonth, newMonthlyRem.title
   );
   if (newMonthlyRem.extensions !== undefined) for (const ext of newMonthlyRem.extensions) createExtension(ext);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // maintain generated_reminders table for all generatedYears
+    generatedRems.push(...gen.generateMonthly(newMonthlyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function createYearlyReminder(newYearlyRem: YearlyReminder) {
@@ -178,12 +203,19 @@ export function createYearlyReminder(newYearlyRem: YearlyReminder) {
     newYearlyRem.hasNotifs, newYearlyRem.isExtended, newYearlyRem.dayOfYear, newYearlyRem.title
   );
   if (newYearlyRem.extensions !== undefined) for (const ext of newYearlyRem.extensions) createExtension(ext);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // maintain generated_reminders table for all generatedYears
+    generatedRems.push(...gen.generateYearly(newYearlyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
-export function createGeneratedReminders(newGeneratedRems: GeneratedReminder[]) {
-  const createGeneratedReminders = db.transaction((newGeneratedRems: GeneratedReminder[]) => {
+export function createOrUpdateGeneratedReminders(newGeneratedRems: GeneratedReminder[]) {
+  const createOrUpdateGeneratedReminders = db.transaction((newGeneratedRems: GeneratedReminder[]) => {
     for (const newGeneratedRem of newGeneratedRems) {
-      createGeneratedRemindersStmt.run(
+      createOrUpdateGeneratedRemindersStmt.run(
         newGeneratedRem.itemID, newGeneratedRem.folderID, newGeneratedRem.eventType, newGeneratedRem.recurrenceTable, newGeneratedRem.origEventStartYear,
         newGeneratedRem.origEventStartDay, newGeneratedRem.origEventStartMin, newGeneratedRem.eventStartYear, newGeneratedRem.eventStartDay,
         newGeneratedRem.eventStartMin, newGeneratedRem.eventEndYear, newGeneratedRem.eventEndDay, newGeneratedRem.eventEndMin,
@@ -191,11 +223,39 @@ export function createGeneratedReminders(newGeneratedRems: GeneratedReminder[]) 
       );
     }
   });
-  createGeneratedReminders(newGeneratedRems);
+  createOrUpdateGeneratedReminders(newGeneratedRems);
 }
 
 export function createExtension(newExt: Extension) {
   createExtensionStmt.run(newExt.itemID, newExt.sequenceNum, newExt.lastModified, newExt.data);
+}
+
+export function createOrUpdateOverride(override: Override) {
+  createOrUpdateOverrideStmt.run(
+    override.itemID, override.linkedItemID, override.lastModified, override.origEventStartYear,
+    override.origEventStartDay, override.origEventStartMin, override.eventStartYear, override.eventStartDay,
+    override.eventStartMin, override.eventEndYear, override.eventEndDay, override.eventEndMin,
+    override.notifYear, override.notifDay, override.notifMin, override.hasNotif
+  );
+
+  // if the override's generated reminder is currently loaded, update it
+  const generatedRem = [readGeneratedReminderStmt.get(override.linkedItemID, override.origEventStartYear, override.origEventStartDay, override.origEventStartMin) as GeneratedReminder];
+  if (generatedRem[0] !== undefined) {
+    generatedRem[0].origEventStartYear = override.origEventStartYear;
+    generatedRem[0].origEventStartDay = override.origEventStartDay;
+    generatedRem[0].origEventStartMin = override.origEventStartMin;
+    generatedRem[0].eventStartYear = override.eventStartYear;
+    generatedRem[0].eventStartDay = override.eventStartDay;
+    generatedRem[0].eventStartMin = override.eventStartMin;
+    generatedRem[0].eventEndYear = override.eventEndYear;
+    generatedRem[0].eventEndDay = override.eventEndDay;
+    generatedRem[0].eventEndMin = override.eventEndMin;
+    generatedRem[0].notifYear = override.notifYear;
+    generatedRem[0].notifDay = override.notifDay;
+    generatedRem[0].notifMin = override.notifMin;
+    generatedRem[0].hasNotif = override.hasNotif;
+    createOrUpdateGeneratedReminders(generatedRem);
+  }
 }
 
 export function createFolder(newFolder: Folder) { // -1 treated as no colorCode
@@ -399,6 +459,13 @@ export function readYearlyRemindersInRange(rangeWindow: RangeWindow) {
 }
 
 export function readGeneratedRemindersInRange(rangeWindow: RangeWindow) {
+  const generatedYears = gen.getGeneratedYears();
+  const newGeneratedRems: GeneratedReminder[] = [];
+  for (let i = rangeWindow.startYear - 1; i <= rangeWindow.endYear + 1; i++) { // -1 and +1 ensure all generated reminders within the window are included in case of long event times
+    if (!generatedYears.has(i)) newGeneratedRems.push(...gen.generateAllInYear(i));
+  }
+  createOrUpdateGeneratedReminders(newGeneratedRems); // create generated rems required to read within the given range accurately
+
   const generatedRems = readGeneratedRemindersInRangeStmt.all({
     windowStartYear: rangeWindow.startYear,
     windowStartMinOfYear: rangeWindow.startMinOfYear,
@@ -579,8 +646,14 @@ export function readDeletedLm(itemID: bigint) {
   return BigInt(lastModified.lastModified);
 }
 
-export function readGeneratedReminderIDInYear(origEventStartYear: number) { // checks for origEventStartYear to determine if a year has been generated (used in init)
-  const itemID = readGeneratedReminderIDInYearStmt.get(origEventStartYear) as { itemID: bigint };
+export function readGeneratedReminderIDInYear(eventStartYear: number) { // checks for eventStartYear to determine if a year has been generated (used in init)
+  const itemID = readGeneratedReminderIDInYearStmt.get(eventStartYear) as { itemID: bigint };
+  if (itemID === undefined) return undefined;
+  return BigInt(itemID.itemID);
+}
+
+export function readOverrideID(linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) {
+  const itemID = readOverrideIDStmt.get(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin) as { itemID: bigint };
   if (itemID === undefined) return undefined;
   return BigInt(itemID.itemID);
 }
@@ -608,6 +681,17 @@ export function updateDailyReminder(modDailyRem: DailyReminder) {
     modDailyRem.hasNotifs, modDailyRem.isExtended, modDailyRem.everyNDays, modDailyRem.title, modDailyRem.itemID
   ); // itemID last
   if (modDailyRem.extensions !== undefined) for (const ext of modDailyRem.extensions) createExtension(ext);
+
+  // delete overrides when recurring reminder is modified and create new generated reminders
+  deleteGeneratedRemindersById(modDailyRem.itemID);
+  deleteOverridesByLinkedId(modDailyRem.itemID);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // regenerate for all generatedYears
+    generatedRems.push(...gen.generateDaily(modDailyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
@@ -619,6 +703,17 @@ export function updateWeeklyReminder(modWeeklyRem: WeeklyReminder) {
     modWeeklyRem.itemID
   ); // itemID last
   if (modWeeklyRem.extensions !== undefined) for (const ext of modWeeklyRem.extensions) createExtension(ext);
+
+  // delete overrides when recurring reminder is modified and create new generated reminders
+  deleteGeneratedRemindersById(modWeeklyRem.itemID);
+  deleteOverridesByLinkedId(modWeeklyRem.itemID);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // regenerate for all generatedYears
+    generatedRems.push(...gen.generateWeekly(modWeeklyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
@@ -630,6 +725,17 @@ export function updateMonthlyReminder(modMonthlyRem: MonthlyReminder) {
     modMonthlyRem.itemID
   ); // itemID last
   if (modMonthlyRem.extensions !== undefined) for (const ext of modMonthlyRem.extensions) createExtension(ext);
+
+  // delete overrides when recurring reminder is modified and create new generated reminders
+  deleteGeneratedRemindersById(modMonthlyRem.itemID);
+  deleteOverridesByLinkedId(modMonthlyRem.itemID);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // regenerate for all generatedYears
+    generatedRems.push(...gen.generateMonthly(modMonthlyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
@@ -640,6 +746,17 @@ export function updateYearlyReminder(modYearlyRem: YearlyReminder) {
     modYearlyRem.hasNotifs, modYearlyRem.isExtended, modYearlyRem.dayOfYear, modYearlyRem.title, modYearlyRem.itemID
   ); // itemID last
   if (modYearlyRem.extensions !== undefined) for (const ext of modYearlyRem.extensions) createExtension(ext);
+
+  // delete overrides when recurring reminder is modified and create new generated reminders
+  deleteGeneratedRemindersById(modYearlyRem.itemID);
+  deleteOverridesByLinkedId(modYearlyRem.itemID);
+
+  const generatedYears = gen.getGeneratedYears();
+  const generatedRems: GeneratedReminder[] = [];
+  for (const year of generatedYears) { // regenerate for all generatedYears
+    generatedRems.push(...gen.generateYearly(modYearlyRem, year));
+  }
+  createOrUpdateGeneratedReminders(generatedRems);
 }
 
 export function updateFolder(modFolder: Folder) {

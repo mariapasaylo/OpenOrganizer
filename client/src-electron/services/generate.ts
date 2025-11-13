@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-11-07
- * Updated: 2025-11-11
+ * Updated: 2025-11-12
  *
  * This file contains functions for generating the generated reminders to be inserted into the local database in sqlite-db.ts.
  *
@@ -35,11 +35,11 @@ import type {
 
 const generatedYears = new Set<number>(); // maintain a set of currently generated years
 
-export function generatedYearsHas(year: number) { // for use in renderer
-  return generatedYears.has(year);
+export function getGeneratedYears() { // for use in sqlite-db.ts
+  return generatedYears;
 }
 
-export function generateInYear(year: number) {
+export function generateAllInYear(year: number) {
   const rangeWindow = yearToRangeWindow(year);
   const generatedRems: GeneratedReminder[] = [];
 
@@ -87,10 +87,9 @@ export function generateDaily(daily: DailyReminder, year: number) {
   const overridesMap = getOverridesMap(daily.itemID);
   const generatedRems: GeneratedReminder[] = [];
   if (overridesMap !== undefined) {
-    for (const [origStartTime, override] of overridesMap) {
+    for (const override of overridesMap.values()) {
       // assume overrides only set event start time within the series start and end times
-      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(1, daily, override)); // only apply overrides that fall within the year window
-      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(1, daily, override)); // only generate for overrides that fall within the year window
     }
   }
 
@@ -150,10 +149,9 @@ export function generateWeekly(weekly: WeeklyReminder, year: number) {
   const overridesMap = getOverridesMap(weekly.itemID);
   const generatedRems: GeneratedReminder[] = [];
   if (overridesMap !== undefined) {
-    for (const [origStartTime, override] of overridesMap) {
+    for (const override of overridesMap.values()) {
       // assume overrides only set event start time within the series start and end times
-      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(2, weekly, override)); // only apply overrides that fall within the year window
-      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(2, weekly, override)); // only generate for overrides that fall within the year window
     }
   }
 
@@ -206,10 +204,9 @@ export function generateMonthly(monthly: MonthlyReminder, year: number) {
   const overridesMap = getOverridesMap(monthly.itemID);
   const generatedRems: GeneratedReminder[] = [];
   if (overridesMap !== undefined) {
-    for (const [origStartTime, override] of overridesMap) {
+    for (const override of overridesMap.values()) {
       // assume overrides only set event start time within the series start and end times
-      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(3, monthly, override)); // only apply overrides that fall within the year window
-      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(3, monthly, override)); // only generate for overrides that fall within the year window
     }
   }
 
@@ -251,10 +248,9 @@ export function generateYearly(yearly: YearlyReminder, year: number) {
   const overridesMap = getOverridesMap(yearly.itemID);
   const generatedRems: GeneratedReminder[] = [];
   if (overridesMap !== undefined) {
-    for (const [origStartTime, override] of overridesMap) {
+    for (const override of overridesMap.values()) {
       // assume overrides only set event start time within the series start and end times
-      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(4, yearly, override)); // only apply overrides that fall within the year window
-      else overridesMap.delete(origStartTime); // remove unused overrides from the map
+      if (override.eventStartYear === year) generatedRems.push(getGeneratedRemFromOverride(4, yearly, override)); // only generate for overrides that fall within the year window
     }
   }
 
