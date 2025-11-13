@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-29
- * Updated: 2025-10-30
+ * Updated: 2025-11-13
  *
  * This file defines functions for sending syncup requests.
  *
@@ -15,7 +15,7 @@ import * as db from "../db/sqlite-db";
 import {serverAddress} from "app/src-electron/electron-main";
 import {getAuthToken, getUserId} from "app/src-electron/services/auth";
 import {lastUpdated} from "app/src-electron/services/store";
-import {sendRequest, logResponse, getDateNowBuffer} from "../utils/sync-utils";
+import {sendRequest, logResponse} from "../utils/sync-utils";
 
 export async function syncUp() {
   await upFolders();
@@ -26,7 +26,7 @@ export async function syncUp() {
   await upRemindersMonthly();
   await upRemindersYearly();
   await upExtensions();
-  // await upOverrides();
+  await upOverrides();
   await upDeleted();
 }
 
@@ -114,7 +114,17 @@ export async function upExtensions() {
   if (response !== undefined) logResponse(url, response);
 }
 
-// todo: write upOverrides()
+export async function upOverrides() {
+  const lastUpOverrides = Buffer.from(lastUpdated.get('lastUpOverrides')).readBigInt64LE(0);
+  const overrides = db.readOverridesAfter(lastUpOverrides);
+  if (overrides === undefined || overrides.length === 0) return;
+
+  const url = serverAddress + "syncup/overrides";
+  const body = Buffer.concat([getBodyHeader(overrides.length), pack.packOverrides(overrides)]);
+
+  const response = await sendRequest(url, body);
+  if (response !== undefined) logResponse(url, response);
+}
 
 export async function upFolders() {
   const lastUpFolders = Buffer.from(lastUpdated.get('lastUpFolders')).readBigInt64LE(0);

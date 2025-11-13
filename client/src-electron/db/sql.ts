@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-09-25
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file contains and exports all SQL statements used by sqlite-db.
  *
@@ -439,6 +439,11 @@ SELECT * FROM extensions
 WHERE (lastModified > ?)
 ORDER BY lastModified ASC`;
 
+export const readOverridesAfterStmt = `
+SELECT * FROM overrides
+WHERE (lastModified > ?)
+ORDER BY lastModified ASC`;
+
 export const readFoldersAfterStmt = `
 SELECT * FROM folders
 WHERE (lastModified > ?)
@@ -506,6 +511,10 @@ WHERE itemID = ?`;
 export const readExtensionLmStmt = `
 SELECT lastModified FROM extensions
 WHERE itemID = ? AND sequenceNum = ?`;
+
+export const readOverrideLmStmt = `
+SELECT lastModified FROM overrides
+WHERE itemID = ?`;
 
 export const readFolderLmStmt = `
 SELECT lastModified FROM folders

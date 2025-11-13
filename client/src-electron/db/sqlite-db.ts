@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella
  * Created: 2025-09-10
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file initializes the SQLite database, prepares queries, and exports functions for interacting with the
  * SQLite database.
@@ -79,6 +79,7 @@ const readWeeklyRemindersAfterStmt = db.prepare(sql.readWeeklyRemindersAfterStmt
 const readMonthlyRemindersAfterStmt = db.prepare(sql.readMonthlyRemindersAfterStmt);
 const readYearlyRemindersAfterStmt = db.prepare(sql.readYearlyRemindersAfterStmt);
 const readExtensionsAfterStmt = db.prepare(sql.readExtensionsAfterStmt);
+const readOverridesAfterStmt = db.prepare(sql.readOverridesAfterStmt);
 const readFoldersAfterStmt = db.prepare(sql.readFoldersAfterStmt);
 const readDeletesAfterStmt = db.prepare(sql.readDeletesAfterStmt);
 
@@ -97,6 +98,7 @@ const readWeeklyReminderLmStmt = db.prepare(sql.readWeeklyReminderLmStmt);
 const readMonthlyReminderLmStmt = db.prepare(sql.readMonthlyReminderLmStmt);
 const readYearlyReminderLmStmt = db.prepare(sql.readYearlyReminderLmStmt);
 const readExtensionLmStmt = db.prepare(sql.readExtensionLmStmt);
+const readOverrideLmStmt = db.prepare(sql.readOverrideLmStmt);
 const readFolderLmStmt = db.prepare(sql.readFolderLmStmt);
 const readDeletedLmStmt = db.prepare(sql.readDeletedLmStmt);
 
@@ -577,6 +579,13 @@ export function readExtensionsAfter(lastUpdated: bigint) {
   return extensions;
 }
 
+export function readOverridesAfter(lastUpdated: bigint) {
+  const overrides = readOverridesAfterStmt.all(lastUpdated) as Override[];
+  if (overrides === undefined) return undefined;
+  castOverridesBigInts(overrides);
+  return overrides;
+}
+
 export function readFoldersAfter(lastUpdated: bigint) {
   const folders = readFoldersAfterStmt.all(lastUpdated) as Folder[];
   if (folders === undefined) return undefined;
@@ -630,6 +639,12 @@ export function readYearlyReminderLm(itemID: bigint) {
 
 export function readExtensionLm(itemID: bigint, sequenceNum: number) {
   const lastModified = readExtensionLmStmt.get(itemID, sequenceNum) as { lastModified: bigint };
+  if (lastModified === undefined) return undefined;
+  return BigInt(lastModified.lastModified);
+}
+
+export function readOverrideLm(itemID: bigint) {
+  const lastModified = readOverrideLmStmt.get(itemID) as { lastModified: bigint };
   if (lastModified === undefined) return undefined;
   return BigInt(lastModified.lastModified);
 }

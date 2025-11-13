@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-30
- * Updated: 2025-11-05
+ * Updated: 2025-11-13
  *
  * This file defines functions for sending syncdown requests.
  *
@@ -24,10 +24,10 @@ import type {
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  Override,
   Deleted
 } from "app/src-electron/types/shared-types";
 
-// todo: write function that runs all syncdown functions
 export async function syncdown() {
   let serverLastUp = await lastUp();
   if (serverLastUp === undefined) { // If lastUp fails, attempt login, try again, return undefined if login or lastup fails
@@ -43,6 +43,7 @@ export async function syncdown() {
   const localLastUpMonthly = Buffer.from(lastUpdated.get('lastUpMonthly')).readBigInt64LE(0);
   const localLastUpYearly = Buffer.from(lastUpdated.get('lastUpYearly')).readBigInt64LE(0);
   const localLastUpExtensions = Buffer.from(lastUpdated.get('lastUpExtensions')).readBigInt64LE(0);
+  const localLastUpOverrides = Buffer.from(lastUpdated.get('lastUpOverrides')).readBigInt64LE(0);
   const localLastUpDeleted = Buffer.from(lastUpdated.get('lastUpDeleted')).readBigInt64LE(0);
 
   return {
@@ -54,6 +55,7 @@ export async function syncdown() {
     monthlyReminders: (localLastUpMonthly < serverLastUp.lastUpMonthly) ? await downRemindersMonthly(localLastUpMonthly) : undefined,
     yearlyReminders: (localLastUpYearly < serverLastUp.lastUpYearly) ? await downRemindersYearly(localLastUpYearly) : undefined,
     extensions: (localLastUpExtensions < serverLastUp.lastUpExtensions) ? await downExtensions(localLastUpExtensions) : undefined,
+    overrides: (localLastUpOverrides < serverLastUp.lastUpOverrides) ? await downOverrides(localLastUpOverrides) : undefined,
     deletes: (localLastUpDeleted < serverLastUp.lastUpDeleted) ? await downDeleted(localLastUpDeleted) : undefined,
   } as RetrievedItems;
 }
@@ -133,7 +135,14 @@ export async function downExtensions(startTime: bigint) {
   return unpack.unpackExtensions(reqDetails.repeatedData, reqDetails.recordCount);
 }
 
-// todo: write downOverrides()
+export async function downOverrides(startTime: bigint) {
+  const url = serverAddress + "syncdown/overrides"
+
+  const reqDetails = await requestDownDetails(startTime, url);
+  if (reqDetails === undefined) return undefined;
+
+  return unpack.unpackOverrides(reqDetails.repeatedData, reqDetails.recordCount);
+}
 
 export async function downFolders(startTime: bigint) {
   const url = serverAddress + "syncdown/folders"
@@ -192,6 +201,6 @@ export interface RetrievedItems {
   monthlyReminders: MonthlyReminder[],
   yearlyReminders: YearlyReminder[],
   extensions: Extension[],
-  // overrides: Override[],
+  overrides: Override[],
   deletes: Deleted[]
 }

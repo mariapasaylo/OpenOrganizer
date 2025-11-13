@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-30
- * Updated: 2025-10-30
+ * Updated: 2025-11-12
  *
  * This file defines helper functions used by both syncup.ts and syncdown.ts.
  *
@@ -20,7 +20,7 @@ export async function sendRequest(url: string, body: Buffer) {
     });
   }
   catch (error) {
-    console.error('syncup/notes error: ', error);
+    console.error('sync error: ', error);
   }
 }
 
