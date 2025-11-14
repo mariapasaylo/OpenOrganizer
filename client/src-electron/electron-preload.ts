@@ -53,6 +53,7 @@ import type {
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
+import { changeLogin } from './services/auth';
 
 contextBridge.exposeInMainWorld('sqliteAPI', {
   // create
@@ -137,5 +138,7 @@ contextBridge.exposeInMainWorld('electronStoreAPI', {
 contextBridge.exposeInMainWorld('electronAuthAPI', {
   createAccount: (username: string, password: string) => ipcRenderer.invoke('createAccount', username, password),
   loginAccount: (username: string, password: string) => ipcRenderer.invoke('loginAccount', username, password),
-  clearLocalData: () => ipcRenderer.invoke('clearLocalData')
+  changeLogin: (username?: string, password?:string) => ipcRenderer.invoke('changeLogin', username, password),
+  clearLocalData: () => ipcRenderer.invoke('clearLocalData'),
+  isUserLoggedIn: () => ipcRenderer.invoke('isUserLoggedIn')
 });

@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-08
+ * Updated: 2025-11-10
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -45,6 +45,47 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="showLoginOptions">
+      <q-card style="width: 400px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="row justify-around q-mt-md"> 
+            <div class="text-h6">Account Options</div>
+            <q-btn icon="close" flat round dense v-close-popup />
+          </div>
+          <div class="row justify-around q-mt-md">
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Change Login" @click="showChangeLogin = true" />            
+            <q-btn class="login-register-button" style="font-size: 15px; width: 10em" flat label="Log out" @click=logout />
+          </div>  
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showChangeLogin">
+      <q-card style="width: 400px" class="q-px-sm q-pb-md">
+        <q-card-section>
+          <div class="text-h6">Enter New Username</div>
+          <q-input v-model="newUsername" type="text"  square filled  placeholder="New Username" />
+        </q-card-section>
+        <q-card-section>
+          <div class="text-h6">Enter New Password</div>
+          <q-input v-model="newPassword" filled :type="isPwd ? 'password' : 'text'" placeholder="New Password">
+                <template v-slot:append>
+                <q-icon
+                :name="isPwd ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"/>
+                </template>
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Save Changes" @click=saveLoginChanges v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+
 
     <!-- Left column - File Explorer top row-->
     <div style="grid-area: file-explorer-search; padding: 20px" data-area="file-explorer-search">
@@ -381,7 +422,7 @@
     <!-- Right column - Settings/Account Buttons (bottom row) -->
     <div style="grid-area: account-settings; padding: 20px 30px; border-top: 1px solid #adadadcc; align-items: center; gap: 8px;"  data-area="account-settings">
       <div class="row justify-between items-center">
-        <q-btn class="account-and-settings-button" flat icon="account_circle" @click="$router.push('/register')" />
+        <q-btn class="account-and-settings-button" flat icon="account_circle" @click=checkLoggedIn />
         <q-btn class="account-and-settings-button" flat icon="settings" @click="showSettings = true" />
       </div>
     </div>
@@ -398,6 +439,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import type { UINote, UIReminder, UIFolder } from '../types/ui-types';
 import type { Reminder, Note, Folder } from '../../src-electron/types/shared-types';
 import {createNote, createReminder, createFolder, createRootFolder, readNote, readReminder, readAllFolders, updateNote, updateReminder, updateFolder, deleteItem, deleteFolder, readRemindersInRange, readNotesInRange} from '../utils/local-db';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
+
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
 const settingsTab = ref('cloud');
@@ -486,6 +530,8 @@ const eventTypeOptions = computed(() => {
 });
 
 const showSettings = ref(false);
+const showLoginOptions = ref(false);
+const showChangeLogin = ref(false);
 const isCloudOn = ref(false);
 const isSyncing = ref(false);
 const syncStatusMessage = ref('Cloud Not Synced')
@@ -542,6 +588,12 @@ const cloudIcon = computed(() => {
 
 const selectAll = ref(false)
 const searchQuery = ref('');
+const newUsername = ref<string>('');
+const newPassword = ref<string>('');
+const isPwd = ref(true);
+const $q = useQuasar();
+const router = useRouter();
+
 // Specific folder ID currently selected in the file explorer tree, tracked for adding folder in that specific spot
 // null is if there is no folder selected on the tree, this by default
 const selectedFolderID = ref<bigint | null>(null);
@@ -1679,6 +1731,62 @@ function onClickHeadDay(data: Timestamp) {
 }
 function onClickHeadWorkweek(data: Timestamp) {
   console.info('onClickHeadWorkweek', data)
+}
+
+async function logout()
+{
+  try {
+    const isDeleted: boolean = await window.electronAuthAPI.clearLocalData();
+    if(isDeleted){
+            console.log('Account logout result:', isDeleted);
+            $q.notify({
+            type: 'positive',
+            message: 'Successfully logged out'
+            });
+            //close popup of Login options (i.e. change login and logout)
+            showLoginOptions.value = false;
+        } 
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+}
+
+async function checkLoggedIn()
+{
+  try{
+    const isloggedIn: boolean = await window.electronAuthAPI.isUserLoggedIn();
+    if (isloggedIn) {
+      showLoginOptions.value = true;
+    } else {
+      await router.push('/register');
+    }
+  } catch (error) {
+    console.error('Error checking login status:', error);
+  }
+}
+
+async function saveLoginChanges() {
+  try {
+    const isLoginChanged = await window.electronAuthAPI.changeLogin(newUsername.value, newPassword.value);
+    if (isLoginChanged) {
+      console.log('Login credentials changed successfully:', isLoginChanged);
+      $q.notify({
+        type: 'positive',
+        message: 'Login credentials changed successfully.'
+      });
+      //close popup of Login options (i.e. change login and logout)
+      showLoginOptions.value = false;
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to change login credentials. Please try again.'
+      });
+    }
+  
+  }catch (error) {
+    console.error('Error changing login credentials:', error);
+  }
+
 }
 
 </script>
