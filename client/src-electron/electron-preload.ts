@@ -31,7 +31,7 @@
  *
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-04-13
- * Updated: 2025-11-10
+ * Updated: 2025-11-12
  *
  * This file exposes APIs to the renderer via the contextBridge.
  *
@@ -42,13 +42,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
   Note,
-  Extension,
   Folder,
   Reminder,
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  GeneratedReminder,
+  Override,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -62,6 +63,7 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   createWeeklyReminder: (newWeeklyRem: WeeklyReminder): Promise<void> => ipcRenderer.invoke('createWeeklyReminder', newWeeklyRem),
   createMonthlyReminder: (newMonthlyRem: MonthlyReminder): Promise<void> => ipcRenderer.invoke('createMonthlyReminder', newMonthlyRem),
   createYearlyReminder: (newYearlyRem: YearlyReminder): Promise<void> => ipcRenderer.invoke('createYearlyReminder', newYearlyRem),
+  createOrUpdateOverride: (override: Override): Promise<void> => ipcRenderer.invoke('createOrUpdateOverride', override),
   createFolder: (newFolder: Folder): Promise<void> => ipcRenderer.invoke('createFolder', newFolder),
   createDeleted: (newDeleted: Deleted): Promise<void> => ipcRenderer.invoke('createDeleted', newDeleted),
 
@@ -80,6 +82,7 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   readWeeklyRemindersInRange: (rangeWindow: RangeWindow): Promise<WeeklyReminder[]> => ipcRenderer.invoke('readWeeklyRemindersInRange', rangeWindow),
   readMonthlyRemindersInRange: (rangeWindow: RangeWindow): Promise<MonthlyReminder[]> => ipcRenderer.invoke('readMonthlyRemindersInRange', rangeWindow),
   readYearlyRemindersInRange: (rangeWindow: RangeWindow): Promise<YearlyReminder[]> => ipcRenderer.invoke('readYearlyRemindersInRange', rangeWindow),
+  readGeneratedRemindersInRange: (rangeWindow: RangeWindow): Promise<GeneratedReminder[]> => ipcRenderer.invoke('readGeneratedRemindersInRange', rangeWindow),
 
   readAllFolders: (): Promise<Folder[]> => ipcRenderer.invoke('readAllFolders'),
 
@@ -90,6 +93,8 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   readMonthlyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readMonthlyRemindersInFolder', folderID),
   readYearlyRemindersInFolder: (folderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readYearlyRemindersInFolder', folderID),
   readFoldersInFolder: (parentFolderID: bigint): Promise<bigint[]> => ipcRenderer.invoke('readFoldersInFolder', parentFolderID),
+
+  readOverrideID: (linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number): Promise<bigint> => ipcRenderer.invoke('readOverrideID', linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin),
 
   // update
   updateNote: (modNote: Note): Promise<void> => ipcRenderer.invoke('updateNote', modNote),
@@ -110,6 +115,8 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
   deleteExtension: (itemID: bigint, sequenceNum: number): Promise<void> => ipcRenderer.invoke('deleteExtension', itemID, sequenceNum),
   deleteAllExtensions: (itemID: bigint): Promise<void> => ipcRenderer.invoke('deleteAllExtensions', itemID),
   deleteFolder: (folderID: bigint): Promise<boolean> => ipcRenderer.invoke('deleteFolder', folderID),
+  deleteGeneratedRemindersById: (itemID: bigint): Promise<void> => ipcRenderer.invoke('deleteGeneratedRemindersById', itemID),
+  deleteOverridesByLinkedId: (linkedItemID: bigint): Promise<void> => ipcRenderer.invoke('deleteOverridesByLinkedId', linkedItemID),
   clearAllTables: (): Promise<void> => ipcRenderer.invoke('clearAllTables'),
 
   // Example functions
@@ -120,7 +127,7 @@ contextBridge.exposeInMainWorld('sqliteAPI', {
 });
 
 contextBridge.exposeInMainWorld('syncAPI', {
-  sync: () => ipcRenderer.invoke('sync')
+  sync: (): Promise<void> => ipcRenderer.invoke('sync')
 });
 
 contextBridge.exposeInMainWorld('electronStoreAPI', {
