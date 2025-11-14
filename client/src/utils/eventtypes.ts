@@ -13,7 +13,7 @@
 import { Buffer } from "buffer"
 import { getDayOfYear, type Timestamp } from '@quasar/quasar-ui-qcalendar';
 import { convertTimeAndDateToTimestamp } from 'src/frontend-utils/time';
-import { ValidateString, PadString, UnpadString } from "./validate";
+import { PadString, UnpadString } from "./validate";
 import type { Extension, Flight, Hotel } from "app/src-electron/types/shared-types";
 
 // input fields to eventType
@@ -26,21 +26,6 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
     depTime?: Timestamp, depTimeDestZone?: Timestamp, boardingTime?: Timestamp,
     boardingGroup?: string, gate?: string, depTimezoneOffset?: string, arrTimezoneOffset?: string, 
     arrAirportIATA?: string, arrTimezoneAbbr?: string, arrTime?: Timestamp, arrTimeDestZone?: Timestamp) {
-  if ((ValidateString(depAirportName, 0, 64)) != "") return undefined;
-  if ((ValidateString(depAirportAddress, 0, 64)) != "") return undefined;
-  if ((ValidateString(arrAirportName, 0, 64)) != "") return undefined;
-  if ((ValidateString(arrAirportAddress, 0, 64)) != "") return undefined;
-  if ((ValidateString(airlineCode, 0, 8)) != "") return undefined;
-  if ((ValidateString(flightNumber, 0, 8)) != "") return undefined;
-  if ((ValidateString(airlineName, 0, 48)) != "") return undefined;
-  if ((ValidateString(depAirportIATA, 0, 3)) != "") return undefined;
-  if ((ValidateString(depTimezoneAbbr, 0, 5)) != "") return undefined;
-  if ((ValidateString(boardingGroup, 0, 2)) != "") return undefined;
-  if ((ValidateString(gate, 0, 4)) != "") return undefined;
-  if ((ValidateString(depTimezoneOffset, 0, 1)) != "") return undefined;
-  if ((ValidateString(arrTimezoneOffset, 0, 1)) != "") return undefined;
-  if ((ValidateString(arrAirportIATA, 0, 3)) != "") return undefined;
-  if ((ValidateString(arrTimezoneAbbr, 0, 5)) != "") return undefined;
   const flight: Flight = {
     itemID: 0n,
     lastModified: 0n,
@@ -84,11 +69,6 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
 export function FieldsToHotel(name?: string, address?: string, 
     checkinTime?: Timestamp, checkoutTime?: Timestamp, 
     timezoneAbbrev?: string, timezoneOffset?: string, roomNumber?: string) {
-  if ((ValidateString(name, 0, 64)) != "") return undefined;
-  if ((ValidateString(address, 0, 128)) != "") return undefined;
-  if ((ValidateString(timezoneAbbrev, 0, 5)) != "") return undefined;
-  if ((ValidateString(timezoneOffset, 0, 1)) != "") return undefined;
-  if ((ValidateString(roomNumber, 0, 10)) != "") return undefined;
   const hotel: Hotel = {
     itemID: 0n,
     lastModified: 0n,
