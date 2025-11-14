@@ -691,6 +691,7 @@ import {createNote, createReminder, createFolder, createRootFolder, readNote, re
 import { FieldsToFlight, FieldsToHotel, FlightToExtensions, HotelToExtensions, ExtensionsToFlight, ExtensionsToHotel } from '../utils/eventtypes';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
+import { ValidateFlight, ValidateHotel } from '../utils/validate';
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -802,7 +803,7 @@ const eventTypes: EventType[] = [
   ];
 
   // Function to convert event type input fields into extension object for storing 
-  // Passing in undefined for unused fields on frontend (timezone offsets, abbrev) -> will be padded into '\0 strings'
+  // Passing in undefined for unused schema fields on frontend (timezone offsets, abbrev) -> will be normalize to ''
   function buildExtensionsForEventType(reminder: UIReminder): Extension[] {
   const extRecord = reminder.extension ?? {};
   // Use event end-day for multi-day events and event start-day for single day events
@@ -810,15 +811,15 @@ const eventTypes: EventType[] = [
   // Uses end day from calendar picker in format YYYY-MM-DD (extra validation)
   ? (normalizeDatePickerToCalendar(reminder.temporaryEventEndDay)) : reminder.date;
 
-  // Helper function to safely read string/time fields from extension record (as they are optional they can be missing or empty)
+  // Helper function to safely read string fields from extension record 
   const extensionString = (fieldKey: string): string | undefined => {
     // Lookup fields raw value from extension record by its key (ex. reminder.extension.airlineName)
     const fieldRawValue = extRecord[fieldKey];
-    // If the field is missing (undefined), it has no value
+    // If the field is missing (undefined), it has no value, treat as empty
     if (fieldRawValue === undefined || fieldRawValue === null) {
       return undefined;
     }
-    // If the field exists, cast its value to string and trim whitespace
+    // If the field exists, cast its value to string and trim whitespace or null terminators if there are any
     const fieldString = stripNulls(String(fieldRawValue).trim());
     return fieldString === '' ? undefined : fieldString;
   };
@@ -842,7 +843,7 @@ const eventTypes: EventType[] = [
       }
     }
 
-    // If there's no set value in UI for the arrival or checkout time ('')
+    // Check if arrTime or checkOut time exist
     if (fieldKey === 'arrTime' || fieldKey === 'checkoutTime') {
       // If arrival time (end) is the key field, see if departure time (start) exists in record
       // Otherwise if check out time (end) is the key field, see if check in time (start) exists in record
@@ -863,7 +864,7 @@ const eventTypes: EventType[] = [
       }
     }
 
-    // Neither of the times have set values, return undefined
+    // Neither of the times have set values, return undefined, treat as empty
     return undefined;
   };
 
@@ -894,11 +895,15 @@ const eventTypes: EventType[] = [
           extensionTime('arrTime'),
           undefined // arrTimeDestZone
       );
-      // console.log('PACKER after FieldsToFlight (flightFields):', flightFields);
-      if (!flightFields) {
-        // nothing to save for flight fields
+      // Make sure the built UI fields are validated - not past max length, undefined, or null terminators
+      const validateFields = ValidateFlight(flightFields);
+      // Check if validateFlight returned a success or error string
+      if (typeof validateFields === 'string' && validateFields !== '') {
+        // Do not save/progress if validation failed
         return [];
-      }
+      } 
+
+      // Fields are provided and validated, build extension to save
       const exts = FlightToExtensions(flightFields) ?? [];
       // console.log('PACKER final packed extensions (to be saved):', exts);
       return exts;
@@ -915,14 +920,18 @@ const eventTypes: EventType[] = [
         undefined, // timezoneOffset
         extensionString('roomNumber')
       );
-      if (!hotelFields) {
-        // nothing to save for hotel fields
+       // Make sure the built UI fields are validated - not past max length, undefined, or null terminators
+      const validateFields = ValidateHotel(hotelFields);
+      // Check if validateFlight returned a success or error string
+      if (typeof validateFields === 'string' && validateFields !== '') {
+        // Do not save/progress if validation failed
         return [];
-      }
+      } 
+      // Fields are provided and validated, build extension to save
       return HotelToExtensions(hotelFields) ?? [];
     }
       default: {
-        // No extension fields for other event types
+        // No extension fields for other event types (generic = 0)
         return [];
       }
     }
@@ -1208,7 +1217,6 @@ function addReminder() {
 
   // Add draft reminder to reminders array for UI rendering
   reminders.value.push(draft);
-  eventTypeWatcher(draft);
   // Close other reminders when a new one is added
   reminders.value.forEach((reminder, index) => {
     if (index < reminders.value.length - 1) {
@@ -1290,7 +1298,6 @@ async function loadRemindersForMonth(dateString: string) {
         if (result.date && result.date.startsWith(requestedYM)) {
           // push into monthReminders so the calendar uses these events
           monthReminders.value.push(result);
-          eventTypeWatcher(result);
         }
         // console.log('Reminders for month successfully loaded:');
       }
@@ -1531,11 +1538,9 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     if (index >= 0) {
     // If found, replace preexisting reminder in array with new UI object
     reminders.value[index] = UIReminder;
-    eventTypeWatcher(UIReminder);
   } else {
     // If not found, add new UI object reminder to the array
     reminders.value.push(UIReminder);
-    eventTypeWatcher(UIReminder);
   }
 }
   return UIReminder;
@@ -1827,32 +1832,25 @@ async function saveReminder(reminder: UIReminder){
   };
 
 
-  // Cast times into strings (since extension fields can be multiple types)
-  let startTimeStr = String(reminder.temporaryEventStartTime ?? '').trim();
-  let endTimeStr = String(reminder.temporaryEventEndTime ?? '').trim();
-  // Temporary start and end time strings should use extensions (if they exist) for event types. Otherwise, use temporary fields
+  let startTimeStr = '';
+  let endTimeStr = '';
+
+  // Determine date/end time from the source
   // Flight
   if (reminder.eventType === 1) { 
-    // Lookup extension fields to see if they exist
-    const departureTime = extensionString('depTime');
-    const arrivalTime = extensionString('arrTime');
-    // If extensions exist, override temporary times (in DB) with extension times
-    if (departureTime !== undefined) {
-      startTimeStr = departureTime;
-    } 
-    if (arrivalTime !== undefined) {
-      endTimeStr = arrivalTime;
-    } 
+    // Lookup extension fields to see if they exist, if it does, use these for start and end time
+    startTimeStr = extensionString('depTime') ?? '';
+    endTimeStr = extensionString('arrTime') ?? '';
     // Hotel
   } else if (reminder.eventType === 2) { 
-    const checkinTime = extensionString('checkinTime');
-    const checkoutTime = extensionString('checkoutTime');
-    if (checkinTime !== undefined) {
-      startTimeStr = checkinTime;
-    }
-    if (checkoutTime !== undefined) {
-      endTimeStr = checkoutTime;
-    }
+    startTimeStr = extensionString('checkinTime') ?? '';
+    endTimeStr = extensionString('checkoutTime') ?? '';
+  }
+  // If not an event type (generic reminder), just use temporary start and end time as normal
+  else {
+      // Cast times into strings (since extension fields can be multiple types)
+      startTimeStr = String(reminder.temporaryEventStartTime ?? '').trim();
+      endTimeStr = String(reminder.temporaryEventEndTime ?? '').trim();
   }
 
   // Do not allow event end time without a start time
@@ -2174,72 +2172,6 @@ watch(selectAll, (selectionVal) => {
     });
   }
 });
-
-
-// Watch event type of each reminder
-// Copies times between generic and extension fields when switching event type (to keep it consistent)
-// This is because departure time is treated like start time and arrival time is treated like end time
-function eventTypeWatcher(reminder: UIReminder) {
-  watch(() => reminder.eventType, (newEventType, oldEventType) => {
-    // Clear error message when switching event types to not confuse users with old fields
-    reminder.timeMessageError = '';
-    // If event type didn't change, do nothing
-    if (newEventType === oldEventType) {
-      return;
-    } 
-
-    // If switching from event type to generic, copy extension fields into temporaries
-    if (newEventType === 0) {
-      // Flight
-      if (oldEventType === 1) {
-        const departureTime = stripNulls(String(reminder.extension?.depTime ?? '')).trim();
-        const arrivalTime = stripNulls(String(reminder.extension?.arrTime ?? '')).trim();
-        if (departureTime) {
-        reminder.temporaryEventStartTime = departureTime;
-      } 
-        if (arrivalTime) {
-        reminder.temporaryEventEndTime = arrivalTime;
-      }
-    }
-    // Hotel
-    else if (oldEventType === 2) {
-        const checkInTime = stripNulls(String(reminder.extension?.checkinTime ?? '')).trim();
-        const checkOutTime = stripNulls(String(reminder.extension?.checkoutTime ?? '')).trim();
-        if (checkInTime) {
-          reminder.temporaryEventStartTime = checkInTime;
-        }
-        if (checkOutTime) {
-          reminder.temporaryEventEndTime = checkOutTime;
-        }
-      }
-      return;
-    }
-
-    // If switching from generic to event type, copy temporary fields into extensions
-    const startTime = String(reminder.temporaryEventStartTime ?? '').trim();
-    const endTime = String(reminder.temporaryEventEndTime ?? '').trim();
-      reminder.extension = reminder.extension ?? {};
-      // Flight
-      if (newEventType === 1) {
-        if (startTime) {
-          reminder.extension.depTime = startTime;
-        }
-        if (endTime) {
-          reminder.extension.arrTime = endTime;
-        }
-      } 
-      // Hotel
-      else if (newEventType === 2) {
-        if (startTime) {
-          reminder.extension.checkinTime = startTime;
-        }
-        if (endTime) {
-          reminder.extension.checkoutTime = endTime;
-        }
-      }
-  })
-}
-
 
 
 // template and script source code from slot - day month example
