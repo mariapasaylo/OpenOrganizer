@@ -1,7 +1,7 @@
 /*
  * Authors: Michael Jagiello, Kevin Sirantoine, Maria Pasaylo, Rachel Patella
  * Created: 2025-04-13
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file is the Electron main process entry point that creates the application window,
  * manages the system tray icon, and handles communication between the user
@@ -24,8 +24,9 @@ import { sync } from "./services/sync";
 import * as fs from "node:fs";
 import {getAutoSyncEnabled} from "app/src-electron/services/auth";
 import { InitNotifications } from "./services/notifs";
-import { generateAllInYear } from "./services/generate"
+import { generateAllInYear, getGeneratedYears } from "./services/generate"
 import { readGeneratedReminderIDInYear, deleteGeneratedRemindersOutsideYearRange, createOrUpdateGeneratedReminders} from "app/src-electron/db/sqlite-db";
+import { lastStart } from './services/store';
 import type {
   GeneratedReminder
 } from "app/src-electron/types/shared-types";
@@ -124,11 +125,16 @@ function init() {
 
 function initGeneratedTable() { // Ensures only previous, current, and next year is loaded into the Generated Table
   const currYear = new Date().getFullYear();
-  deleteGeneratedRemindersOutsideYearRange(currYear - 1, currYear + 1);
+  let lastStartYear = lastStart.get('lastStartYear');
+  lastStart.set('lastStartYear', currYear);
+  if (lastStartYear === -1) lastStartYear = currYear;
+  deleteGeneratedRemindersOutsideYearRange(lastStartYear - 1, lastStartYear + 1); // ensures the generated table is clean before generating +/-1 of currYear
 
+  const generatedYears = getGeneratedYears();
   const generatedRems: GeneratedReminder[] = [];
   for (let i = currYear - 1; i <= currYear + 1; i++) {
-    if (readGeneratedReminderIDInYear(currYear) === undefined) generatedRems.push(...generateAllInYear(currYear));
+    if (readGeneratedReminderIDInYear(i) === undefined) generatedRems.push(...generateAllInYear(i));
+    else generatedYears.add(i);
   }
   createOrUpdateGeneratedReminders(generatedRems);
 }

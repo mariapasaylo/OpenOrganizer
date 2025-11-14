@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-11-07
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file contains functions for generating the generated reminders to be inserted into the local database in sqlite-db.ts.
  *
@@ -35,7 +35,7 @@ import type {
 
 const generatedYears = new Set<number>(); // maintain a set of currently generated years
 
-export function getGeneratedYears() { // for use in sqlite-db.ts
+export function getGeneratedYears() { // for use in sqlite-db.ts and init
   return generatedYears;
 }
 
@@ -61,7 +61,7 @@ export function generateDaily(daily: DailyReminder, year: number) {
   const rangeWindow = yearToRangeWindow(year);
 
   const dailyStartTime = parseDate(new Date(daily.seriesStartYear, 0, daily.seriesStartDay, 0, 0))!;
-  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
+  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 1, 0, rangeWindow.startMinOfYear))!;
   const {startTime, endTime} = getGenWindow(daily, rangeWindow);
   let currTime = copyTimestamp(startTime);
 
@@ -109,7 +109,7 @@ export function generateWeekly(weekly: WeeklyReminder, year: number) {
   const rangeWindow = yearToRangeWindow(year);
 
   const weeklyStartTime = parseDate(new Date(weekly.seriesStartYear, 0, weekly.seriesStartDay, 0, 0))!;
-  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
+  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 1, 0, rangeWindow.startMinOfYear))!;
   const {startTime, endTime} = getGenWindow(weekly, rangeWindow);
   let currTime = copyTimestamp(startTime);
 
@@ -134,7 +134,7 @@ export function generateWeekly(weekly: WeeklyReminder, year: number) {
   const notifTimes: Timestamp[] = [];
   while (diffTimestamp(currTime, endTime, false) >= 0) { // while currTime <= endTime
     for (let i = currTime.weekday; i < 7; i++) {
-      if (diffTimestamp(currTime, endTime, false) >= 0) break;
+      if (diffTimestamp(currTime, endTime, false) < 0) break; // break if currTime > endTime
 
       if (weekly.daysOfWeek[i] === '1') {
         eventStartTimes.push(currTime);
@@ -181,7 +181,7 @@ export function generateMonthly(monthly: MonthlyReminder, year: number) {
     let lastDayOfMonthSet = false;
 
     for (let i = currTime.day; i <= daysInMo; i++) {
-      if (diffTimestamp(currTime, endTime, false) >= 0) break;
+      if (diffTimestamp(currTime, endTime, false) < 0) break; // break if currTime > endTime
 
       if (i === daysInMo && daysInMo < 31 && monthly.lastDayOfMonth === 1) {
         for (let j = i; j <= 31; j++) {
@@ -271,8 +271,8 @@ export function generateYearly(yearly: YearlyReminder, year: number) {
 function getGenWindow(recurring: DailyReminder | WeeklyReminder | MonthlyReminder | YearlyReminder, rangeWindow: RangeWindow) {
   const seriesStartTime = parseDate(new Date(recurring.seriesStartYear, 0, recurring.seriesStartDay, 0, 0))!;
   const seriesEndTime = parseDate(new Date(recurring.seriesEndYear, 0, recurring.seriesEndDay, 23, 59))!;
-  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 0, 0, rangeWindow.startMinOfYear))!;
-  const windowEndTime = parseDate(new Date(rangeWindow.endYear, 0, 0, 0, rangeWindow.endMinOfYear))!;
+  const windowStartTime = parseDate(new Date(rangeWindow.startYear, 0, 1, 0, rangeWindow.startMinOfYear))!;
+  const windowEndTime = parseDate(new Date(rangeWindow.endYear, 0, 1, 0, rangeWindow.endMinOfYear))!;
 
   const startTime = (diffTimestamp(seriesStartTime, windowStartTime, false) < 0) ? seriesStartTime : windowStartTime; // if seriesStart > windowStart take seriesStart
   const endTime = (diffTimestamp(seriesEndTime, windowEndTime, false) < 0) ? windowEndTime : seriesEndTime; // if seriesEnd > windowEnd take windowEnd

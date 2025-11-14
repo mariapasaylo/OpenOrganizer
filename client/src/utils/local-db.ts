@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine
  * Created: 2025-10-13
- * Updated: 2025-11-12
+ * Updated: 2025-11-13
  *
  * This file contains functions that perform CRUD operations on the local SQLite database through the IPC to provide
  * database access to the renderer process.
@@ -204,10 +204,10 @@ export async function createMonthlyReminder(
 
 export async function createYearlyReminder(
   folderID: bigint, eventType: number, seriesStartTime: Timestamp, seriesEndTime: Timestamp, timeOfDayMin: number, eventDurationMin: number,
-  notifOffsetTimeMin: number, hasNotifs: boolean, recurTime: Timestamp, title: string, extensions?: Extension[]) {
+  notifOffsetTimeMin: number, hasNotifs: boolean, recurDay: Timestamp, title: string, extensions?: Extension[]) {
   const timeMs: bigint = BigInt(Date.now());
-  let dayOfYear = getDayOfYear(recurTime);
-  if (isLeapYear(recurTime.year))
+  let dayOfYear = getDayOfYear(recurDay);
+  if (isLeapYear(recurDay.year))
   {
     if (dayOfYear === 60) dayOfYear = 366; // set to 366 if dayOfYear is leap day
     else if (dayOfYear > 60) dayOfYear -= 1;
