@@ -9,7 +9,7 @@
  * https://github.com/sindresorhus/electron-store/tree/main
  *
  * Updated on 9/20/2025 by Maria Pasaylo - removed console logs for testing on terminal
- * Updated on 10/30/25 by Kevin Sirantoine
+ * Updated on 11/13/2025 by Kevin Sirantoine
  */
 import Store from 'electron-store';
 import type { Schema } from 'electron-store';
@@ -81,6 +81,23 @@ const lastUpdatedSchema: Schema<LastUpdated> = {
 export const lastUpdated = new Store<LastUpdated>({
   name: 'lastUpdated',
   schema: lastUpdatedSchema
+});
+
+// storing lastStartYear for use in initGeneratedTable()
+interface LastStart {
+  lastStartYear: number
+}
+
+const lastStartSchema: Schema<LastStart> = {
+  lastStartYear: {
+    type: 'number',
+    default: -1
+  }
+};
+
+export const lastStart = new Store<LastStart>({
+  name: 'lastStart',
+  schema: lastStartSchema
 });
 
 

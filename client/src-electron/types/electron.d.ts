@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo
  * Created: 2025-09-10
- * Updated: 2025-11-10
+ * Updated: 2025-11-12
  *
  * This file declares sqliteAPI and electronStoreAPI for the renderer.
  *
@@ -11,13 +11,13 @@
  */
 import type {
   Note,
-  Extension,
   Folder,
   Reminder,
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  GeneratedReminder,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -34,6 +34,7 @@ declare global {
       createWeeklyReminder: (newWeeklyRem: WeeklyReminder) => Promise<void>;
       createMonthlyReminder: (newMonthlyRem: MonthlyReminder) => Promise<void>;
       createYearlyReminder: (newYearlyRem: YearlyReminder) => Promise<void>;
+      createOrUpdateOverride: (override: Override) => Promise<void>;
       createFolder: (newFolder: Folder) => Promise<void>;
       createDeleted: (newDeleted: Deleted) => Promise<void>;
 
@@ -52,16 +53,19 @@ declare global {
       readWeeklyRemindersInRange: (rangeWindow: RangeWindow) => Promise<WeeklyReminder[]>;
       readMonthlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<MonthlyReminder[]>;
       readYearlyRemindersInRange: (rangeWindow: RangeWindow) => Promise<YearlyReminder[]>;
+      readGeneratedRemindersInRange: (rangeWindow: RangeWindow) => Promise<GeneratedReminder[]>;
 
       readAllFolders: () => Promise<Folder[]>;
 
-      readNotesInFolder: (folderID: bigint) => Promise<bigint[]>
-      readRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readDailyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readYearlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>
-      readFoldersInFolder: (parentFolderID: bigint) => Promise<bigint[]>
+      readNotesInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readDailyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readWeeklyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readMonthlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readYearlyRemindersInFolder: (folderID: bigint) => Promise<bigint[]>;
+      readFoldersInFolder: (parentFolderID: bigint) => Promise<bigint[]>;
+
+      readOverrideID: (linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) => Promise<bigint>;
 
       // update
       updateNote: (modNote: Note) => Promise<void>;
@@ -82,6 +86,8 @@ declare global {
       deleteExtension: (itemID: bigint, sequenceNum: number) => Promise<void>;
       deleteAllExtensions: (itemID: bigint) => Promise<void>;
       deleteFolder: (folderID: bigint) => Promise<boolean>;
+      deleteGeneratedRemindersById: (itemID: bigint) => Promise<void>;
+      deleteOverridesByLinkedId: (linkedItemID: bigint) => Promise<void>;
       clearAllTables: () => Promise<void>;
 
       // Example functions

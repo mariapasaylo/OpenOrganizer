@@ -1,7 +1,7 @@
 /*
  * Authors: Kevin Sirantoine, Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-25
- * Updated: 2025-11-10
+ * Updated: 2025-11-12
  *
  * This file declares ipcMain handlers for APIs exposed in electron-preload and exports them via registerHandlers() to electron-main.
  *
@@ -9,18 +9,18 @@
  * This file and all source code within it are governed by the copyright and license terms outlined in the LICENSE file located in the top-level directory of this distribution.
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
-import {ipcMain, Notification} from "electron";
-import * as db from "../../src-electron/db/sqlite-db";
-import {store} from "app/src-electron/services/store";
+import { ipcMain } from "electron";
+import * as db from "app/src-electron/db/sqlite-db";
+import { store } from "app/src-electron/services/store";
 import type {
   Note,
-  Extension,
   Folder,
   Reminder,
   DailyReminder,
   WeeklyReminder,
   MonthlyReminder,
   YearlyReminder,
+  Override,
   Deleted,
   RangeWindow
 } from "app/src-electron/types/shared-types";
@@ -56,6 +56,10 @@ export function registerHandlers()
 
   ipcMain.handle('createYearlyReminder', (event, newYearlyRem: YearlyReminder) => {
     db.createYearlyReminder(newYearlyRem);
+  });
+
+  ipcMain.handle('createOrUpdateOverride', (event, override: Override) => {
+    db.createOrUpdateOverride(override);
   });
 
   ipcMain.handle('createFolder', (event, newFolder: Folder) => {
@@ -129,6 +133,10 @@ export function registerHandlers()
     return db.readYearlyRemindersInRange(rangeWindow);
   });
 
+  ipcMain.handle('readGeneratedRemindersInRange', (event, rangeWindow: RangeWindow) => {
+    return db.readGeneratedRemindersInRange(rangeWindow);
+  });
+
   // read all
   ipcMain.handle('readAllFolders', (event) => {
     return db.readAllFolders();
@@ -161,6 +169,10 @@ export function registerHandlers()
 
   ipcMain.handle('readFoldersInFolder', (event, parentFolderID: bigint) => {
     return db.readFoldersInFolder(parentFolderID);
+  });
+
+  ipcMain.handle('readOverrideID', (event, linkedItemID: bigint, origEventStartYear: number, origEventStartDay: number, origEventStartMin: number) => {
+    return db.readOverrideID(linkedItemID, origEventStartYear, origEventStartDay, origEventStartMin);
   });
 
 
@@ -232,6 +244,14 @@ export function registerHandlers()
     return db.deleteFolder(folderID);
   });
 
+  ipcMain.handle('deleteGeneratedRemindersById', (event, itemID: bigint) => {
+    db.deleteGeneratedRemindersById(itemID);
+  });
+
+  ipcMain.handle('deleteOverridesByLinkedId', (event, linkedItemID: bigint) => {
+    db.deleteOverridesByLinkedId(linkedItemID);
+  });
+
   ipcMain.handle('clearAllTables', (event) => {
     db.clearAllTables();
   });
@@ -270,24 +290,24 @@ export function registerHandlers()
     store.set('name', name);
     return true;
   });
+
+  ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
+    return await createAccount(username, password);
+  });
+
+  ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
+    return await loginAccount(username, password);
+  });
+
+  ipcMain.handle('changeLogin', async (event, username?: string, password?:string)=> {
+    return await changeLogin(username, password);
+  });
+
+  ipcMain.handle('isUserLoggedIn', async (event) => {
+    return await isUserLoggedIn();
+  });
+
+  ipcMain.handle('clearLocalData', async (event) => {
+    return await clearLocalData();
+  });
 }
-
-ipcMain.handle('createAccount', async (event, username: string, password:string)=> {
-  return await createAccount(username, password);
-});
-
-ipcMain.handle('loginAccount', async (event, username: string, password:string)=> {
-  return await loginAccount(username, password);
-});
-
-ipcMain.handle('changeLogin', async (event, username?: string, password?:string)=> {
-  return await changeLogin(username, password);
-});
-
-ipcMain.handle('isUserLoggedIn', async (event) => {
-  return await isUserLoggedIn();
-});
-
-ipcMain.handle('clearLocalData', async (event) => {
-  return await clearLocalData();
-});

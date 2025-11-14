@@ -86,7 +86,7 @@
         <button @click="$router.push('/calendar')">Calendar Screen</button>
       </div>
     </section>
-    
+
   </q-page>
 </template>
 
