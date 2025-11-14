@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-12
+ * Updated: 2025-11-14
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -16,6 +16,7 @@
  * https://qcalendar.netlify.app/developing/qcalendar-month for qcalendar month components and rendering slots of reminders
  * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
  * https://stackoverflow.com/questions/48351987/create-javascript-date-object-from-string-yyyy-mm-dd-in-local-timezone for constructing local date objects
+ * https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript for record type and dynamically rendering event type fields
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -818,7 +819,7 @@ const eventTypes: EventType[] = [
       return undefined;
     }
     // If the field exists, cast its value to string and trim whitespace
-    const fieldString = String(fieldRawValue).trim();
+    const fieldString = stripNulls(String(fieldRawValue).trim());
     return fieldString === '' ? undefined : fieldString;
   };
 
@@ -827,7 +828,7 @@ const eventTypes: EventType[] = [
     const raw = extRecord[fieldKey];
     // Check that field exists in extension record (set in UI)
     if (raw !== undefined && raw !== null) {
-      const fieldString = String(raw).trim();
+      const fieldString = stripNulls(String(raw).trim());
       // If extension field exists and is not empty, convert to timestamp using UI-provided time
       if (fieldString !== '') {
         // Arrival and check-out time are built on event end day if provided (multi-day), else on event start day
@@ -848,7 +849,7 @@ const eventTypes: EventType[] = [
       const startKey = (fieldKey === 'arrTime') ? 'depTime' : 'checkinTime';
       const startRaw = extRecord[startKey];
       if (startRaw !== undefined && startRaw !== null) {
-        const startString = String(startRaw).trim();
+        const startString = stripNulls(String(startRaw).trim());
         // If start time exists, derive end time using temporary logic rules from saveReminder
         if (startString !== '') {
           if (reminder.temporaryEventEndDateEnabled) {
@@ -893,11 +894,14 @@ const eventTypes: EventType[] = [
           extensionTime('arrTime'),
           undefined // arrTimeDestZone
       );
+      // console.log('PACKER after FieldsToFlight (flightFields):', flightFields);
       if (!flightFields) {
         // nothing to save for flight fields
         return [];
       }
-      return FlightToExtensions(flightFields) ?? [];
+      const exts = FlightToExtensions(flightFields) ?? [];
+      // console.log('PACKER final packed extensions (to be saved):', exts);
+      return exts;
     }
       // Hotel
       case 2: {
@@ -1168,6 +1172,7 @@ function selectBreadcrumbItem(folderID : bigint) {
 }
 
 // temp id generator for UI-only drafts (negative IDs)
+// Negative ID for temp objects from: https://stackoverflow.com/questions/53850790/how-to-work-with-unsaved-entities-even-though-id-attribute-is-needed
 let tempIDCounter = -2n;
 // Function to add a reminder to the list on the specified calendar date
 function addReminder() {
@@ -1203,6 +1208,7 @@ function addReminder() {
 
   // Add draft reminder to reminders array for UI rendering
   reminders.value.push(draft);
+  eventTypeWatcher(draft);
   // Close other reminders when a new one is added
   reminders.value.forEach((reminder, index) => {
     if (index < reminders.value.length - 1) {
@@ -1284,6 +1290,7 @@ async function loadRemindersForMonth(dateString: string) {
         if (result.date && result.date.startsWith(requestedYM)) {
           // push into monthReminders so the calendar uses these events
           monthReminders.value.push(result);
+          eventTypeWatcher(result);
         }
         // console.log('Reminders for month successfully loaded:');
       }
@@ -1373,7 +1380,13 @@ async function addRootFolder() {
     console.error('Error adding root folder:', error);
   }
 }
-  
+
+// Remove padding null characters from extension strings received by database for UI display
+function stripNulls(fieldString?: string | null): string {
+  // Globally replace all null characters with empty string and trim whitespace
+  return (fieldString ?? '').replace(/\0/g, '').trim();
+}
+
 // Map a DB reminder row into the UI reminder shape needed for card display
 // Additional upsert parameter decides whether to add/update the global reminders array
 function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
@@ -1449,20 +1462,21 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     // If a flight, extract flight fields
     if (row.eventType === 1) {
       const flightFields = ExtensionsToFlight(extensionsArr);
+      console.log('flightFields', flightFields, 'extensionsUI', extensionsUI);
       if (flightFields) {
-        extensionsUI.depAirportName = flightFields.depAirportName ?? '';
-        extensionsUI.depAirportAddress = flightFields.depAirportAddress ?? '';
-        extensionsUI.arrAirportName = flightFields.arrAirportName ?? '';
-        extensionsUI.arrAirportAddress = flightFields.arrAirportAddress ?? '';
-        extensionsUI.airlineCode = flightFields.airlineCode ?? '';
-        extensionsUI.flightNumber = flightFields.flightNumber ?? '';
-        extensionsUI.airlineName = flightFields.airlineName ?? '';
-        extensionsUI.depAirportIATA = flightFields.depAirportIATA ?? '';
+        extensionsUI.depAirportName = stripNulls(flightFields.depAirportName ?? '');
+        extensionsUI.depAirportAddress = stripNulls(flightFields.depAirportAddress ?? '');
+        extensionsUI.arrAirportName = stripNulls(flightFields.arrAirportName ?? '');
+        extensionsUI.arrAirportAddress = stripNulls(flightFields.arrAirportAddress ?? '');
+        extensionsUI.airlineCode = stripNulls(flightFields.airlineCode ?? '');
+        extensionsUI.flightNumber = stripNulls(flightFields.flightNumber ?? '');
+        extensionsUI.airlineName = stripNulls(flightFields.airlineName ?? '');
+        extensionsUI.depAirportIATA = stripNulls(flightFields.depAirportIATA ?? '');
         extensionsUI.depTime = minutesToHHMM(flightFields.depTimeMin);
         extensionsUI.boardingTime = minutesToHHMM(flightFields.boardingTimeMin);
-        extensionsUI.boardingGroup = flightFields.boardingGroup ?? '';
-        extensionsUI.gate = flightFields.gate ?? '';
-        extensionsUI.arrAirportIATA = flightFields.arrAirportIATA ?? '';
+        extensionsUI.boardingGroup = stripNulls(flightFields.boardingGroup ?? '');
+        extensionsUI.gate = stripNulls(flightFields.gate ?? '');
+        extensionsUI.arrAirportIATA = stripNulls(flightFields.arrAirportIATA ?? '');
         extensionsUI.arrTime = minutesToHHMM(flightFields.arrTimeMin);
       }
     }
@@ -1470,11 +1484,11 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     else if (row.eventType === 2) {
       const hotelFields = ExtensionsToHotel(extensionsArr);
       if (hotelFields) {
-        extensionsUI.name = hotelFields.name ?? '';
-        extensionsUI.address = hotelFields.address ?? '';
+        extensionsUI.name = stripNulls(hotelFields.name ?? '');
+        extensionsUI.address = stripNulls(hotelFields.address ?? '');
         extensionsUI.checkinTime = minutesToHHMM(hotelFields.checkinTimeMin);
         extensionsUI.checkoutTime = minutesToHHMM(hotelFields.checkoutTimeMin);
-        extensionsUI.roomNumber = hotelFields.roomNumber ?? '';
+        extensionsUI.roomNumber = stripNulls(hotelFields.roomNumber ?? '');
     }
   }
 }
@@ -1517,9 +1531,11 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
     if (index >= 0) {
     // If found, replace preexisting reminder in array with new UI object
     reminders.value[index] = UIReminder;
+    eventTypeWatcher(UIReminder);
   } else {
     // If not found, add new UI object reminder to the array
     reminders.value.push(UIReminder);
+    eventTypeWatcher(UIReminder);
   }
 }
   return UIReminder;
@@ -1820,7 +1836,7 @@ async function saveReminder(reminder: UIReminder){
     // Lookup extension fields to see if they exist
     const departureTime = extensionString('depTime');
     const arrivalTime = extensionString('arrTime');
-    // If they exist, override temporary times (in DB) with extension times
+    // If extensions exist, override temporary times (in DB) with extension times
     if (departureTime !== undefined) {
       startTimeStr = departureTime;
     } 
@@ -1925,6 +1941,7 @@ try {
   //console.log('Saving reminder extensions:', extensions);
   // Create base reminder in local DB and retrieve the itemID assigned to it
   const itemID = await createReminder(reminder.temporaryFolderID, reminder.eventType, eventStartTime, eventEnd, notificationTimestampToSend, hasNotification, reminder.temporaryTitle, extensionsToSend);
+  console.log('DBG SAVE payload', { idTemp: reminder.itemID, eventType: reminder.eventType, eventStartTime, eventEnd, extensionsToSend });
   console.log('Reminder successfully created:', String(itemID));
 
   // Fetch the newly created reminder from the DB 
@@ -2160,12 +2177,70 @@ watch(selectAll, (selectionVal) => {
 
 
 // Watch event type of each reminder
-reminders.value.forEach(reminder => {
-  // Clear error message when switching event types to not confuse users with old fields
-  watch(() => reminder.eventType, () => {
+// Copies times between generic and extension fields when switching event type (to keep it consistent)
+// This is because departure time is treated like start time and arrival time is treated like end time
+function eventTypeWatcher(reminder: UIReminder) {
+  watch(() => reminder.eventType, (newEventType, oldEventType) => {
+    // Clear error message when switching event types to not confuse users with old fields
     reminder.timeMessageError = '';
-  });
-});
+    // If event type didn't change, do nothing
+    if (newEventType === oldEventType) {
+      return;
+    } 
+
+    // If switching from event type to generic, copy extension fields into temporaries
+    if (newEventType === 0) {
+      // Flight
+      if (oldEventType === 1) {
+        const departureTime = stripNulls(String(reminder.extension?.depTime ?? '')).trim();
+        const arrivalTime = stripNulls(String(reminder.extension?.arrTime ?? '')).trim();
+        if (departureTime) {
+        reminder.temporaryEventStartTime = departureTime;
+      } 
+        if (arrivalTime) {
+        reminder.temporaryEventEndTime = arrivalTime;
+      }
+    }
+    // Hotel
+    else if (oldEventType === 2) {
+        const checkInTime = stripNulls(String(reminder.extension?.checkinTime ?? '')).trim();
+        const checkOutTime = stripNulls(String(reminder.extension?.checkoutTime ?? '')).trim();
+        if (checkInTime) {
+          reminder.temporaryEventStartTime = checkInTime;
+        }
+        if (checkOutTime) {
+          reminder.temporaryEventEndTime = checkOutTime;
+        }
+      }
+      return;
+    }
+
+    // If switching from generic to event type, copy temporary fields into extensions
+    const startTime = String(reminder.temporaryEventStartTime ?? '').trim();
+    const endTime = String(reminder.temporaryEventEndTime ?? '').trim();
+      reminder.extension = reminder.extension ?? {};
+      // Flight
+      if (newEventType === 1) {
+        if (startTime) {
+          reminder.extension.depTime = startTime;
+        }
+        if (endTime) {
+          reminder.extension.arrTime = endTime;
+        }
+      } 
+      // Hotel
+      else if (newEventType === 2) {
+        if (startTime) {
+          reminder.extension.checkinTime = startTime;
+        }
+        if (endTime) {
+          reminder.extension.checkoutTime = endTime;
+        }
+      }
+  })
+}
+
+
 
 // template and script source code from slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
