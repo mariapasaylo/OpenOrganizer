@@ -20,7 +20,7 @@ import type { Extension, Flight, Hotel } from "app/src-electron/types/shared-typ
 
 // converts input fields into a Flight object
 // note that itemID and lastModified are set to 0 and must be updated later to store with item
-// pads out input string fields with '\0' to required length, and returns undefined if one of the input strings was too long
+// returns undefined if one of the input strings was too long
 export function FieldsToFlight(depAirportName?: string, depAirportAddress?: string, arrAirportName?: string, arrAirportAddress?: string,
     airlineCode?: string, flightNumber?: string, airlineName?: string, depAirportIATA?: string, depTimezoneAbbr?: string, 
     depTime?: Timestamp, depTimeDestZone?: Timestamp, boardingTime?: Timestamp,
@@ -80,7 +80,7 @@ export function FieldsToFlight(depAirportName?: string, depAirportAddress?: stri
 
 // converts input fields into a Hotel object
 // note that itemID and lastModified are set to 0 and must be updated later to store with item
-// pads out input string fields with '\0' to required length, and returns undefined if one of the input strings was too long
+// returns undefined if one of the input strings was too long
 export function FieldsToHotel(name?: string, address?: string, 
     checkinTime?: Timestamp, checkoutTime?: Timestamp, 
     timezoneAbbrev?: string, timezoneOffset?: string, roomNumber?: string) {
@@ -110,7 +110,7 @@ export function FieldsToHotel(name?: string, address?: string,
 // eventType to Extensions
 
 // takes a Flight and packs into 6 Extensions
-// assumes all fields are of proper size
+// pads out fields to required length, but assumes they are not too long
 export function FlightToExtensions(flight: Flight) {
   const extensions: Extension[] = [
     {
@@ -170,7 +170,7 @@ export function FlightToExtensions(flight: Flight) {
 }
 
 // takes a Hotel and packs into 4 Extensions
-// assumes all fields are of proper size
+// pads out fields to required length, but assumes they are not too long
 export function HotelToExtensions(hotel: Hotel) {
   const extensions: Extension[] = [
     {
