@@ -2,7 +2,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-21
- * Updated: 2025-10-29
+ * Updated: 2025-11-12
  *
  * This file contains interfaces that extend the shared-types with UI-specific fields.
  *
@@ -11,9 +11,7 @@
  * No part of OpenOrganizer, including this file, may be reproduced, modified, distributed, or otherwise used except in accordance with the terms specified in the LICENSE file.
  */
 
-
-
-import type { Note, Reminder, Folder} from '../../src-electron/types/shared-types'; 
+import type { Note, Reminder, Folder } from '../../src-electron/types/shared-types'; 
 
 // UI types extend client backend/shared-types model with UI-only fields for use in renderer
 // Some fields can change in the UI (ex. folderID null until user selects a folder), but are set in stone for backend DB
@@ -41,6 +39,7 @@ export type UIReminder = Reminder & {
   temporaryNotificationTime: number | null;
   temporaryEventStartTime: string | null;
   temporaryEventEndTime: string | null;
+  temporaryEventEndDay: string;
   temporaryLastModified: string;
   titleMessageError?: string;
   folderMessageError?: string;
@@ -53,6 +52,7 @@ export type UIReminder = Reminder & {
   isEditing: boolean; 
   isSelected: boolean;
   expanded: boolean;
+  temporaryEventEndDateEnabled: boolean;
   // UI-only date field - calendar date selected for the reminder
   date: string;
 };
@@ -65,4 +65,5 @@ export type UIFolder = Folder & {
   folderNameError?: string;
   children?: UIFolder[];
 };
+
 

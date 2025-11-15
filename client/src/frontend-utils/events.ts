@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-10-28
+ * Updated: 2025-11-12
  *
  * This file contains functions to build calendar events from reminders and retrieve event type details
  *
@@ -18,6 +18,9 @@ export type CalendarEvent = {
   title: string;
   date: string;
   color: string;
+  icon?: string
+  isStart?: boolean;
+  isEnd?: boolean;
 };
 
 export type EventField = { 
@@ -32,6 +35,7 @@ export type EventType = {
     name: string; 
     color: string; 
     fields?: EventField[]; 
+    icon: string;
 };
 
 // Function to get event type fields - will render different fields based on event type selected
@@ -41,6 +45,14 @@ export function getEventTypeFields(eventTypes: EventType[], selectedEventTypeID:
   // If the event type is found, return the fields. Otherwise, return an empty array
   return type ? type.fields : [];
 }
+
+// Function to get event type icons - will render different icons based on event type selected
+export function getEventTypeIcons(eventTypes: EventType[], selectedEventTypeID: number) {
+  const type = eventTypes.find(eventType => eventType.id === selectedEventTypeID);
+  // If the event type is found, return the icon. Otherwise, return a default icon
+  return type ? type.icon : '';
+}
+
 
 // Function to get event type colors - will change checkbox to match event type color
 export function getEventTypeColor(eventTypes: EventType[], selectedEventTypeID: number) {
@@ -54,16 +66,42 @@ export function getEventTypeColor(eventTypes: EventType[], selectedEventTypeID: 
 // script source code similar to slot - day month example
 // https://qcalendar.netlify.app/developing/qcalendar-month
 export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventType[]): CalendarEvent[] {
-  // Only show saved reminders on calendar
-  return reminders.filter(reminder => reminder.isSaved)
-    .map(reminder => ({
-      id: reminder.itemID, 
-      title: reminder.title,
-      date: reminder.date,
-      // Have background color be same as event type color
-      color: getEventTypeColor(eventTypes, reminder.eventType)
-    }));
+   const events: CalendarEvent[] = [];
+
+  // Iterate through viewable calendar month reminders
+  for (const reminder of reminders) {
+       // Build a single-day calendar event for each saved reminder in the viewable month
+       if (reminder.isSaved) {
+        events.push({
+          id: reminder.itemID,
+          title: reminder.title,
+          date: reminder.date,
+          color: getEventTypeColor(eventTypes, reminder.eventType),
+          icon: getEventTypeIcons(eventTypes, reminder.eventType),
+          isStart: true,
+          // End day is true if single-day event (as its the start and end)
+          isEnd: reminder.temporaryEventEndDay === reminder.date
+        });
+
+        // If reminder is a multi-event, create a marker on the end day (when viewed on calendar month)
+        if (reminder.temporaryEventEndDateEnabled) {
+          if (reminder.temporaryEventEndDay != reminder.date)  {
+            events.push({
+            id: reminder.itemID,
+            title: reminder.title,
+            date: reminder.temporaryEventEndDay,
+            color: getEventTypeColor(eventTypes, reminder.eventType),
+            icon: 'stop_circle',
+            isEnd: true
+            });
+          } 
+        }
+      }
+    }
+
+  return events;
 }
+
 
 // Map dates to array of events - key is date string, value is array of events on that date
 // script source code similar to slot - day month example
@@ -80,26 +118,26 @@ export function groupEventsByDate(events: CalendarEvent[]): Record<string, Calen
 export function getEventStartLabel(eventType: number) {
   // Flight
   if (eventType === 1) {
-    return 'Arrival Time';
+    return 'Flight Arrival Time';
   }
   // Hotel
   if (eventType === 2) {
-    return 'Check-in Time';
+    return 'Hotel Check-in Time';
   }
   // General
-  return 'Start Time'; 
+  return 'Event Start Time'; 
 }
 
 // Function to rename event start time label dependent on event type
 export function getEventEndLabel(eventType: number) {
   // Flight
   if (eventType === 1) {
-    return 'Departure Time';
+    return 'Flight Departure Time';
   }
   // Hotel
   if (eventType === 2) {
-    return 'Check-out Time';
+    return 'Hotel Check-out Time';
   }
   // General
-  return 'End Time'; 
+  return 'Event End Time'; 
 }
