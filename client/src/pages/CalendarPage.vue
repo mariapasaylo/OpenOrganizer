@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-20
+ * Updated: 2025-11-14
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -17,8 +17,6 @@
  * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
  * https://stackoverflow.com/questions/48351987/create-javascript-date-object-from-string-yyyy-mm-dd-in-local-timezone for constructing local date objects
  * https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript for record type and dynamically rendering event type fields
- * https://quasar.dev/vue-components/color-picker/
- * https://quasar.dev/vue-components/menu/
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -169,34 +167,16 @@
                   style="min-width: 160px;"
                 />
               </template>
-              <!-- MARIA FIGURE OUT HOW TO SAVE COLOR TO FOLDER ATTRIBUTE If not editing, simply show the folder name. If it has an icon (folder), show it -->
+              <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
               <template v-else>
                 <div class="row items-center">
-                  <q-item  clickable @contextmenu.prevent="openColorPicker($event)">
-                      <q-item-section>
-                         <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" :style="node.iconStyle"/>
-                      </q-item-section>
-                       <q-menu
-                        auto-close
-                        touch-position
-                        context-menu>
-                          <q-color
-                          v-model="hex"
-                          default-view="palette"
-                          no-header
-                          no-footer
-                          class="my-picker">
-                          </q-color>
-                        </q-menu>
-                  </q-item>
-                 
+                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" :style="node.iconStyle" class="q-mr-sm" />
                   <span>{{ node.label }}</span>
                 </div>
               </template>
             </div>
           </template>
         </q-tree>
-        
         <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" @click="deleteTreeNode()" />
@@ -2365,7 +2345,6 @@ async function logout()
             });
             //close popup of Login options (i.e. change login and logout)
             showLoginOptions.value = false;
-            await router.push('/login');
         } 
     } catch (error) {
       console.error('Logout failed:', error);
@@ -2408,16 +2387,6 @@ async function saveLoginChanges() {
     console.error('Error changing login credentials:', error);
   }
 
-}
-import { QMenu, QColor } from 'quasar';
-
-const colorPickerRef = ref<boolean>(false);
-const hex = ref<string>('#ffffff');
-
-function openColorPicker(event: MouseEvent) {
-
-  //colorPickerRef.value = true;
-  
 }
 
 </script>
