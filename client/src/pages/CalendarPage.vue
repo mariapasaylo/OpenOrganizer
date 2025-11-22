@@ -1,7 +1,7 @@
 <!--
  * Authors: Rachel Patella, Maria Pasaylo, Michael Jagiello
  * Created: 2025-09-22
- * Updated: 2025-11-14
+ * Updated: 2025-11-22
  *
  * This file is the main home page that includes the calendar view, notes/reminders list, 
  * and a file explorer as a 3 column grid layout.
@@ -17,6 +17,8 @@
  * https://github.com/quasarframework/quasar/discussions/11048 for custom q-tree node headers
  * https://stackoverflow.com/questions/48351987/create-javascript-date-object-from-string-yyyy-mm-dd-in-local-timezone for constructing local date objects
  * https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript for record type and dynamically rendering event type fields
+ * https://quasar.dev/vue-components/color-picker/
+ * https://quasar.dev/vue-components/menu/
  *
  * This file is a part of OpenOrganizer.
  * This file and all source code within it are governed by the copyright and 
@@ -170,13 +172,32 @@
               <!-- If not editing, simply show the folder name. If it has an icon (folder), show it -->
               <template v-else>
                 <div class="row items-center">
-                  <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" :style="node.iconStyle" class="q-mr-sm" />
+                  <div clickable @contextmenu.prevent>
+                      <div>
+                         <q-icon v-if="node.icon" :name="node.icon" :color="node.iconColor" :style="node.iconStyle"/>
+                      </div>
+                      <!--Pop up pallette to choose color-->
+                       <q-menu
+                        auto-close
+                        touch-position
+                        context-menu
+                        @hide="saveFolderColor(getFolder(node.id))">
+                          <q-color
+                          v-model="colorHex"
+                          default-view="palette"
+                          no-header
+                          no-footer
+                          class="my-picker">
+                          </q-color>
+                        </q-menu>
+                  </div>
                   <span>{{ node.label }}</span>
                 </div>
               </template>
             </div>
           </template>
         </q-tree>
+        
         <div style="display: flex; flex-wrap: wrap; align-items: center; margin-top: auto; gap: 4px;">
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="add"  label="Add" @click="addFolder()" />
           <q-btn style="font-size: 0.9rem; color: #474747;" flat  icon="delete"  label="Delete" @click="deleteTreeNode()" />
@@ -1545,6 +1566,9 @@ function mapDBToUIReminder(row: Reminder, upsert: boolean): UIReminder {
 }
   return UIReminder;
 }
+function colorCodeToHex(code: number): string {
+  return '#' + Number(code).toString(16).padStart(6, '0');
+}
 
 // Map a DB folder row into the UI folder shape
 function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
@@ -1558,7 +1582,8 @@ function mapDBToUIFolder(rows: Folder[]): UIFolder[] {
     parentFolderID: (typeof row.parentFolderID === 'bigint') ? row.parentFolderID : BigInt(row.parentFolderID),
     lastModified: (typeof row.lastModified === 'bigint') ? row.lastModified : BigInt(row.lastModified),
     isSaved: true,
-    isEditing: false
+    isEditing: false,
+    colorCode: Number(row.colorCode ?? convertHexToInt('#459dd8')),        // existing DB numeric field
   })) as UIFolder[];
 
   // How to sort alphabetically: https://stackoverflow.com/questions/6712034/sort-array-by-firstname-alphabetically-in-javascript
@@ -1675,7 +1700,7 @@ function addFolder() {
     temporaryFolderName: 'New Folder',
     isSaved: false,
     isEditing: true, // When new draft is added, automatically in editing mode to name it
-    colorCode: -1
+    colorCode: convertHexToInt('#459dd8'), // Default folder color
   } as UIFolder;
 
   
@@ -1684,6 +1709,7 @@ function addFolder() {
   // Select newly added folder
   selectedFolderID.value = tempID;
 }
+
 
 // Function to save folder after user hits enter
 async function saveFolder(folder: UIFolder){
@@ -2345,6 +2371,7 @@ async function logout()
             });
             //close popup of Login options (i.e. change login and logout)
             showLoginOptions.value = false;
+            await router.push('/login');
         } 
     } catch (error) {
       console.error('Logout failed:', error);
@@ -2388,5 +2415,34 @@ async function saveLoginChanges() {
   }
 
 }
+import { QMenu, QColor } from 'quasar';
+
+const colorHex = ref<string>('#459dd8'); // Default folder color hex value
+
+function convertHexToInt(hexColor: string): number {
+  // Remove the leading '#' 
+  hexColor = hexColor.slice(1);
+  console.log('Converting hex color to int:', hexColor);
+  // Parse the hex string to an integer
+  return Number.parseInt(hexColor, 16);
+} 
+
+
+async function saveFolderColor(folder: UIFolder | null){
+  try {
+    if (!folder) {
+      console.warn('saveFolderColor: no folder provided');
+      return;
+    }
+    // Update folder color in local DB
+    await updateFolder(folder.folderID, folder.parentFolderID, convertHexToInt(colorHex.value), folder.folderName);
+    // Refresh folder list after color update
+    folders.value = mapDBToUIFolder(await readAllFolders());
+  }
+  catch (error) {
+    console.error('Error updating folder color:', error);
+  }
+}
+
 
 </script>
