@@ -1,7 +1,7 @@
 /*
- * Authors: Rachel Patella
+ * Authors: Rachel Patella, Maria Pasaylo
  * Created: 2025-10-23
- * Updated: 2025-10-29
+ * Updated: 2025-11-22
  *
  * This file contains functions to create the file explorer tree structure and breadcrumb trail path
  *
@@ -32,6 +32,17 @@ export function nest(items: UIFolder[], id: bigint): UIFolder[] {
       // Add a children property to the item object and recursively call nest function to find children of the current folder
       children: nest(items, item.folderID)
     }));
+}
+
+function convertInttoHex(colorInt: number): string {
+  if (colorInt < 0) {
+    return '#459dd8'; // Default to folder color to blue
+  }
+
+  //convert integer to hexadecimal string and pad with leading zeros if necessary
+  const hexColor= colorInt.toString(16).padStart(6, '0')
+  console.log('Converting color int:', colorInt);
+  return `#${hexColor}`;
 }
 
 // Function to convert nested folder tree to Q-Tree format
@@ -68,8 +79,8 @@ export function convertFolderTreetoQTree(folders: UIFolder[], notes: UINote[], r
       label: folder.folderName,
       id: folder.folderID,
       icon: 'folder',
-      iconColor: 'blue',
-       iconStyle: { color: 'blue' },
+      iconColor: convertInttoHex(folder.colorCode),
+       iconStyle: { color: convertInttoHex(folder.colorCode) },
       children: [
         ...noteTreeNodes,
         ...reminderTreeNodes,
