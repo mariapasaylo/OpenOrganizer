@@ -180,16 +180,19 @@
                       </div>
                       <!--Pop up pallette to choose color-->
                        <q-menu
-                        auto-close
                         touch-position
-                        context-menu
-                        @hide="saveFolderColor(getFolder(node.id))">
+                        context-menu>
                           <q-color
                           v-model="colorHex"
                           default-view="palette"
-                          no-header
-                          no-footer
-                          class="my-picker">
+                          :palette="[
+                            '#D1495B', '#DD6E42', '#F18805',
+                            '#F0A202', '#FFE066', '#103900',
+                            '#C3DAC3', '#459DD8','#4E4187',
+                            '#E2CFEA'
+                          ]"
+                          class="my-picker"
+                          @update:model-value="saveFolderColor(getFolder(node.id))">
                           </q-color>
                         </q-menu>
                   </div>
@@ -4436,7 +4439,6 @@ function convertHexToInt(hexColor: string): number {
   // Parse the hex string to an integer
   return Number.parseInt(hexColor, 16);
 } 
-
 
 async function saveFolderColor(folder: UIFolder | null){
   try {
