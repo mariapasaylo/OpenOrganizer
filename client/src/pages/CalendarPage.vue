@@ -186,10 +186,10 @@
                           v-model="colorHex"
                           default-view="palette"
                           :palette="[
-                            '#D1495B', '#DD6E42', '#F18805',
+                            '#D1495B', '#FF90B3','#F18805', 
                             '#F0A202', '#FFE066', '#103900',
-                            '#C3DAC3', '#459DD8','#4E4187',
-                            '#E2CFEA'
+                            '#9AC19A', '#459DD8','#C69DD2',
+                            '#4814BD'
                           ]"
                           class="my-picker"
                           @update:model-value="saveFolderColor(getFolder(node.id))">
@@ -1042,6 +1042,9 @@ import { FieldsToFlight, FieldsToHotel, FlightToExtensions, HotelToExtensions, E
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { ValidateFlight, ValidateHotel } from '../utils/validate';
+import { QMenu, QColor } from 'quasar';
+
+
 
 // Initialize active tab to reminder by default
 const tab = ref('reminders');
@@ -4428,9 +4431,7 @@ async function saveLoginChanges() {
   }
 
 }
-import { QMenu, QColor } from 'quasar';
 
-const colorHex = ref<string>('#459dd8'); // Default folder color hex value
 
 function convertHexToInt(hexColor: string): number {
   // Remove the leading '#' 
@@ -4439,6 +4440,7 @@ function convertHexToInt(hexColor: string): number {
   // Parse the hex string to an integer
   return Number.parseInt(hexColor, 16);
 } 
+  const colorHex = ref<string>('#459dd8'); // Default folder color hex value
 
 async function saveFolderColor(folder: UIFolder | null){
   try {
