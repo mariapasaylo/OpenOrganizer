@@ -1,7 +1,7 @@
 /*
  * Authors: Rachel Patella
  * Created: 2025-10-23
- * Updated: 2025-11-25
+ * Updated: 2025-11-27
  *
  * This file contains functions to build calendar events from reminders and retrieve event type details
  *
@@ -62,7 +62,7 @@ export function getEventTypeColor(eventTypes: EventType[], selectedEventTypeID: 
   // Find the event type id in the eventTypes array that matches the user selected dropdown event type id
   const type = eventTypes.find(eventType => eventType.id === selectedEventTypeID);
   // If the event type is found, return the color. Otherwise, return a default color
-  return type ? type.color : '#459dd8';
+  return type ? type.color : '#459DD8';
 }
 
 // Create events on calendar from reminders
@@ -82,14 +82,13 @@ export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventTy
       if (reminder.isRecurring) {
         continue;
       }
-       // Build a single-day calendar event for each saved reminder in the viewable month
-       if (reminder.isSaved) {
+        if (reminder.isSaved) {
         const eventColorNum = getFolder(reminder.folderID)?.colorCode?? -1;
         let eventColor: string;
         if (eventColorNum === -1) {
-          eventColor = getEventTypeColor(eventTypes, reminder.eventType);
+          eventColor = getEventTypeColor(eventTypes, reminder.eventType).toUpperCase();
         } else {
-          eventColor = convertInttoHex(eventColorNum);
+          eventColor = convertInttoHex(eventColorNum).toUpperCase();
         }
        // Get start and end date for the reminder
        const startDateStr = reminder.date;
@@ -112,6 +111,7 @@ export function buildCalendarEvents(reminders: UIReminder[], eventTypes: EventTy
       while (startDate <= endDate) {
         // Local variable for current date string in YYYY-MM-DD format
         const currentDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`;
+       // Build a single-day calendar event for each saved reminder in the viewable month
         events.push({
           id: reminder.itemID,
           title: reminder.title,
